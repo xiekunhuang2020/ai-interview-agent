@@ -32,21 +32,22 @@ spring:
       embedding:
         options:
           model: text-embedding-v2
-  rest:
-    client:
-      read-timeout: 60s
-      connect-timeout: 10s
+    vectorstore:
+      milvus:
+        client:
+          host: ${MILVUS_HOST:localhost}
+          port: ${MILVUS_PORT:19530}
+          username: ${MILVUS_USERNAME:minioadmin}
+          password: ${MILVUS_PASSWORD:minioadmin}
+        database-name: ${MILVUS_DB:default}
+        collection-name: resume_vector_store
+        embedding-dimension: 1024
+        index-type: HNSW
+        metric-type: COSINE
+        initialize-schema: true
 
 server:
   port: 8080
-
-# Milvus Vector Database
-milvus:
-  host: ${MILVUS_HOST:localhost}
-  port: ${MILVUS_PORT:19530}
-  username: ${MILVUS_USERNAME:minioadmin}
-  password: ${MILVUS_PASSWORD:minioadmin}
-  databaseName: ${MILVUS_DB:default}
 
 mybatis-plus:
   mapper-locations: classpath*:/mapper/**/*.xml

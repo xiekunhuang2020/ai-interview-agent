@@ -1,13 +1,12 @@
 package com.xkh.ai.interview.controller;
 
 import com.xkh.ai.interview.service.MockInterviewService;
-import com.xkh.ai.interview.service.ResumeVectorService;
 import com.xkh.ai.interview.service.dto.*;
-import org.apache.tika.Tika;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.ai.document.Document;
 import org.springframework.ai.reader.tika.TikaDocumentReader;
+import org.springframework.ai.vectorstore.VectorStore;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -15,13 +14,7 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Optional;
-import java.util.UUID;
-import org.apache.pdfbox.pdmodel.PDDocument;
-import org.apache.pdfbox.text.PDFTextStripper;
+import java.util.*;
 
 @Controller
 public class MockInterviewController {
@@ -29,11 +22,11 @@ public class MockInterviewController {
     private static final Logger logger = LoggerFactory.getLogger(MockInterviewController.class);
 
     private final MockInterviewService interviewService;
-    private final ResumeVectorService resumeVectorService;
+    private final VectorStore vectorStore;
 
-    public MockInterviewController(MockInterviewService interviewService, ResumeVectorService resumeVectorService) {
+    public MockInterviewController(MockInterviewService interviewService, VectorStore vectorStore) {
         this.interviewService = interviewService;
-        this.resumeVectorService = resumeVectorService;
+        this.vectorStore = vectorStore;
     }
 
     /**
@@ -63,30 +56,29 @@ public class MockInterviewController {
                 return ResponseEntity.badRequest().body(Map.of("error", "文件不能为空"));
             }
 
-
             // 检查文件类型
             String fileName = file.getOriginalFilename();
-            if (fileName == null || (!fileName.endsWith(".pdf") && !fileName.endsWith(".doc") && 
+            if (fileName == null || (!fileName.endsWith(".pdf") && !fileName.endsWith(".doc") &&
                     !fileName.endsWith(".docx") && !fileName.endsWith(".txt"))) {
                 return ResponseEntity.badRequest().body(Map.of("error", "仅支持 PDF、DOC、DOCX 或 TXT 格式的简历文件"));
             }
 
             // 读取文件内容
-
             TikaDocumentReader reader = new TikaDocumentReader(file.getResource());
-            // 读取并返回纯文本
-            String resumeText= reader.read().get(0).getText();
+            String resumeText = reader.read().get(0).getText();
 
             // 调用 AI 服务进行评分
             ResumeScoreResult scoreResult = interviewService.scoreResume(resumeText);
-            
+
             // 保存简历文本到会话（持久化到MySQL + 缓存到Redis + 向量库）
             String resumeId = UUID.randomUUID().toString();
             String originalFileName = file.getOriginalFilename();
             interviewService.saveResume(resumeId, originalFileName, resumeText, scoreResult);
 
-            // 异步向量化写入Milvus（RAG简历知识库）
-            resumeVectorService.upsertResumeVector(resumeId, originalFileName, resumeText);
+            // 写入Spring AI Milvus Vector Store（RAG简历知识库）
+            Document doc = new Document(resumeText, Map.of("resumeId", resumeId, "fileName", originalFileName));
+            vectorStore.add(List.of(doc));
+            logger.info("Resume vectorized and stored, resumeId={}", resumeId);
 
             Map<String, Object> response = new HashMap<>();
             response.put("resumeId", resumeId);
@@ -111,7 +103,7 @@ public class MockInterviewController {
         if (resumeData == null) {
             return "redirect:/upload";
         }
-        
+
         model.addAttribute("resumeId", resumeId);
         model.addAttribute("scoreResult", resumeData.getScoreResult());
         return "analysis";
@@ -139,7 +131,7 @@ public class MockInterviewController {
         if (resumeData == null) {
             return "redirect:/upload";
         }
-        
+
         model.addAttribute("resumeId", resumeId);
         return "interview";
     }
@@ -155,10 +147,10 @@ public class MockInterviewController {
             if (resumeData == null) {
                 return ResponseEntity.notFound().build();
             }
-            
+
             InterviewQuestions questions = interviewService.generateInterviewQuestions(resumeData.getResumeText());
             interviewService.saveQuestions(resumeId, questions);
-            
+
             return ResponseEntity.ok(questions);
         } catch (Exception e) {
             logger.error("生成问题失败", e);
@@ -179,14 +171,14 @@ public class MockInterviewController {
             if (resumeData == null) {
                 return ResponseEntity.notFound().build();
             }
-            
+
             InterviewEvaluation evaluation = interviewService.evaluateAnswers(
-                resumeData.getResumeText(), 
-                resumeData.getQuestions(), 
+                resumeData.getResumeText(),
+                resumeData.getQuestions(),
                 answers
             );
             interviewService.saveEvaluation(resumeId, evaluation);
-            
+
             return ResponseEntity.ok(evaluation);
         } catch (Exception e) {
             logger.error("评估答案失败", e);
@@ -203,7 +195,7 @@ public class MockInterviewController {
         if (resumeData == null) {
             return "redirect:/upload";
         }
-        
+
         model.addAttribute("resumeId", resumeId);
         model.addAttribute("evaluation", resumeData.getEvaluation());
         model.addAttribute("questions", resumeData.getQuestions());
@@ -223,27 +215,12 @@ public class MockInterviewController {
             if (resumeData == null) {
                 return ResponseEntity.notFound().build();
             }
-            resumeVectorService.upsertResumeVector(resumeId, null, resumeData.getResumeText());
+            Document doc = new Document(resumeData.getResumeText(), Map.of("resumeId", resumeId));
+            vectorStore.add(List.of(doc));
             return ResponseEntity.ok(Map.of("success", true, "resumeId", resumeId));
         } catch (Exception e) {
             logger.error("向量化失败, resumeId={}", resumeId, e);
             return ResponseEntity.internalServerError().body(Map.of("error", "向量化失败：" + e.getMessage()));
-        }
-    }
-
-    /**
-     * 根据简历ID检索相似简历
-     */
-    @GetMapping("/api/rag/resume/{resumeId}/similar")
-    @ResponseBody
-    public ResponseEntity<?> findSimilarResumes(@PathVariable String resumeId,
-                                                 @RequestParam(defaultValue = "5") int topK) {
-        try {
-            var results = resumeVectorService.searchByResumeId(resumeId, topK);
-            return ResponseEntity.ok(Map.of("resumeId", resumeId, "results", results));
-        } catch (Exception e) {
-            logger.error("相似检索失败, resumeId={}", resumeId, e);
-            return ResponseEntity.internalServerError().body(Map.of("error", "检索失败：" + e.getMessage()));
         }
     }
 
@@ -259,7 +236,18 @@ public class MockInterviewController {
             if (queryText == null || queryText.isBlank()) {
                 return ResponseEntity.badRequest().body(Map.of("error", "query参数不能为空"));
             }
-            var results = resumeVectorService.searchSimilarResumes(queryText, topK);
+
+            List<Document> docs = vectorStore.similaritySearch(queryText);
+            List<Map<String, Object>> results = new ArrayList<>();
+            int count = 0;
+            for (Document doc : docs) {
+                if (count++ >= topK) break;
+                Map<String, Object> item = new HashMap<>();
+                item.put("resumeId", doc.getMetadata().get("resumeId"));
+                item.put("fileName", doc.getMetadata().get("fileName"));
+                item.put("resumeText", doc.getText());
+                results.add(item);
+            }
             return ResponseEntity.ok(Map.of("query", queryText, "results", results));
         } catch (Exception e) {
             logger.error("文本检索失败", e);
