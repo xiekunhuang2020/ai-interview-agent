@@ -2,9 +2,12 @@ package com.xkh.ai.interview.orchestrator;
 
 import com.xkh.ai.interview.agent.AnswerEvaluationAgent;
 import com.xkh.ai.interview.agent.InterviewQuestionAgent;
+import com.xkh.ai.interview.agent.JobDescriptionMatchAgent;
+import com.xkh.ai.interview.agent.RagInterviewQuestionAgent;
 import com.xkh.ai.interview.agent.ResumeAnalysisAgent;
 import com.xkh.ai.interview.service.dto.InterviewEvaluation;
 import com.xkh.ai.interview.service.dto.InterviewQuestions;
+import com.xkh.ai.interview.service.dto.JobDescriptionMatchResult;
 import com.xkh.ai.interview.service.dto.ResumeData;
 import com.xkh.ai.interview.service.dto.ResumeSearchResult;
 import com.xkh.ai.interview.service.dto.ResumeUploadResult;
@@ -31,19 +34,25 @@ public class InterviewAgentOrchestrator {
     private final ResumeAnalysisAgent resumeAnalysisAgent;
     private final InterviewQuestionAgent interviewQuestionAgent;
     private final AnswerEvaluationAgent answerEvaluationAgent;
+    private final JobDescriptionMatchAgent jobDescriptionMatchAgent;
+    private final RagInterviewQuestionAgent ragInterviewQuestionAgent;
 
     public InterviewAgentOrchestrator(ResumeParseTool resumeParseTool,
                                       ResumeRepositoryTool resumeRepositoryTool,
                                       ResumeVectorTool resumeVectorTool,
                                       ResumeAnalysisAgent resumeAnalysisAgent,
                                       InterviewQuestionAgent interviewQuestionAgent,
-                                      AnswerEvaluationAgent answerEvaluationAgent) {
+                                      AnswerEvaluationAgent answerEvaluationAgent,
+                                      JobDescriptionMatchAgent jobDescriptionMatchAgent,
+                                      RagInterviewQuestionAgent ragInterviewQuestionAgent) {
         this.resumeParseTool = resumeParseTool;
         this.resumeRepositoryTool = resumeRepositoryTool;
         this.resumeVectorTool = resumeVectorTool;
         this.resumeAnalysisAgent = resumeAnalysisAgent;
         this.interviewQuestionAgent = interviewQuestionAgent;
         this.answerEvaluationAgent = answerEvaluationAgent;
+        this.jobDescriptionMatchAgent = jobDescriptionMatchAgent;
+        this.ragInterviewQuestionAgent = ragInterviewQuestionAgent;
     }
 
     public ResumeUploadResult analyzeUploadedResume(MultipartFile file) throws IOException {
@@ -99,9 +108,37 @@ public class InterviewAgentOrchestrator {
         if (StringUtils.isBlank(queryText)) {
             throw new IllegalArgumentException("query参数不能为空");
         }
-        return resumeVectorTool.search(queryText, topK).stream()
+        return resumeVectorTool.search(queryText, normalizeTopK(topK)).stream()
                 .map(this::toSearchResult)
                 .toList();
+    }
+
+    public JobDescriptionMatchResult matchJobDescription(String resumeId, String jobDescription) {
+        if (StringUtils.isBlank(jobDescription)) {
+            throw new IllegalArgumentException("jobDescription不能为空");
+        }
+
+        ResumeData resumeData = requireResume(resumeId);
+        return jobDescriptionMatchAgent.match(resumeData.getResumeText(), jobDescription);
+    }
+
+    public InterviewQuestions generateRagInterviewQuestions(String resumeId, String jobDescription, int topK) {
+        if (StringUtils.isBlank(jobDescription)) {
+            throw new IllegalArgumentException("jobDescription不能为空");
+        }
+
+        ResumeData resumeData = requireResume(resumeId);
+        List<ResumeSearchResult> retrievedResumes = searchResumes(jobDescription, normalizeTopK(topK)).stream()
+                .filter(result -> !resumeId.equals(result.getResumeId()))
+                .toList();
+
+        InterviewQuestions questions = ragInterviewQuestionAgent.generate(
+                resumeData.getResumeText(),
+                jobDescription,
+                retrievedResumes
+        );
+        resumeRepositoryTool.saveQuestions(resumeId, questions);
+        return questions;
     }
 
     private ResumeData requireResume(String resumeId) {
@@ -119,6 +156,10 @@ public class InterviewAgentOrchestrator {
         if (!resumeParseTool.supports(file.getOriginalFilename())) {
             throw new IllegalArgumentException("仅支持 PDF、DOC、DOCX 或 TXT 格式的简历文件");
         }
+    }
+
+    private int normalizeTopK(int topK) {
+        return Math.max(1, Math.min(topK, 20));
     }
 
     private ResumeSearchResult toSearchResult(Document doc) {

@@ -17,10 +17,14 @@ flowchart TD
     O --> T3["ResumeVectorTool"]
     O --> A2["InterviewQuestionAgent"]
     O --> A3["AnswerEvaluationAgent"]
+    O --> A4["JobDescriptionMatchAgent"]
+    O --> A5["RagInterviewQuestionAgent"]
 
     A1 --> LLM["DashScope Chat Model"]
     A2 --> LLM
     A3 --> LLM
+    A4 --> LLM
+    A5 --> LLM
 
     T1 --> Tika["Apache Tika"]
     T2 --> MySQL["MySQL"]
@@ -55,6 +59,8 @@ Agent 负责需要模型推理的任务，目前包含：
 - `ResumeAnalysisAgent`：简历评分、能力画像、优化建议
 - `InterviewQuestionAgent`：基于简历生成个性化面试题
 - `AnswerEvaluationAgent`：结合简历和回答生成面试评估报告
+- `JobDescriptionMatchAgent`：分析候选人简历与目标 JD 的匹配度
+- `RagInterviewQuestionAgent`：结合 JD、候选人简历和向量检索上下文生成岗位定制题
 
 ### Tool
 
@@ -68,11 +74,20 @@ Tool 负责确定性能力，方便后续迁移到函数调用或工具调用框
 
 当前版本采用确定性 Orchestrator 编排 Agent，不做完全自主规划。这样更适合业务系统落地：链路可控、错误边界清楚、易于测试和排查。
 
+## RAG 增强出题流程
+
+```text
+输入岗位 JD
+  -> ResumeVectorTool 使用 JD 检索相似简历片段
+  -> RagInterviewQuestionAgent 组合候选人简历、JD、检索上下文
+  -> 生成岗位定制化问题
+  -> ResumeRepositoryTool 保存问题到当前会话
+```
+
+检索上下文只作为“同类岗位面试深度参考”，不会被当成候选人自己的项目经历。
+
 下一阶段可以继续引入：
 
-- JD 匹配 Agent
-- RAG 增强出题 Agent
 - Prompt 版本管理
 - 大模型调用重试和降级策略
 - JSON Schema 校验
-

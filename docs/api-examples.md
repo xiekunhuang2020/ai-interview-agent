@@ -46,3 +46,22 @@ curl -X POST http://localhost:8080/api/rag/search \
   -d "{\"query\":\"Java 后端，熟悉 Redis 和 Spring Boot，有高并发项目经验\", \"topK\": 5}"
 ```
 
+## JD 匹配分析
+
+```bash
+curl -X POST http://localhost:8080/api/jd/{resumeId}/match \
+  -H "Content-Type: application/json" \
+  -d "{\"jobDescription\":\"Java AI Agent 应用开发工程师，要求 Spring Boot、Spring AI、RAG、Milvus、Redis、工程化经验\"}"
+```
+
+响应会包含总匹配分、匹配等级、已匹配技能、缺失技能、风险点和学习建议。
+
+## RAG 增强岗位定制出题
+
+```bash
+curl -X POST http://localhost:8080/api/interview/{resumeId}/rag-questions \
+  -H "Content-Type: application/json" \
+  -d "{\"jobDescription\":\"Java AI Agent 应用开发工程师，要求 Spring Boot、Spring AI、RAG、Milvus、Redis、工程化经验\", \"topK\": 5}"
+```
+
+该接口会先用 JD 检索向量库中的相似简历片段，再结合候选人简历生成岗位定制化面试题，并保存到当前面试会话。

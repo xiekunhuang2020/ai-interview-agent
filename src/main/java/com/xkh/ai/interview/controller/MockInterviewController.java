@@ -118,6 +118,30 @@ public class MockInterviewController {
     }
 
     /**
+     * 基于目标岗位 JD 生成 RAG 增强面试问题
+     */
+    @PostMapping("/api/interview/{resumeId}/rag-questions")
+    @ResponseBody
+    public ResponseEntity<?> generateRagQuestions(
+            @PathVariable String resumeId,
+            @RequestBody JobDescriptionRequest request) {
+        try {
+            return ResponseEntity.ok(interviewAgentOrchestrator.generateRagInterviewQuestions(
+                    resumeId,
+                    request.getJobDescription(),
+                    parseTopK(request.getTopK())
+            ));
+        } catch (NoSuchElementException e) {
+            return ResponseEntity.notFound().build();
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        } catch (Exception e) {
+            logger.error("生成 RAG 面试问题失败", e);
+            return ResponseEntity.internalServerError().body(Map.of("error", "生成 RAG 面试问题失败：" + e.getMessage()));
+        }
+    }
+
+    /**
      * 提交答案并评估
      */
     @PostMapping("/api/interview/{resumeId}/submit")
@@ -190,6 +214,29 @@ public class MockInterviewController {
         } catch (Exception e) {
             logger.error("文本检索失败", e);
             return ResponseEntity.internalServerError().body(Map.of("error", "检索失败：" + e.getMessage()));
+        }
+    }
+
+    /**
+     * 分析候选人简历与目标岗位 JD 的匹配度
+     */
+    @PostMapping("/api/jd/{resumeId}/match")
+    @ResponseBody
+    public ResponseEntity<?> matchJobDescription(
+            @PathVariable String resumeId,
+            @RequestBody JobDescriptionRequest request) {
+        try {
+            return ResponseEntity.ok(interviewAgentOrchestrator.matchJobDescription(
+                    resumeId,
+                    request.getJobDescription()
+            ));
+        } catch (NoSuchElementException e) {
+            return ResponseEntity.notFound().build();
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        } catch (Exception e) {
+            logger.error("JD 匹配失败", e);
+            return ResponseEntity.internalServerError().body(Map.of("error", "JD 匹配失败：" + e.getMessage()));
         }
     }
 

@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.xkh.ai.interview.service.dto.InterviewEvaluation;
 import com.xkh.ai.interview.service.dto.InterviewQuestions;
+import com.xkh.ai.interview.service.dto.JobDescriptionMatchResult;
 import com.xkh.ai.interview.service.dto.ResumeScoreResult;
 import org.springframework.stereotype.Component;
 
@@ -157,6 +158,53 @@ public class AiJsonResponseParser {
         builder.referenceAnswers(referenceAnswers);
 
         return builder.build();
+    }
+
+    public JobDescriptionMatchResult parseJobDescriptionMatchResult(String json) throws JsonProcessingException {
+        JsonNode rootNode = objectMapper.readTree(cleanJsonResponse(json));
+
+        List<JobDescriptionMatchResult.SkillMatch> matchedSkills = new ArrayList<>();
+        if (rootNode.has("matchedSkills") && rootNode.get("matchedSkills").isArray()) {
+            for (JsonNode item : rootNode.get("matchedSkills")) {
+                JobDescriptionMatchResult.SkillMatch skillMatch = new JobDescriptionMatchResult.SkillMatch();
+                skillMatch.setSkill(item.has("skill") ? item.get("skill").asText() : "");
+                skillMatch.setEvidence(item.has("evidence") ? item.get("evidence").asText() : "");
+                skillMatch.setScore(item.has("score") ? item.get("score").asInt() : 0);
+                matchedSkills.add(skillMatch);
+            }
+        }
+
+        List<JobDescriptionMatchResult.SkillGap> missingSkills = new ArrayList<>();
+        if (rootNode.has("missingSkills") && rootNode.get("missingSkills").isArray()) {
+            for (JsonNode item : rootNode.get("missingSkills")) {
+                JobDescriptionMatchResult.SkillGap skillGap = new JobDescriptionMatchResult.SkillGap();
+                skillGap.setSkill(item.has("skill") ? item.get("skill").asText() : "");
+                skillGap.setImportance(item.has("importance") ? item.get("importance").asText() : "");
+                skillGap.setSuggestion(item.has("suggestion") ? item.get("suggestion").asText() : "");
+                missingSkills.add(skillGap);
+            }
+        }
+
+        return JobDescriptionMatchResult.builder()
+                .overallScore(rootNode.has("overallScore") ? rootNode.get("overallScore").asInt() : 0)
+                .matchLevel(rootNode.has("matchLevel") ? rootNode.get("matchLevel").asText() : "")
+                .summary(rootNode.has("summary") ? rootNode.get("summary").asText() : "")
+                .matchedSkills(matchedSkills)
+                .missingSkills(missingSkills)
+                .interviewFocus(readStringList(rootNode, "interviewFocus"))
+                .risks(readStringList(rootNode, "risks"))
+                .learningSuggestions(readStringList(rootNode, "learningSuggestions"))
+                .build();
+    }
+
+    private List<String> readStringList(JsonNode rootNode, String fieldName) {
+        List<String> values = new ArrayList<>();
+        if (rootNode.has(fieldName) && rootNode.get(fieldName).isArray()) {
+            for (JsonNode item : rootNode.get(fieldName)) {
+                values.add(item.asText());
+            }
+        }
+        return values;
     }
 
     private String cleanJsonResponse(String json) {
