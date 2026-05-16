@@ -13,6 +13,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Duration;
 import java.util.List;
@@ -36,6 +37,7 @@ public class ResumeRepositoryTool {
         this.objectMapper = objectMapper;
     }
 
+    @Transactional
     public void saveAnalyzedResume(String resumeId, String originalFileName, String resumeText, ResumeScoreResult scoreResult) {
         try {
             ResumeInfo entity = new ResumeInfo();
@@ -56,6 +58,7 @@ public class ResumeRepositoryTool {
         }
     }
 
+    @Transactional
     public void saveQuestions(String resumeId, InterviewQuestions questions) {
         try {
             ResumeInfo entity = resumeInfoMapper.selectById(resumeId);
@@ -71,6 +74,7 @@ public class ResumeRepositoryTool {
         }
     }
 
+    @Transactional
     public void saveEvaluation(String resumeId, InterviewEvaluation evaluation) {
         try {
             ResumeInfo entity = resumeInfoMapper.selectById(resumeId);

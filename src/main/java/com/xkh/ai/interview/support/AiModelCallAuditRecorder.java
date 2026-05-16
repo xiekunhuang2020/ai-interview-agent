@@ -6,6 +6,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.slf4j.MDC;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
 
 @Component
 public class AiModelCallAuditRecorder {
@@ -19,6 +20,7 @@ public class AiModelCallAuditRecorder {
         this.aiModelCallLogMapper = aiModelCallLogMapper;
     }
 
+    @Transactional
     public void record(String operationName,
                        String promptVersion,
                        boolean success,

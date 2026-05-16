@@ -116,6 +116,31 @@ class AiJsonResponseParserTests {
     }
 
     @Test
+    void normalizesResumeScoreDetailOutsideAllowedRange() throws Exception {
+        String response = """
+                {
+                  "overallScore": 82,
+                  "scoreDetail": {
+                    "projectScore": 45,
+                    "skillMatchScore": 18,
+                    "contentScore": 13,
+                    "structureScore": 20,
+                    "expressionScore": 12
+                  },
+                  "summary": "分项分数有轻微越界，但结构有效。",
+                  "strengths": [],
+                  "suggestions": []
+                }
+                """;
+
+        ResumeScoreResult result = parser.parseResumeScoreResult(response);
+
+        assertEquals(40, result.getScoreDetail().getProjectScore());
+        assertEquals(15, result.getScoreDetail().getStructureScore());
+        assertEquals(10, result.getScoreDetail().getExpressionScore());
+    }
+
+    @Test
     void rejectsInterviewQuestionWithIllegalType() {
         String response = """
                 {

@@ -7,6 +7,8 @@ import com.xkh.ai.interview.service.dto.InterviewEvaluation;
 import com.xkh.ai.interview.service.dto.InterviewQuestions;
 import com.xkh.ai.interview.service.dto.JobDescriptionMatchResult;
 import com.xkh.ai.interview.service.dto.ResumeScoreResult;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
 import java.util.ArrayList;
@@ -17,6 +19,8 @@ import java.util.UUID;
 
 @Component
 public class AiJsonResponseParser {
+
+    private static final Logger logger = LoggerFactory.getLogger(AiJsonResponseParser.class);
 
     private static final Set<String> QUESTION_TYPES = Set.of(
             "PROJECT", "JAVA_BASIC", "JAVA_COLLECTION", "JAVA_CONCURRENT",
@@ -44,11 +48,16 @@ public class AiJsonResponseParser {
         ResumeScoreResult.ScoreDetail scoreDetail = new ResumeScoreResult.ScoreDetail();
         if (rootNode.has("scoreDetail")) {
             JsonNode detailNode = rootNode.get("scoreDetail");
-            scoreDetail.setProjectScore(detailNode.has("projectScore") ? detailNode.get("projectScore").asInt() : 0);
-            scoreDetail.setSkillMatchScore(detailNode.has("skillMatchScore") ? detailNode.get("skillMatchScore").asInt() : 0);
-            scoreDetail.setContentScore(detailNode.has("contentScore") ? detailNode.get("contentScore").asInt() : 0);
-            scoreDetail.setStructureScore(detailNode.has("structureScore") ? detailNode.get("structureScore").asInt() : 0);
-            scoreDetail.setExpressionScore(detailNode.has("expressionScore") ? detailNode.get("expressionScore").asInt() : 0);
+            scoreDetail.setProjectScore(readObjectClampedInteger(detailNode, "resume-score",
+                    "scoreDetail", "projectScore", 0, 40));
+            scoreDetail.setSkillMatchScore(readObjectClampedInteger(detailNode, "resume-score",
+                    "scoreDetail", "skillMatchScore", 0, 20));
+            scoreDetail.setContentScore(readObjectClampedInteger(detailNode, "resume-score",
+                    "scoreDetail", "contentScore", 0, 15));
+            scoreDetail.setStructureScore(readObjectClampedInteger(detailNode, "resume-score",
+                    "scoreDetail", "structureScore", 0, 15));
+            scoreDetail.setExpressionScore(readObjectClampedInteger(detailNode, "resume-score",
+                    "scoreDetail", "expressionScore", 0, 10));
         }
 
         List<String> strengths = new ArrayList<>();
@@ -245,11 +254,11 @@ public class AiJsonResponseParser {
                 "projectScore", "skillMatchScore", "contentScore", "structureScore", "expressionScore");
         requireOnlyKnownFields(scoreDetail, schemaName, "scoreDetail",
                 "projectScore", "skillMatchScore", "contentScore", "structureScore", "expressionScore");
-        requireObjectIntegerRange(scoreDetail, schemaName, "scoreDetail", "projectScore", 0, 40);
-        requireObjectIntegerRange(scoreDetail, schemaName, "scoreDetail", "skillMatchScore", 0, 20);
-        requireObjectIntegerRange(scoreDetail, schemaName, "scoreDetail", "contentScore", 0, 15);
-        requireObjectIntegerRange(scoreDetail, schemaName, "scoreDetail", "structureScore", 0, 15);
-        requireObjectIntegerRange(scoreDetail, schemaName, "scoreDetail", "expressionScore", 0, 10);
+        requireObjectInteger(scoreDetail, schemaName, "scoreDetail", "projectScore");
+        requireObjectInteger(scoreDetail, schemaName, "scoreDetail", "skillMatchScore");
+        requireObjectInteger(scoreDetail, schemaName, "scoreDetail", "contentScore");
+        requireObjectInteger(scoreDetail, schemaName, "scoreDetail", "structureScore");
+        requireObjectInteger(scoreDetail, schemaName, "scoreDetail", "expressionScore");
 
         JsonNode suggestions = rootNode.get("suggestions");
         for (int i = 0; i < suggestions.size(); i++) {
@@ -463,6 +472,12 @@ public class AiJsonResponseParser {
         }
     }
 
+    private void requireObjectInteger(JsonNode objectNode, String schemaName, String path, String fieldName) {
+        if (!objectNode.has(fieldName) || !objectNode.get(fieldName).canConvertToInt()) {
+            throw new AiStructuredOutputException("AI 输出不符合 " + schemaName + " 结构：" + path + "." + fieldName + " 必须是整数");
+        }
+    }
+
     private void requireObjectIntegerRange(JsonNode objectNode, String schemaName, String path, String fieldName, int min, int max) {
         if (!objectNode.has(fieldName) || !objectNode.get(fieldName).canConvertToInt()) {
             throw new AiStructuredOutputException("AI 输出不符合 " + schemaName + " 结构：" + path + "." + fieldName + " 必须是整数");
@@ -500,6 +515,23 @@ public class AiJsonResponseParser {
                 throw new AiStructuredOutputException("AI 输出不符合 " + schemaName + " 结构：" + path + " 包含未知字段 " + fieldName);
             }
         });
+    }
+
+    private int readObjectClampedInteger(JsonNode objectNode,
+                                         String schemaName,
+                                         String path,
+                                         String fieldName,
+                                         int min,
+                                         int max) {
+        int value = objectNode.get(fieldName).asInt();
+        if (value >= min && value <= max) {
+            return value;
+        }
+
+        int clamped = Math.max(min, Math.min(max, value));
+        logger.warn("AI score field out of range, schema={}, path={}.{}, value={}, normalized={}, min={}, max={}",
+                schemaName, path, fieldName, value, clamped, min, max);
+        return clamped;
     }
 
     private String cleanJsonResponse(String json) {
