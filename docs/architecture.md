@@ -26,6 +26,7 @@ flowchart TD
     A4 --> INV
     A5 --> INV
     INV --> LLM["DashScope Chat Model"]
+    INV --> AUDIT["ai_model_call_log"]
 
     T1 --> Tika["Apache Tika"]
     T2 --> MySQL["MySQL"]
@@ -76,6 +77,34 @@ Agent 负责需要模型推理的任务，目前包含：
 - traceId 贯穿 HTTP 请求和模型调用日志
 - 模型调用失败映射为 502 响应
 - 结构化输出字段校验
+- Prompt 版本记录
+- 调用审计落库
+
+### Prompt Version
+
+`PromptVersionRegistry` 从 `application.yml` 读取 operation 到 Prompt 版本的映射，例如：
+
+```text
+resume-analysis -> resume-analysis-v2026-05-17-01
+jd-match -> jd-match-v2026-05-17-01
+```
+
+这样每次模型调用都能回溯到具体 Prompt 版本，方便比较不同版本的稳定性和效果。
+
+### Call Audit
+
+`ai_model_call_log` 记录模型调用审计信息：
+
+- traceId
+- operationName
+- promptVersion
+- success
+- attemptCount
+- latencyMs
+- errorMessage
+- createTime
+
+审计写入失败不会影响主业务流程。
 
 ### Tool
 
@@ -103,6 +132,6 @@ Tool 负责确定性能力，方便后续迁移到函数调用或工具调用框
 
 下一阶段可以继续引入：
 
-- Prompt 版本管理
 - 模型降级策略
 - 更严格的 JSON Schema 校验
+- Prompt 效果评估看板

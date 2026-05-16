@@ -3,6 +3,7 @@ package com.xkh.ai.interview.controller;
 import com.xkh.ai.interview.orchestrator.InterviewAgentOrchestrator;
 import com.xkh.ai.interview.service.dto.*;
 import com.xkh.ai.interview.support.AiModelCallException;
+import com.xkh.ai.interview.support.AiModelCallAuditQueryService;
 import com.xkh.ai.interview.support.AiStructuredOutputException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -22,9 +23,12 @@ public class MockInterviewController {
     private static final Logger logger = LoggerFactory.getLogger(MockInterviewController.class);
 
     private final InterviewAgentOrchestrator interviewAgentOrchestrator;
+    private final AiModelCallAuditQueryService auditQueryService;
 
-    public MockInterviewController(InterviewAgentOrchestrator interviewAgentOrchestrator) {
+    public MockInterviewController(InterviewAgentOrchestrator interviewAgentOrchestrator,
+                                   AiModelCallAuditQueryService auditQueryService) {
         this.interviewAgentOrchestrator = interviewAgentOrchestrator;
+        this.auditQueryService = auditQueryService;
     }
 
     /**
@@ -251,6 +255,18 @@ public class MockInterviewController {
             logger.error("JD 匹配失败", e);
             return ResponseEntity.internalServerError().body(Map.of("error", "JD 匹配失败：" + e.getMessage()));
         }
+    }
+
+    /**
+     * 查询最近的 AI 模型调用审计记录
+     */
+    @GetMapping("/api/audit/model-calls")
+    @ResponseBody
+    public ResponseEntity<?> listModelCallAudits(
+            @RequestParam(required = false) String traceId,
+            @RequestParam(required = false) String operationName,
+            @RequestParam(defaultValue = "20") int limit) {
+        return ResponseEntity.ok(auditQueryService.listRecent(traceId, operationName, limit));
     }
 
     private int parseTopK(Object topK) {

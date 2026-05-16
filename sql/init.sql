@@ -23,3 +23,19 @@ CREATE TABLE IF NOT EXISTS resume_info (
     deleted             TINYINT         DEFAULT 0 COMMENT '逻辑删除标志 0-未删除 1-已删除',
     INDEX idx_create_time (create_time)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='简历信息表';
+
+-- AI 模型调用审计表
+CREATE TABLE IF NOT EXISTS ai_model_call_log (
+    id              BIGINT          PRIMARY KEY AUTO_INCREMENT COMMENT '主键ID',
+    trace_id        VARCHAR(64)     DEFAULT NULL COMMENT '请求追踪ID',
+    operation_name  VARCHAR(128)    NOT NULL COMMENT '模型调用场景',
+    prompt_version  VARCHAR(128)    NOT NULL COMMENT 'Prompt版本',
+    success         TINYINT         NOT NULL DEFAULT 0 COMMENT '是否成功 0-失败 1-成功',
+    attempt_count   INT             NOT NULL DEFAULT 1 COMMENT '实际尝试次数',
+    latency_ms      BIGINT          NOT NULL DEFAULT 0 COMMENT '总耗时毫秒',
+    error_message   VARCHAR(1024)   DEFAULT NULL COMMENT '错误信息',
+    create_time     DATETIME        DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    INDEX idx_trace_id (trace_id),
+    INDEX idx_operation_create_time (operation_name, create_time),
+    INDEX idx_success_create_time (success, create_time)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='AI模型调用审计表';

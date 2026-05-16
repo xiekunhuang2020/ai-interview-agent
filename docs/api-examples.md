@@ -68,3 +68,15 @@ curl -X POST http://localhost:8080/api/interview/{resumeId}/rag-questions \
 ```
 
 该接口会先用 JD 检索向量库中的相似简历片段，再结合候选人简历生成岗位定制化面试题，并保存到当前面试会话。
+
+## 查询模型调用审计
+
+```bash
+curl "http://localhost:8080/api/audit/model-calls?traceId=demo-trace-001&limit=20"
+```
+
+也可以按 operation 查询：
+
+```bash
+curl "http://localhost:8080/api/audit/model-calls?operationName=jd-match&limit=20"
+```

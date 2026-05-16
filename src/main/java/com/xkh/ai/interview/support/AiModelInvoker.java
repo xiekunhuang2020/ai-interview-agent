@@ -28,16 +28,22 @@ public class AiModelInvoker {
 
     private final DashScopeChatModel chatModel;
     private final ExecutorService executorService;
+    private final PromptVersionRegistry promptVersionRegistry;
+    private final AiModelCallAuditRecorder auditRecorder;
     private final int maxAttempts;
     private final Duration timeout;
     private final Duration backoff;
 
     public AiModelInvoker(DashScopeChatModel chatModel,
+                          PromptVersionRegistry promptVersionRegistry,
+                          AiModelCallAuditRecorder auditRecorder,
                           @Value("${ai-interview.model.max-attempts:3}") int maxAttempts,
                           @Value("${ai-interview.model.timeout-seconds:60}") long timeoutSeconds,
                           @Value("${ai-interview.model.backoff-millis:800}") long backoffMillis,
                           @Value("${ai-interview.model.executor-pool-size:4}") int executorPoolSize) {
         this.chatModel = chatModel;
+        this.promptVersionRegistry = promptVersionRegistry;
+        this.auditRecorder = auditRecorder;
         this.maxAttempts = Math.max(1, maxAttempts);
         this.timeout = Duration.ofSeconds(Math.max(1, timeoutSeconds));
         this.backoff = Duration.ofMillis(Math.max(0, backoffMillis));
@@ -45,28 +51,41 @@ public class AiModelInvoker {
     }
 
     public String call(String operationName, List<Message> messages, double temperature) {
+        String promptVersion = promptVersionRegistry.versionOf(operationName);
         Prompt prompt = new Prompt(messages, DashScopeChatOptions.builder()
                 .temperature(temperature)
                 .build());
 
+        long totalStart = System.currentTimeMillis();
         RuntimeException lastError = null;
         for (int attempt = 1; attempt <= maxAttempts; attempt++) {
             long start = System.currentTimeMillis();
             try {
                 String text = callOnce(prompt);
-                logger.info("AI model call succeeded, operation={}, attempt={}, costMs={}",
-                        operationName, attempt, System.currentTimeMillis() - start);
+                long totalCostMs = System.currentTimeMillis() - totalStart;
+                logger.info("AI model call succeeded, operation={}, promptVersion={}, attempt={}, attemptCostMs={}, totalCostMs={}",
+                        operationName, promptVersion, attempt, System.currentTimeMillis() - start, totalCostMs);
+                auditRecorder.record(operationName, promptVersion, true, attempt, totalCostMs, null);
                 return text;
             } catch (RuntimeException e) {
                 lastError = e;
-                logger.warn("AI model call failed, operation={}, attempt={}, maxAttempts={}, costMs={}, error={}",
-                        operationName, attempt, maxAttempts, System.currentTimeMillis() - start, e.getMessage());
+                logger.warn("AI model call failed, operation={}, promptVersion={}, attempt={}, maxAttempts={}, costMs={}, error={}",
+                        operationName, promptVersion, attempt, maxAttempts, System.currentTimeMillis() - start, e.getMessage());
                 if (attempt < maxAttempts) {
-                    sleepBeforeRetry(attempt);
+                    try {
+                        sleepBeforeRetry(attempt);
+                    } catch (RuntimeException retryError) {
+                        long totalCostMs = System.currentTimeMillis() - totalStart;
+                        auditRecorder.record(operationName, promptVersion, false, attempt, totalCostMs, retryError.getMessage());
+                        throw retryError;
+                    }
                 }
             }
         }
 
+        long totalCostMs = System.currentTimeMillis() - totalStart;
+        String errorMessage = lastError == null ? "unknown error" : lastError.getMessage();
+        auditRecorder.record(operationName, promptVersion, false, maxAttempts, totalCostMs, errorMessage);
         throw new AiModelCallException("AI 模型调用失败，operation=" + operationName, lastError);
     }
 
