@@ -92,4 +92,83 @@ class AiJsonResponseParserTests {
         assertThrows(AiStructuredOutputException.class,
                 () -> parser.parseInterviewQuestions(response));
     }
+
+    @Test
+    void rejectsResumeScoreOutsideAllowedRange() {
+        String response = """
+                {
+                  "overallScore": 101,
+                  "scoreDetail": {
+                    "projectScore": 32,
+                    "skillMatchScore": 18,
+                    "contentScore": 13,
+                    "structureScore": 11,
+                    "expressionScore": 8
+                  },
+                  "summary": "分数越界",
+                  "strengths": [],
+                  "suggestions": []
+                }
+                """;
+
+        assertThrows(AiStructuredOutputException.class,
+                () -> parser.parseResumeScoreResult(response));
+    }
+
+    @Test
+    void rejectsInterviewQuestionWithIllegalType() {
+        String response = """
+                {
+                  "questions": [
+                    {
+                      "question": "请介绍你的项目。",
+                      "type": "GO",
+                      "category": "项目经历"
+                    }
+                  ]
+                }
+                """;
+
+        assertThrows(AiStructuredOutputException.class,
+                () -> parser.parseInterviewQuestions(response));
+    }
+
+    @Test
+    void rejectsJobDescriptionMatchWithIllegalMatchLevel() {
+        String response = """
+                {
+                  "overallScore": 78,
+                  "matchLevel": "非常匹配",
+                  "summary": "非法枚举",
+                  "matchedSkills": [],
+                  "missingSkills": [],
+                  "interviewFocus": [],
+                  "risks": [],
+                  "learningSuggestions": []
+                }
+                """;
+
+        assertThrows(AiStructuredOutputException.class,
+                () -> parser.parseJobDescriptionMatchResult(response));
+    }
+
+    @Test
+    void rejectsInterviewEvaluationWithWrongArrayItemType() {
+        String response = """
+                {
+                  "sessionId": "s1",
+                  "totalQuestions": 1,
+                  "overallScore": 80,
+                  "categoryScores": ["bad-item"],
+                  "questionDetails": [],
+                  "overallFeedback": "ok",
+                  "strengths": [],
+                  "improvements": [],
+                  "referenceAnswers": []
+                }
+                """;
+
+        assertThrows(AiStructuredOutputException.class,
+                () -> parser.parseInterviewEvaluation(response));
+    }
 }
