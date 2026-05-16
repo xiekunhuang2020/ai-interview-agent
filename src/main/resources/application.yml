@@ -53,6 +53,7 @@ server:
 
 ai-interview:
   model:
+    fallback-enabled: ${AI_MODEL_FALLBACK_ENABLED:true}
     max-attempts: ${AI_MODEL_MAX_ATTEMPTS:3}
     timeout-seconds: ${AI_MODEL_TIMEOUT_SECONDS:60}
     backoff-millis: ${AI_MODEL_BACKOFF_MILLIS:800}

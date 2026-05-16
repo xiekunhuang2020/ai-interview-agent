@@ -80,3 +80,19 @@ curl "http://localhost:8080/api/audit/model-calls?traceId=demo-trace-001&limit=2
 ```bash
 curl "http://localhost:8080/api/audit/model-calls?operationName=jd-match&limit=20"
 ```
+
+## 查询 Prompt 指标
+
+```bash
+curl "http://localhost:8080/api/audit/prompt-metrics?operationName=jd-match&limit=1000"
+```
+
+响应会按 `operationName + promptVersion` 聚合模型调用总数、成功率、降级率、平均耗时、最大耗时和平均尝试次数。
+
+## 旧库迁移
+
+如果本地数据库是在第五轮改造前创建的，需要手动执行：
+
+```bash
+mysql -uroot -p ai_interview < sql/migration-v2-ai-model-call-log.sql
+```

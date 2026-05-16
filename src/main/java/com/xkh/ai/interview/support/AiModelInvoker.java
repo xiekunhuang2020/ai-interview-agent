@@ -30,6 +30,8 @@ public class AiModelInvoker {
     private final ExecutorService executorService;
     private final PromptVersionRegistry promptVersionRegistry;
     private final AiModelCallAuditRecorder auditRecorder;
+    private final AiModelFallbackResponseFactory fallbackResponseFactory;
+    private final boolean fallbackEnabled;
     private final int maxAttempts;
     private final Duration timeout;
     private final Duration backoff;
@@ -37,6 +39,8 @@ public class AiModelInvoker {
     public AiModelInvoker(DashScopeChatModel chatModel,
                           PromptVersionRegistry promptVersionRegistry,
                           AiModelCallAuditRecorder auditRecorder,
+                          AiModelFallbackResponseFactory fallbackResponseFactory,
+                          @Value("${ai-interview.model.fallback-enabled:true}") boolean fallbackEnabled,
                           @Value("${ai-interview.model.max-attempts:3}") int maxAttempts,
                           @Value("${ai-interview.model.timeout-seconds:60}") long timeoutSeconds,
                           @Value("${ai-interview.model.backoff-millis:800}") long backoffMillis,
@@ -44,6 +48,8 @@ public class AiModelInvoker {
         this.chatModel = chatModel;
         this.promptVersionRegistry = promptVersionRegistry;
         this.auditRecorder = auditRecorder;
+        this.fallbackResponseFactory = fallbackResponseFactory;
+        this.fallbackEnabled = fallbackEnabled;
         this.maxAttempts = Math.max(1, maxAttempts);
         this.timeout = Duration.ofSeconds(Math.max(1, timeoutSeconds));
         this.backoff = Duration.ofMillis(Math.max(0, backoffMillis));
@@ -65,7 +71,7 @@ public class AiModelInvoker {
                 long totalCostMs = System.currentTimeMillis() - totalStart;
                 logger.info("AI model call succeeded, operation={}, promptVersion={}, attempt={}, attemptCostMs={}, totalCostMs={}",
                         operationName, promptVersion, attempt, System.currentTimeMillis() - start, totalCostMs);
-                auditRecorder.record(operationName, promptVersion, true, attempt, totalCostMs, null);
+                auditRecorder.record(operationName, promptVersion, true, false, attempt, totalCostMs, null);
                 return text;
             } catch (RuntimeException e) {
                 lastError = e;
@@ -76,7 +82,7 @@ public class AiModelInvoker {
                         sleepBeforeRetry(attempt);
                     } catch (RuntimeException retryError) {
                         long totalCostMs = System.currentTimeMillis() - totalStart;
-                        auditRecorder.record(operationName, promptVersion, false, attempt, totalCostMs, retryError.getMessage());
+                        auditRecorder.record(operationName, promptVersion, false, false, attempt, totalCostMs, retryError.getMessage());
                         throw retryError;
                     }
                 }
@@ -85,7 +91,17 @@ public class AiModelInvoker {
 
         long totalCostMs = System.currentTimeMillis() - totalStart;
         String errorMessage = lastError == null ? "unknown error" : lastError.getMessage();
-        auditRecorder.record(operationName, promptVersion, false, maxAttempts, totalCostMs, errorMessage);
+        if (fallbackEnabled) {
+            var fallbackResponse = fallbackResponseFactory.fallbackFor(operationName);
+            if (fallbackResponse.isPresent()) {
+                logger.warn("AI model call degraded with fallback response, operation={}, promptVersion={}, attempts={}, totalCostMs={}",
+                        operationName, promptVersion, maxAttempts, totalCostMs);
+                auditRecorder.record(operationName, promptVersion, false, true, maxAttempts, totalCostMs, errorMessage);
+                return fallbackResponse.get();
+            }
+        }
+
+        auditRecorder.record(operationName, promptVersion, false, false, maxAttempts, totalCostMs, errorMessage);
         throw new AiModelCallException("AI 模型调用失败，operation=" + operationName, lastError);
     }
 

@@ -75,10 +75,11 @@ Agent 负责需要模型推理的任务，目前包含：
 - 线性退避等待
 - 调用耗时日志
 - traceId 贯穿 HTTP 请求和模型调用日志
-- 模型调用失败映射为 502 响应
+- 无可用降级时将模型调用失败映射为 502 响应
 - 结构化输出字段校验
 - Prompt 版本记录
 - 调用审计落库
+- 最终失败后的显式降级结果
 
 ### Prompt Version
 
@@ -99,12 +100,28 @@ jd-match -> jd-match-v2026-05-17-01
 - operationName
 - promptVersion
 - success
+- fallbackUsed
 - attemptCount
 - latencyMs
 - errorMessage
 - createTime
 
 审计写入失败不会影响主业务流程。
+
+### Fallback
+
+`AiModelFallbackResponseFactory` 为每个 operation 提供结构合法的降级 JSON。模型最终失败时，如果 `AI_MODEL_FALLBACK_ENABLED=true`，调用器会返回降级结果，并在审计中记录：
+
+```text
+success = 0
+fallbackUsed = 1
+```
+
+这表示“真实模型调用失败，但业务使用了降级响应继续执行”。
+
+### Prompt Metrics
+
+`/api/audit/prompt-metrics` 基于最近的模型调用审计记录，按 operation 和 Prompt 版本聚合 totalCalls、successRate、fallbackRate、avgLatencyMs、maxLatencyMs 和 avgAttemptCount。
 
 ### Tool
 
@@ -132,6 +149,5 @@ Tool 负责确定性能力，方便后续迁移到函数调用或工具调用框
 
 下一阶段可以继续引入：
 
-- 模型降级策略
 - 更严格的 JSON Schema 校验
 - Prompt 效果评估看板

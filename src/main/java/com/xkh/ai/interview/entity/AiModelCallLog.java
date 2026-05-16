@@ -23,6 +23,8 @@ public class AiModelCallLog {
 
     private Integer success;
 
+    private Integer fallbackUsed;
+
     private Integer attemptCount;
 
     private Long latencyMs;

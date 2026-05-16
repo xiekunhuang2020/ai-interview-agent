@@ -22,6 +22,7 @@ public class AiModelCallAuditRecorder {
     public void record(String operationName,
                        String promptVersion,
                        boolean success,
+                       boolean fallbackUsed,
                        int attemptCount,
                        long latencyMs,
                        String errorMessage) {
@@ -31,6 +32,7 @@ public class AiModelCallAuditRecorder {
             log.setOperationName(operationName);
             log.setPromptVersion(promptVersion);
             log.setSuccess(success ? 1 : 0);
+            log.setFallbackUsed(fallbackUsed ? 1 : 0);
             log.setAttemptCount(attemptCount);
             log.setLatencyMs(latencyMs);
             log.setErrorMessage(truncate(errorMessage));

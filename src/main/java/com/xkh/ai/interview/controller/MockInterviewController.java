@@ -269,6 +269,18 @@ public class MockInterviewController {
         return ResponseEntity.ok(auditQueryService.listRecent(traceId, operationName, limit));
     }
 
+    /**
+     * 查询 Prompt 版本维度的模型调用指标
+     */
+    @GetMapping("/api/audit/prompt-metrics")
+    @ResponseBody
+    public ResponseEntity<?> listPromptMetrics(
+            @RequestParam(required = false) String operationName,
+            @RequestParam(required = false) String promptVersion,
+            @RequestParam(defaultValue = "1000") int limit) {
+        return ResponseEntity.ok(auditQueryService.listPromptMetrics(operationName, promptVersion, limit));
+    }
+
     private int parseTopK(Object topK) {
         if (topK instanceof Number number) {
             return Math.max(1, Math.min(number.intValue(), 20));
