@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>模拟面试器 - 首页</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Microsoft YaHei', 'PingFang SC', Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            max-width: 800px;
+            width: 100%;
+            padding: 60px 40px;
+            text-align: center;
+        }
+
+        h1 {
+            color: #333;
+            font-size: 36px;
+            margin-bottom: 20px;
+            font-weight: 600;
+        }
+
+        .subtitle {
+            color: #666;
+            font-size: 18px;
+            margin-bottom: 40px;
+            line-height: 1.6;
+        }
+
+        .features {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 30px;
+            margin-bottom: 50px;
+        }
+
+        .feature-item {
+            padding: 30px 20px;
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            border-radius: 15px;
+            transition: transform 0.3s ease;
+        }
+
+        .feature-item:hover {
+            transform: translateY(-5px);
+        }
+
+        .feature-icon {
+            font-size: 48px;
+            margin-bottom: 15px;
+        }
+
+        .feature-title {
+            font-size: 18px;
+            color: #333;
+            margin-bottom: 10px;
+            font-weight: 600;
+        }
+
+        .feature-desc {
+            font-size: 14px;
+            color: #666;
+            line-height: 1.5;
+        }
+
+        .btn {
+            display: inline-block;
+            padding: 15px 50px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            text-decoration: none;
+            border-radius: 50px;
+            font-size: 18px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            border: none;
+            cursor: pointer;
+            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 15px 30px rgba(102, 126, 234, 0.4);
+        }
+
+        .steps {
+            text-align: left;
+            margin-top: 40px;
+            padding: 30px;
+            background: #f8f9fa;
+            border-radius: 15px;
+        }
+
+        .step {
+            display: flex;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .step-number {
+            width: 40px;
+            height: 40px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 18px;
+            margin-right: 20px;
+            flex-shrink: 0;
+        }
+
+        .step-text {
+            color: #333;
+            font-size: 16px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎯 模拟面试器</h1>
+        <p class="subtitle">AI 驱动的专业面试模拟平台<br>智能简历评分 + 个性化面试问题 + 深度答案评估</p>
+
+        <div class="features">
+            <div class="feature-item">
+                <div class="feature-icon">📄</div>
+                <div class="feature-title">智能简历评分</div>
+                <div class="feature-desc">多维度深度分析，提供专业改进建议</div>
+            </div>
+            <div class="feature-item">
+                <div class="feature-icon">🎤</div>
+                <div class="feature-title">模拟面试</div>
+                <div class="feature-desc">基于简历定制个性化面试问题</div>
+            </div>
+            <div class="feature-item">
+                <div class="feature-icon">📊</div>
+                <div class="feature-title">答案评估</div>
+                <div class="feature-desc">专业评分 + 详细反馈 + 参考答案</div>
+            </div>
+        </div>
+
+        <a href="/upload" class="btn">开始面试准备</a>
+
+        <div class="steps">
+            <h3 style="margin-bottom: 20px; color: #333;">使用流程</h3>
+            <div class="step">
+                <div class="step-number">1</div>
+                <div class="step-text">上传简历 - AI 智能评分并提供优化建议</div>
+            </div>
+            <div class="step">
+                <div class="step-number">2</div>
+                <div class="step-text">查看分析 - 详细了解简历优势与不足</div>
+            </div>
+            <div class="step">
+                <div class="step-number">3</div>
+                <div class="step-text">模拟面试 - 回答针对性面试问题</div>
+            </div>
+            <div class="step">
+                <div class="step-number">4</div>
+                <div class="step-text">获得评估 - 查看专业评分和参考答案</div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

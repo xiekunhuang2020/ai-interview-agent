@@ -1,0 +1,356 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>模拟面试 - 模拟面试器</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Microsoft YaHei', 'PingFang SC', Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+
+        .header {
+            background: white;
+            border-radius: 20px;
+            padding: 40px;
+            margin-bottom: 20px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+            text-align: center;
+        }
+
+        h1 {
+            color: #333;
+            font-size: 32px;
+            margin-bottom: 10px;
+        }
+
+        .subtitle {
+            color: #666;
+            font-size: 16px;
+            margin-top: 10px;
+        }
+
+        .card {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            margin-bottom: 20px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+        }
+
+        .question-card {
+            border-left: 5px solid #667eea;
+        }
+
+        .question-type {
+            display: inline-block;
+            padding: 5px 15px;
+            background: #667eea;
+            color: white;
+            border-radius: 20px;
+            font-size: 14px;
+            margin-bottom: 15px;
+        }
+
+        .question-text {
+            font-size: 18px;
+            color: #333;
+            line-height: 1.6;
+            margin-bottom: 20px;
+            font-weight: 500;
+        }
+
+        .answer-textarea {
+            width: 100%;
+            min-height: 150px;
+            padding: 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            font-size: 16px;
+            font-family: inherit;
+            resize: vertical;
+            transition: border-color 0.3s ease;
+        }
+
+        .answer-textarea:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .btn-container {
+            text-align: center;
+            margin-top: 30px;
+        }
+
+        .btn {
+            display: inline-block;
+            padding: 15px 50px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            text-decoration: none;
+            border-radius: 50px;
+            font-size: 18px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            border: none;
+            cursor: pointer;
+            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
+            margin: 0 10px;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 15px 30px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-secondary {
+            background: linear-gradient(135deg, #6c757d 0%, #495057 100%);
+        }
+
+        .loading {
+            text-align: center;
+            padding: 60px;
+        }
+
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            width: 60px;
+            height: 60px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .progress-info {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 10px;
+        }
+
+        .progress-text {
+            font-size: 16px;
+            color: #666;
+        }
+
+        .question-counter {
+            font-weight: bold;
+            color: #667eea;
+        }
+
+        .tips {
+            background: #e8f4ff;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            border-left: 4px solid #667eea;
+        }
+
+        .tips-title {
+            font-weight: bold;
+            color: #667eea;
+            margin-bottom: 10px;
+        }
+
+        .tips-list {
+            list-style: disc;
+            padding-left: 20px;
+            color: #555;
+        }
+
+        .tips-list li {
+            margin-bottom: 8px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🎤 模拟面试</h1>
+            <div class="subtitle">基于您的简历定制的专业面试问题</div>
+        </div>
+
+        <div class="tips">
+            <div class="tips-title">💡 面试小贴士</div>
+            <ul class="tips-list">
+                <li>回答问题时尽量采用 STAR 法则（情境、任务、行动、结果）</li>
+                <li>结合具体项目经验，突出技术亮点和解决问题的能力</li>
+                <li>表达清晰有条理，展现逻辑思维和技术深度</li>
+                <li>遇到不会的问题可以诚实说明，但可以尝试给出思路</li>
+            </ul>
+        </div>
+
+        <div id="questionsContainer">
+            <!-- 问题将通过 JavaScript 动态加载 -->
+            <div class="loading">
+                <div class="spinner"></div>
+                <div>正在生成面试问题...</div>
+            </div>
+        </div>
+
+        <div class="btn-container" id="buttonContainer" style="display: none;">
+            <a href="/analysis/[[${resumeId}]]" class="btn btn-secondary">返回分析</a>
+            <button type="button" class="btn" onclick="submitAnswers()">提交答案</button>
+        </div>
+    </div>
+
+    <script>
+        const resumeId = window.location.pathname.split('/').pop();
+        let questions = [];
+
+        // 加载问题
+        async function loadQuestions() {
+            try {
+                const response = await fetch(`/api/interview/${resumeId}/questions`, {
+                    method: 'POST'
+                });
+
+                if (!response.ok) {
+                    throw new Error('加载问题失败');
+                }
+
+                const data = await response.json();
+                questions = data.questions || [];
+
+                renderQuestions();
+                document.getElementById('buttonContainer').style.display = 'block';
+            } catch (error) {
+                console.error('Load questions error:', error);
+                document.getElementById('questionsContainer').innerHTML = `
+                    <div class="card">
+                        <div style="text-align: center; color: #dc3545;">
+                            <p>⚠️ 加载问题失败：${error.message}</p>
+                            <button class="btn" onclick="location.reload()" style="margin-top: 20px;">重试</button>
+                        </div>
+                    </div>
+                `;
+            }
+        }
+
+        // 渲染问题
+        function renderQuestions() {
+            const container = document.getElementById('questionsContainer');
+            
+            if (questions.length === 0) {
+                container.innerHTML = '<div class="card"><p>暂无问题</p></div>';
+                return;
+            }
+
+            let html = '';
+            questions.forEach((q, index) => {
+                html += `
+                    <div class="card question-card">
+                        <div class="progress-info">
+                            <span class="question-counter">问题 ${index + 1} / ${questions.length}</span>
+                            <span class="question-type">${getTypeName(q.type)}</span>
+                        </div>
+                        <div class="question-text">${escapeHtml(q.question)}</div>
+                        <textarea 
+                            class="answer-textarea" 
+                            id="answer_${index}"
+                            placeholder="请输入您的回答...（建议结合具体项目经验，突出技术亮点和解决问题的过程）"
+                        ></textarea>
+                    </div>
+                `;
+            });
+
+            container.innerHTML = html;
+        }
+
+        // 获取类型名称
+        function getTypeName(type) {
+            const typeMap = {
+                'PROJECT': '项目经历',
+                'JAVA_BASIC': 'Java 基础',
+                'JAVA_COLLECTION': 'Java 集合',
+                'JAVA_CONCURRENT': 'Java 并发',
+                'MYSQL': '数据库',
+                'REDIS': '缓存',
+                'SPRING': 'Spring 框架',
+                'SPRING_BOOT': 'Spring Boot'
+            };
+            return typeMap[type] || type;
+        }
+
+        // HTML 转义
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        // 提交答案
+        async function submitAnswers() {
+            const answers = {};
+            let hasEmpty = false;
+
+            questions.forEach((q, index) => {
+                const answer = document.getElementById(`answer_${index}`).value.trim();
+                if (!answer) {
+                    hasEmpty = true;
+                }
+                answers[index] = answer;
+            });
+
+            if (hasEmpty) {
+                if (!confirm('还有问题未回答，确定要提交吗？')) {
+                    return;
+                }
+            }
+
+            // 禁用按钮防止重复提交
+            const submitBtn = document.querySelector('#buttonContainer .btn:last-child');
+            submitBtn.disabled = true;
+            submitBtn.textContent = '提交中...';
+
+            try {
+                const response = await fetch(`/api/interview/${resumeId}/submit`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(answers)
+                });
+
+                if (!response.ok) {
+                    throw new Error('提交失败');
+                }
+
+                // 跳转到结果页面
+                window.location.href = `/result/${resumeId}`;
+            } catch (error) {
+                console.error('Submit error:', error);
+                alert('提交失败，请重试：' + error.message);
+                submitBtn.disabled = false;
+                submitBtn.textContent = '提交答案';
+            }
+        }
+
+        // 页面加载时获取问题
+        document.addEventListener('DOMContentLoaded', loadQuestions);
+    </script>
+</body>
+</html>

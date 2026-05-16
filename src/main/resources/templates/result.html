@@ -1,0 +1,488 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>面试评估结果 - 模拟面试器</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Microsoft YaHei', 'PingFang SC', Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1100px;
+            margin: 0 auto;
+        }
+
+        .header {
+            background: white;
+            border-radius: 20px;
+            padding: 40px;
+            margin-bottom: 20px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+            text-align: center;
+        }
+
+        h1 {
+            color: #333;
+            font-size: 32px;
+            margin-bottom: 20px;
+        }
+
+        .score-display {
+            display: inline-block;
+            width: 180px;
+            height: 180px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 40px;
+            font-weight: bold;
+            margin: 20px auto;
+            box-shadow: 0 10px 30px rgba(102, 126, 234, 0.4);
+        }
+
+        .score-level {
+            font-size: 24px;
+            margin-top: 15px;
+            font-weight: bold;
+        }
+
+        .level-excellent { color: #28a745; }
+        .level-good { color: #17a2b8; }
+        .level-pass { color: #ffc107; }
+        .level-fail { color: #dc3545; }
+
+        .overall-feedback {
+            font-size: 18px;
+            color: #666;
+            margin-top: 20px;
+            line-height: 1.8;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 10px;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        .card {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+        }
+
+        .card-title {
+            font-size: 20px;
+            color: #333;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .category-score-item {
+            margin-bottom: 20px;
+        }
+
+        .category-header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 8px;
+            font-size: 16px;
+        }
+
+        .category-name {
+            font-weight: 500;
+            color: #333;
+        }
+
+        .category-score {
+            font-weight: bold;
+            color: #667eea;
+        }
+
+        .progress-bar {
+            height: 10px;
+            background: #f0f0f0;
+            border-radius: 5px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            transition: width 0.5s ease;
+        }
+
+        .strengths-list, .improvements-list {
+            list-style: none;
+        }
+
+        .strengths-list li {
+            padding: 12px;
+            background: #d4edda;
+            border-radius: 8px;
+            margin-bottom: 10px;
+            border-left: 4px solid #28a745;
+            color: #155724;
+        }
+
+        .improvements-list li {
+            padding: 12px;
+            background: #fff3cd;
+            border-radius: 8px;
+            margin-bottom: 10px;
+            border-left: 4px solid #ffc107;
+            color: #856404;
+        }
+
+        .question-detail {
+            margin-bottom: 30px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 10px;
+            border-left: 5px solid #667eea;
+        }
+
+        .question-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .question-number {
+            font-weight: bold;
+            color: #667eea;
+        }
+
+        .question-score {
+            font-size: 20px;
+            font-weight: bold;
+            padding: 5px 15px;
+            border-radius: 20px;
+            background: #667eea;
+            color: white;
+        }
+
+        .question-text {
+            font-size: 16px;
+            color: #333;
+            margin-bottom: 15px;
+            line-height: 1.6;
+        }
+
+        .answer-section {
+            margin-bottom: 15px;
+        }
+
+        .answer-label {
+            font-weight: bold;
+            color: #666;
+            margin-bottom: 8px;
+        }
+
+        .answer-content {
+            padding: 15px;
+            background: white;
+            border-radius: 8px;
+            color: #333;
+            line-height: 1.6;
+        }
+
+        .feedback-section {
+            margin-top: 15px;
+            padding: 15px;
+            background: #e8f4ff;
+            border-radius: 8px;
+        }
+
+        .feedback-label {
+            font-weight: bold;
+            color: #667eea;
+            margin-bottom: 8px;
+        }
+
+        .reference-answer {
+            margin-top: 20px;
+            padding: 20px;
+            background: #fff;
+            border: 2px solid #667eea;
+            border-radius: 10px;
+        }
+
+        .reference-title {
+            font-weight: bold;
+            color: #667eea;
+            margin-bottom: 10px;
+        }
+
+        .key-points {
+            margin-top: 15px;
+        }
+
+        .key-points-title {
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 10px;
+        }
+
+        .key-points-list {
+            list-style: disc;
+            padding-left: 20px;
+        }
+
+        .key-points-list li {
+            margin-bottom: 8px;
+            color: #555;
+        }
+
+        .btn-container {
+            text-align: center;
+            margin-top: 30px;
+        }
+
+        .btn {
+            display: inline-block;
+            padding: 15px 50px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            text-decoration: none;
+            border-radius: 50px;
+            font-size: 18px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            border: none;
+            cursor: pointer;
+            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
+            margin: 0 10px;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 15px 30px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-secondary {
+            background: linear-gradient(135deg, #6c757d 0%, #495057 100%);
+        }
+
+        .loading {
+            text-align: center;
+            padding: 60px;
+        }
+
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            width: 60px;
+            height: 60px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .tabs {
+            display: flex;
+            margin-bottom: 20px;
+            gap: 10px;
+        }
+
+        .tab {
+            padding: 12px 30px;
+            background: white;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        .tab.active {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header" th:if="${evaluation}">
+            <h1>📊 面试评估报告</h1>
+            <div class="score-display" th:text="${evaluation.overallScore}">85</div>
+            <div class="score-level" 
+                 th:classappend="${evaluation.overallScore >= 90} ? 'level-excellent' : (${evaluation.overallScore >= 75} ? 'level-good' : (${evaluation.overallScore >= 60} ? 'level-pass' : 'level-fail'))"
+                 th:text="${evaluation.overallScore >= 90} ? '优秀' : (${evaluation.overallScore >= 75} ? '良好' : (${evaluation.overallScore >= 60} ? '及格' : '不及格'))">良好</div>
+            <div class="overall-feedback" th:text="${evaluation.overallFeedback}">
+                整体表现良好，基础知识扎实，但在某些深度问题上还有提升空间。
+            </div>
+        </div>
+
+        <div class="tabs" th:if="${evaluation}">
+            <button class="tab active" onclick="switchTab('summary')">📈 总结概览</button>
+            <button class="tab" onclick="switchTab('details')">📝 详细评估</button>
+            <button class="tab" onclick="switchTab('references')">📚 参考答案</button>
+        </div>
+
+        <!-- 总结概览 -->
+        <div id="summary-tab" class="tab-content active" th:if="${evaluation}">
+            <div class="grid">
+                <div class="card">
+                    <h2 class="card-title">🎯 分类得分</h2>
+                    <div th:each="catScore : ${evaluation.categoryScores}" class="category-score-item">
+                        <div class="category-header">
+                            <span class="category-name" th:text="${catScore.category}">Java 基础</span>
+                            <span class="category-score" th:text="${catScore.score} + '/100 (' + ${catScore.questionCount} + '题)'">85/100 (3 题)</span>
+                        </div>
+                        <div class="progress-bar">
+                            <div class="progress-fill" th:style="'width: ' + ${catScore.score} + '%'"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card" style="grid-column: 2 / -1;">
+                    <h2 class="card-title">✨ 优势亮点</h2>
+                    <ul class="strengths-list">
+                        <li th:each="strength : ${evaluation.strengths}" th:text="${strength}">Java 基础扎实，理解深入</li>
+                    </ul>
+                </div>
+
+                <div class="card" style="grid-column: 1 / -1;">
+                    <h2 class="card-title">💡 改进建议</h2>
+                    <ul class="improvements-list">
+                        <li th:each="improvement : ${evaluation.improvements}" th:text="${improvement}">建议深入学习 JVM 底层原理</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- 详细评估 -->
+        <div id="details-tab" class="tab-content" th:if="${evaluation}">
+            <div th:each="detail : ${evaluation.questionDetails}" class="question-detail">
+                <div class="question-header">
+                    <span class="question-number" th:text="'问题 ' + (${detail.questionIndex} ) + ' - ' + ${detail.category}">问题 1 - Java 并发</span>
+                    <span class="question-score" th:text="${detail.score} + '/100'">85/100</span>
+                </div>
+                <div class="question-text" th:text="${detail.question}">请解释一下 Java 中的线程池是如何工作的？</div>
+                
+                <div class="answer-section">
+                    <div class="answer-label">你的回答：</div>
+                    <div class="answer-content" th:text="${detail.userAnswer}">Java 线程池...</div>
+                </div>
+
+                <div class="feedback-section">
+                    <div class="feedback-label"> evaluator 反馈：</div>
+                    <div th:text="${detail.feedback}">回答基本正确，对线程池的核心参数有清晰的理解。建议补充拒绝策略的详细说明。</div>
+                </div>
+
+                <div class="reference-answer">
+
+                    <div class="key-points" th:if="${detail.questionIndex} &lt; ${evaluation.referenceAnswers.size()}">
+                        <div class="key-points-title">核心要点：</div>
+                        <ul class="key-points-list">
+                            <li th:each="point : ${evaluation.referenceAnswers[detail.questionIndex-1].keyPoints}" th:text="${point}">线程池的核心工作原理</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 参考答案 -->
+        <div id="references-tab" class="tab-content" th:if="${evaluation}">
+            <div th:each="ref : ${evaluation.referenceAnswers}" class="question-detail">
+                <div class="question-header">
+                    <span class="question-number" th:text="'问题 ' + (${ref.questionIndex})">问题 1</span>
+                </div>
+                <div class="question-text" th:text="${ref.question}">请解释一下 Java 中的线程池是如何工作的？</div>
+                
+                <div class="reference-answer">
+                    <div class="reference-title">📖 参考答案：</div>
+                    <div th:text="${ref.referenceAnswer}">Java 线程池通过 ThreadPoolExecutor 实现...</div>
+                    
+                    <div class="key-points">
+                        <div class="key-points-title">核心要点：</div>
+                        <ul class="key-points-list">
+                            <li th:each="point : ${ref.keyPoints}" th:text="${point}">线程池的核心工作原理</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="loading" th:unless="${evaluation}">
+            <div class="spinner"></div>
+            <div>正在加载评估结果...</div>
+        </div>
+
+        <div class="btn-container" th:if="${evaluation}">
+            <a href="/upload" class="btn btn-secondary">重新上传简历</a>
+            <a th:href="@{/analysis/{resumeId}(resumeId=${resumeId})}" class="btn">查看简历分析</a>
+        </div>
+    </div>
+
+    <script>
+        // 切换标签页
+        function switchTab(tabName) {
+            // 隐藏所有内容
+            document.querySelectorAll('.tab-content').forEach(content => {
+                content.classList.remove('active');
+            });
+            
+            // 移除所有激活状态
+            document.querySelectorAll('.tab').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            
+            // 显示选中的内容
+            document.getElementById(tabName + '-tab').classList.add('active');
+            
+            // 激活选中的标签
+            event.target.classList.add('active');
+        }
+
+        // 动画效果
+        document.addEventListener('DOMContentLoaded', function() {
+            const progressBars = document.querySelectorAll('.progress-fill');
+            progressBars.forEach(bar => {
+                const width = bar.style.width;
+                bar.style.width = '0';
+                setTimeout(() => {
+                    bar.style.width = width;
+                }, 300);
+            });
+        });
+    </script>
+</body>
+</html>
