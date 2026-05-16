@@ -1,6 +1,7 @@
 package com.xkh.ai.interview.controller;
 
 import com.xkh.ai.interview.service.MockInterviewService;
+import com.xkh.ai.interview.service.ResumeVectorService;
 import com.xkh.ai.interview.service.dto.*;
 import org.apache.tika.Tika;
 import org.slf4j.Logger;
@@ -28,9 +29,11 @@ public class MockInterviewController {
     private static final Logger logger = LoggerFactory.getLogger(MockInterviewController.class);
 
     private final MockInterviewService interviewService;
+    private final ResumeVectorService resumeVectorService;
 
-    public MockInterviewController(MockInterviewService interviewService) {
+    public MockInterviewController(MockInterviewService interviewService, ResumeVectorService resumeVectorService) {
         this.interviewService = interviewService;
+        this.resumeVectorService = resumeVectorService;
     }
 
     /**
@@ -77,15 +80,18 @@ public class MockInterviewController {
             // 调用 AI 服务进行评分
             ResumeScoreResult scoreResult = interviewService.scoreResume(resumeText);
             
-            // 保存简历文本到会话（持久化到MySQL + 缓存到Redis）
+            // 保存简历文本到会话（持久化到MySQL + 缓存到Redis + 向量库）
             String resumeId = UUID.randomUUID().toString();
             String originalFileName = file.getOriginalFilename();
             interviewService.saveResume(resumeId, originalFileName, resumeText, scoreResult);
-            
+
+            // 异步向量化写入Milvus（RAG简历知识库）
+            resumeVectorService.upsertResumeVector(resumeId, originalFileName, resumeText);
+
             Map<String, Object> response = new HashMap<>();
             response.put("resumeId", resumeId);
             response.put("scoreResult", scoreResult);
-            
+
             return ResponseEntity.ok(response);
         } catch (IOException e) {
             logger.error("上传简历失败", e);
@@ -202,5 +208,62 @@ public class MockInterviewController {
         model.addAttribute("evaluation", resumeData.getEvaluation());
         model.addAttribute("questions", resumeData.getQuestions());
         return "result";
+    }
+
+    // ==================== RAG 向量检索接口 ====================
+
+    /**
+     * 手动触发简历向量化（用于历史数据补录）
+     */
+    @PostMapping("/api/rag/resume/{resumeId}/vectorize")
+    @ResponseBody
+    public ResponseEntity<?> vectorizeResume(@PathVariable String resumeId) {
+        try {
+            ResumeData resumeData = interviewService.getResumeById(resumeId);
+            if (resumeData == null) {
+                return ResponseEntity.notFound().build();
+            }
+            resumeVectorService.upsertResumeVector(resumeId, null, resumeData.getResumeText());
+            return ResponseEntity.ok(Map.of("success", true, "resumeId", resumeId));
+        } catch (Exception e) {
+            logger.error("向量化失败, resumeId={}", resumeId, e);
+            return ResponseEntity.internalServerError().body(Map.of("error", "向量化失败：" + e.getMessage()));
+        }
+    }
+
+    /**
+     * 根据简历ID检索相似简历
+     */
+    @GetMapping("/api/rag/resume/{resumeId}/similar")
+    @ResponseBody
+    public ResponseEntity<?> findSimilarResumes(@PathVariable String resumeId,
+                                                 @RequestParam(defaultValue = "5") int topK) {
+        try {
+            var results = resumeVectorService.searchByResumeId(resumeId, topK);
+            return ResponseEntity.ok(Map.of("resumeId", resumeId, "results", results));
+        } catch (Exception e) {
+            logger.error("相似检索失败, resumeId={}", resumeId, e);
+            return ResponseEntity.internalServerError().body(Map.of("error", "检索失败：" + e.getMessage()));
+        }
+    }
+
+    /**
+     * 根据文本搜索相似简历（支持JD匹配、关键词搜索）
+     */
+    @PostMapping("/api/rag/search")
+    @ResponseBody
+    public ResponseEntity<?> searchResumesByText(@RequestBody Map<String, Object> request) {
+        try {
+            String queryText = (String) request.get("query");
+            int topK = request.get("topK") != null ? (int) request.get("topK") : 5;
+            if (queryText == null || queryText.isBlank()) {
+                return ResponseEntity.badRequest().body(Map.of("error", "query参数不能为空"));
+            }
+            var results = resumeVectorService.searchSimilarResumes(queryText, topK);
+            return ResponseEntity.ok(Map.of("query", queryText, "results", results));
+        } catch (Exception e) {
+            logger.error("文本检索失败", e);
+            return ResponseEntity.internalServerError().body(Map.of("error", "检索失败：" + e.getMessage()));
+        }
     }
 }

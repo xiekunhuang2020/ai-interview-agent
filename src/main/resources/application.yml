@@ -4,7 +4,7 @@ spring:
   datasource:
     url: jdbc:mysql://${MYSQL_HOST:localhost}:${MYSQL_PORT:3306}/${MYSQL_DB:ai_interview}?useUnicode=true&characterEncoding=utf-8&useSSL=false&serverTimezone=Asia/Shanghai
     username: ${MYSQL_USER:root}
-    password: ${MYSQL_PASSWORD:root}
+    password: ${MYSQL_PASSWORD:root1234}
     driver-class-name: com.mysql.cj.jdbc.Driver
     hikari:
       maximum-pool-size: 20
@@ -29,8 +29,24 @@ spring:
           enable-thinking: true
     minimax:
       api-key: ${MINIMAX_API_KEY}
+      embedding:
+        options:
+          model: text-embedding-v2
+  rest:
+    client:
+      read-timeout: 60s
+      connect-timeout: 10s
+
 server:
   port: 8080
+
+# Milvus Vector Database
+milvus:
+  host: ${MILVUS_HOST:localhost}
+  port: ${MILVUS_PORT:19530}
+  username: ${MILVUS_USERNAME:minioadmin}
+  password: ${MILVUS_PASSWORD:minioadmin}
+  databaseName: ${MILVUS_DB:default}
 
 mybatis-plus:
   mapper-locations: classpath*:/mapper/**/*.xml
