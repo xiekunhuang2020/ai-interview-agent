@@ -28,6 +28,10 @@ flowchart TD
     INV --> LLM["DashScope Chat Model"]
     INV --> AUDIT["ai_model_call_log"]
 
+    C --> RA["ReactAgent"]
+    RA --> TOOLCALL["ResumeAgentTools"]
+    RA --> MSGAUDIT["agent_conversation_message"]
+
     T1 --> Tika["Apache Tika"]
     T2 --> MySQL["MySQL"]
     T2 --> Redis["Redis"]
@@ -63,6 +67,18 @@ Agent 负责需要模型推理的任务，目前包含：
 - `AnswerEvaluationAgent`：结合简历和回答生成面试评估报告
 - `JobDescriptionMatchAgent`：分析候选人简历与目标 JD 的匹配度
 - `RagInterviewQuestionAgent`：结合 JD、候选人简历和向量检索上下文生成岗位定制题
+
+### ReAct Agent Runtime
+
+`InterviewAssistantAgentService` 提供面向对话式使用的 ReAct Agent 入口。它使用 `conversationId` 作为 `RunnableConfig.threadId`，让同一会话内的 Agent 执行具备线程级上下文。
+
+Agent 可调用的工具集中在 `ResumeAgentTools`，只暴露查询类能力：
+
+- `get_resume_profile`：查询简历画像
+- `get_resume_interview_questions`：查询已生成面试问题
+- `search_similar_resumes`：按文本检索相似简历
+
+上传、保存、向量写入等副作用操作不暴露给模型直接调用，避免 Agent 自主执行不可控写操作。
 
 ### Model Invoker
 
@@ -107,6 +123,31 @@ jd-match -> jd-match-v2026-05-17-01
 - createTime
 
 审计写入失败不会影响主业务流程。
+
+`agent_conversation_message` 记录 Agent 对话消息审计信息：
+
+- conversationId
+- turnId
+- traceId
+- agentName
+- role
+- messageContent
+- success
+- latencyMs
+- errorMessage
+- createTime
+
+`/api/audit/agent-messages` 可按 conversationId 或 traceId 查询最近的 Agent 对话轨迹，用于排查工具调用前后的用户输入、助手回复和失败原因。
+
+对话正文落库可通过配置控制：
+
+```text
+AI_AGENT_AUDIT_ENABLED=true
+AI_AGENT_AUDIT_LOG_MESSAGE_CONTENT=true
+AI_AGENT_AUDIT_MAX_MESSAGE_CONTENT_LENGTH=4000
+```
+
+生产环境如果担心简历、JD 等敏感信息进入审计表，可以关闭 `AI_AGENT_AUDIT_LOG_MESSAGE_CONTENT`，只保留会话、轮次、耗时和错误状态。
 
 ### Fallback
 

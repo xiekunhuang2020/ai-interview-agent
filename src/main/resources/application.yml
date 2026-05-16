@@ -24,6 +24,11 @@ spring:
           max-idle: 10
           min-idle: 2
   ai:
+    chat:
+      client:
+        observations:
+          log-prompt: ${AI_CHAT_OBSERVATIONS_LOG_PROMPT:false}
+          log-completion: ${AI_CHAT_OBSERVATIONS_LOG_COMPLETION:false}
     dashscope:
       api-key: ${DASHSCOPE_API_KEY:fake-key}
       chat:
@@ -52,6 +57,11 @@ server:
   port: 8080
 
 ai-interview:
+  agent:
+    audit:
+      enabled: ${AI_AGENT_AUDIT_ENABLED:true}
+      log-message-content: ${AI_AGENT_AUDIT_LOG_MESSAGE_CONTENT:true}
+      max-message-content-length: ${AI_AGENT_AUDIT_MAX_MESSAGE_CONTENT_LENGTH:4000}
   model:
     fallback-enabled: ${AI_MODEL_FALLBACK_ENABLED:true}
     max-attempts: ${AI_MODEL_MAX_ATTEMPTS:3}

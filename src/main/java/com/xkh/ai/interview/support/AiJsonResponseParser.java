@@ -9,13 +9,11 @@ import com.xkh.ai.interview.service.dto.JobDescriptionMatchResult;
 import com.xkh.ai.interview.service.dto.ResumeScoreResult;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.ai.converter.BeanOutputConverter;
 import org.springframework.stereotype.Component;
 
-import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.List;
 import java.util.Set;
-import java.util.UUID;
 
 @Component
 public class AiJsonResponseParser {
@@ -32,9 +30,17 @@ public class AiJsonResponseParser {
     private static final Set<String> IMPORTANCE_LEVELS = Set.of("高", "中", "低");
 
     private final ObjectMapper objectMapper;
+    private final BeanOutputConverter<ResumeScoreResult> resumeScoreConverter;
+    private final BeanOutputConverter<InterviewQuestions> interviewQuestionsConverter;
+    private final BeanOutputConverter<InterviewEvaluation> interviewEvaluationConverter;
+    private final BeanOutputConverter<JobDescriptionMatchResult> jobDescriptionMatchConverter;
 
     public AiJsonResponseParser(ObjectMapper objectMapper) {
         this.objectMapper = objectMapper;
+        this.resumeScoreConverter = new BeanOutputConverter<>(ResumeScoreResult.class, objectMapper);
+        this.interviewQuestionsConverter = new BeanOutputConverter<>(InterviewQuestions.class, objectMapper);
+        this.interviewEvaluationConverter = new BeanOutputConverter<>(InterviewEvaluation.class, objectMapper);
+        this.jobDescriptionMatchConverter = new BeanOutputConverter<>(JobDescriptionMatchResult.class, objectMapper);
     }
 
     public ResumeScoreResult parseResumeScoreResult(String json) throws JsonProcessingException {
@@ -42,71 +48,16 @@ public class AiJsonResponseParser {
         requireFields(rootNode, "resume-score", "overallScore", "scoreDetail", "summary", "strengths", "suggestions");
         validateResumeScoreSchema(rootNode);
 
-        Integer overallScore = rootNode.has("overallScore") ? rootNode.get("overallScore").asInt() : 0;
-        String summary = rootNode.has("summary") ? rootNode.get("summary").asText() : "";
-
-        ResumeScoreResult.ScoreDetail scoreDetail = new ResumeScoreResult.ScoreDetail();
-        if (rootNode.has("scoreDetail")) {
-            JsonNode detailNode = rootNode.get("scoreDetail");
-            scoreDetail.setProjectScore(readObjectClampedInteger(detailNode, "resume-score",
-                    "scoreDetail", "projectScore", 0, 40));
-            scoreDetail.setSkillMatchScore(readObjectClampedInteger(detailNode, "resume-score",
-                    "scoreDetail", "skillMatchScore", 0, 20));
-            scoreDetail.setContentScore(readObjectClampedInteger(detailNode, "resume-score",
-                    "scoreDetail", "contentScore", 0, 15));
-            scoreDetail.setStructureScore(readObjectClampedInteger(detailNode, "resume-score",
-                    "scoreDetail", "structureScore", 0, 15));
-            scoreDetail.setExpressionScore(readObjectClampedInteger(detailNode, "resume-score",
-                    "scoreDetail", "expressionScore", 0, 10));
-        }
-
-        List<String> strengths = new ArrayList<>();
-        if (rootNode.has("strengths") && rootNode.get("strengths").isArray()) {
-            for (JsonNode item : rootNode.get("strengths")) {
-                strengths.add(item.asText());
-            }
-        }
-
-        List<ResumeScoreResult.Suggestion> suggestions = new ArrayList<>();
-        if (rootNode.has("suggestions") && rootNode.get("suggestions").isArray()) {
-            for (JsonNode item : rootNode.get("suggestions")) {
-                ResumeScoreResult.Suggestion suggestion = new ResumeScoreResult.Suggestion();
-                suggestion.setCategory(item.has("category") ? item.get("category").asText() : "");
-                suggestion.setPriority(item.has("priority") ? item.get("priority").asText() : "");
-                suggestion.setIssue(item.has("issue") ? item.get("issue").asText() : "");
-                suggestion.setRecommendation(item.has("recommendation") ? item.get("recommendation").asText() : "");
-                suggestions.add(suggestion);
-            }
-        }
-
-        return ResumeScoreResult.builder()
-                .overallScore(overallScore)
-                .scoreDetail(scoreDetail)
-                .summary(summary)
-                .strengths(strengths)
-                .suggestions(suggestions)
-                .build();
+        ResumeScoreResult result = convertWithSpringAi(json, resumeScoreConverter, "resume-score");
+        normalizeResumeScoreDetail(result, rootNode.get("scoreDetail"));
+        return result;
     }
 
     public InterviewQuestions parseInterviewQuestions(String json) throws JsonProcessingException {
         JsonNode rootNode = readRootObject(json, "interview-questions");
         requireFields(rootNode, "interview-questions", "questions");
         validateInterviewQuestionsSchema(rootNode);
-        List<InterviewQuestions.Question> questions = new ArrayList<>();
-
-        if (rootNode.has("questions") && rootNode.get("questions").isArray()) {
-            for (JsonNode item : rootNode.get("questions")) {
-                InterviewQuestions.Question question = new InterviewQuestions.Question();
-                question.setQuestion(item.has("question") ? item.get("question").asText() : "");
-                question.setType(item.has("type") ? item.get("type").asText() : "");
-                question.setCategory(item.has("category") ? item.get("category").asText() : "");
-                questions.add(question);
-            }
-        }
-
-        return InterviewQuestions.builder()
-                .questions(questions)
-                .build();
+        return convertWithSpringAi(json, interviewQuestionsConverter, "interview-questions");
     }
 
     public InterviewEvaluation parseInterviewEvaluation(String json) throws JsonProcessingException {
@@ -115,77 +66,7 @@ public class AiJsonResponseParser {
                 "sessionId", "totalQuestions", "overallScore", "categoryScores", "questionDetails",
                 "overallFeedback", "strengths", "improvements", "referenceAnswers");
         validateInterviewEvaluationSchema(rootNode);
-
-        InterviewEvaluation.InterviewEvaluationBuilder builder = InterviewEvaluation.builder();
-        builder.sessionId(rootNode.has("sessionId") ? rootNode.get("sessionId").asText() : UUID.randomUUID().toString());
-        builder.totalQuestions(rootNode.has("totalQuestions") ? rootNode.get("totalQuestions").asInt() : 0);
-        builder.overallScore(rootNode.has("overallScore") ? rootNode.get("overallScore").asInt() : 0);
-        builder.overallFeedback(rootNode.has("overallFeedback") ? rootNode.get("overallFeedback").asText() : "");
-
-        List<InterviewEvaluation.CategoryScore> categoryScores = new ArrayList<>();
-        if (rootNode.has("categoryScores") && rootNode.get("categoryScores").isArray()) {
-            for (JsonNode item : rootNode.get("categoryScores")) {
-                InterviewEvaluation.CategoryScore score = new InterviewEvaluation.CategoryScore();
-                score.setCategory(item.has("category") ? item.get("category").asText() : "");
-                score.setScore(item.has("score") ? item.get("score").asInt() : 0);
-                score.setQuestionCount(item.has("questionCount") ? item.get("questionCount").asInt() : 0);
-                categoryScores.add(score);
-            }
-        }
-        builder.categoryScores(categoryScores);
-
-        List<InterviewEvaluation.QuestionDetail> questionDetails = new ArrayList<>();
-        if (rootNode.has("questionDetails") && rootNode.get("questionDetails").isArray()) {
-            for (JsonNode item : rootNode.get("questionDetails")) {
-                InterviewEvaluation.QuestionDetail detail = new InterviewEvaluation.QuestionDetail();
-                detail.setQuestionIndex(item.has("questionIndex") ? item.get("questionIndex").asInt() : 0);
-                detail.setQuestion(item.has("question") ? item.get("question").asText() : "");
-                detail.setCategory(item.has("category") ? item.get("category").asText() : "");
-                detail.setUserAnswer(item.has("userAnswer") ? item.get("userAnswer").asText() : "");
-                detail.setScore(item.has("score") ? item.get("score").asInt() : 0);
-                detail.setFeedback(item.has("feedback") ? item.get("feedback").asText() : "");
-                questionDetails.add(detail);
-            }
-        }
-        builder.questionDetails(questionDetails);
-
-        List<String> strengths = new ArrayList<>();
-        if (rootNode.has("strengths") && rootNode.get("strengths").isArray()) {
-            for (JsonNode item : rootNode.get("strengths")) {
-                strengths.add(item.asText());
-            }
-        }
-        builder.strengths(strengths);
-
-        List<String> improvements = new ArrayList<>();
-        if (rootNode.has("improvements") && rootNode.get("improvements").isArray()) {
-            for (JsonNode item : rootNode.get("improvements")) {
-                improvements.add(item.asText());
-            }
-        }
-        builder.improvements(improvements);
-
-        List<InterviewEvaluation.ReferenceAnswer> referenceAnswers = new ArrayList<>();
-        if (rootNode.has("referenceAnswers") && rootNode.get("referenceAnswers").isArray()) {
-            for (JsonNode item : rootNode.get("referenceAnswers")) {
-                InterviewEvaluation.ReferenceAnswer answer = new InterviewEvaluation.ReferenceAnswer();
-                answer.setQuestionIndex(item.has("questionIndex") ? item.get("questionIndex").asInt() : 0);
-                answer.setQuestion(item.has("question") ? item.get("question").asText() : "");
-                answer.setReferenceAnswer(item.has("referenceAnswer") ? item.get("referenceAnswer").asText() : "");
-
-                List<String> keyPoints = new ArrayList<>();
-                if (item.has("keyPoints") && item.get("keyPoints").isArray()) {
-                    for (JsonNode point : item.get("keyPoints")) {
-                        keyPoints.add(point.asText());
-                    }
-                }
-                answer.setKeyPoints(keyPoints);
-                referenceAnswers.add(answer);
-            }
-        }
-        builder.referenceAnswers(referenceAnswers);
-
-        return builder.build();
+        return convertWithSpringAi(json, interviewEvaluationConverter, "interview-evaluation");
     }
 
     public JobDescriptionMatchResult parseJobDescriptionMatchResult(String json) throws JsonProcessingException {
@@ -194,49 +75,7 @@ public class AiJsonResponseParser {
                 "overallScore", "matchLevel", "summary", "matchedSkills", "missingSkills",
                 "interviewFocus", "risks", "learningSuggestions");
         validateJobDescriptionMatchSchema(rootNode);
-
-        List<JobDescriptionMatchResult.SkillMatch> matchedSkills = new ArrayList<>();
-        if (rootNode.has("matchedSkills") && rootNode.get("matchedSkills").isArray()) {
-            for (JsonNode item : rootNode.get("matchedSkills")) {
-                JobDescriptionMatchResult.SkillMatch skillMatch = new JobDescriptionMatchResult.SkillMatch();
-                skillMatch.setSkill(item.has("skill") ? item.get("skill").asText() : "");
-                skillMatch.setEvidence(item.has("evidence") ? item.get("evidence").asText() : "");
-                skillMatch.setScore(item.has("score") ? item.get("score").asInt() : 0);
-                matchedSkills.add(skillMatch);
-            }
-        }
-
-        List<JobDescriptionMatchResult.SkillGap> missingSkills = new ArrayList<>();
-        if (rootNode.has("missingSkills") && rootNode.get("missingSkills").isArray()) {
-            for (JsonNode item : rootNode.get("missingSkills")) {
-                JobDescriptionMatchResult.SkillGap skillGap = new JobDescriptionMatchResult.SkillGap();
-                skillGap.setSkill(item.has("skill") ? item.get("skill").asText() : "");
-                skillGap.setImportance(item.has("importance") ? item.get("importance").asText() : "");
-                skillGap.setSuggestion(item.has("suggestion") ? item.get("suggestion").asText() : "");
-                missingSkills.add(skillGap);
-            }
-        }
-
-        return JobDescriptionMatchResult.builder()
-                .overallScore(rootNode.has("overallScore") ? rootNode.get("overallScore").asInt() : 0)
-                .matchLevel(rootNode.has("matchLevel") ? rootNode.get("matchLevel").asText() : "")
-                .summary(rootNode.has("summary") ? rootNode.get("summary").asText() : "")
-                .matchedSkills(matchedSkills)
-                .missingSkills(missingSkills)
-                .interviewFocus(readStringList(rootNode, "interviewFocus"))
-                .risks(readStringList(rootNode, "risks"))
-                .learningSuggestions(readStringList(rootNode, "learningSuggestions"))
-                .build();
-    }
-
-    private List<String> readStringList(JsonNode rootNode, String fieldName) {
-        List<String> values = new ArrayList<>();
-        if (rootNode.has(fieldName) && rootNode.get(fieldName).isArray()) {
-            for (JsonNode item : rootNode.get(fieldName)) {
-                values.add(item.asText());
-            }
-        }
-        return values;
+        return convertWithSpringAi(json, jobDescriptionMatchConverter, "jd-match");
     }
 
     private void validateResumeScoreSchema(JsonNode rootNode) {
@@ -380,6 +219,32 @@ public class AiJsonResponseParser {
             requireObjectEnum(item, schemaName, path, "importance", IMPORTANCE_LEVELS);
             requireObjectString(item, schemaName, path, "suggestion");
         }
+    }
+
+    private <T> T convertWithSpringAi(String json,
+                                      BeanOutputConverter<T> converter,
+                                      String schemaName) {
+        try {
+            return converter.convert(cleanJsonResponse(json));
+        } catch (RuntimeException e) {
+            throw new AiStructuredOutputException("AI 输出不符合 " + schemaName + " 结构：无法转换为目标 DTO", e);
+        }
+    }
+
+    private void normalizeResumeScoreDetail(ResumeScoreResult result, JsonNode detailNode) {
+        if (result.getScoreDetail() == null) {
+            result.setScoreDetail(new ResumeScoreResult.ScoreDetail());
+        }
+        result.getScoreDetail().setProjectScore(readObjectClampedInteger(detailNode, "resume-score",
+                "scoreDetail", "projectScore", 0, 40));
+        result.getScoreDetail().setSkillMatchScore(readObjectClampedInteger(detailNode, "resume-score",
+                "scoreDetail", "skillMatchScore", 0, 20));
+        result.getScoreDetail().setContentScore(readObjectClampedInteger(detailNode, "resume-score",
+                "scoreDetail", "contentScore", 0, 15));
+        result.getScoreDetail().setStructureScore(readObjectClampedInteger(detailNode, "resume-score",
+                "scoreDetail", "structureScore", 0, 15));
+        result.getScoreDetail().setExpressionScore(readObjectClampedInteger(detailNode, "resume-score",
+                "scoreDetail", "expressionScore", 0, 10));
     }
 
     private JsonNode readRootObject(String json, String schemaName) throws JsonProcessingException {

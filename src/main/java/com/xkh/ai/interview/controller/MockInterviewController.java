@@ -1,10 +1,12 @@
 package com.xkh.ai.interview.controller;
 
+import com.xkh.ai.interview.agent.InterviewAssistantAgentService;
 import com.xkh.ai.interview.orchestrator.InterviewAgentOrchestrator;
 import com.xkh.ai.interview.service.dto.*;
 import com.xkh.ai.interview.support.AiModelCallException;
 import com.xkh.ai.interview.support.AiModelCallAuditQueryService;
 import com.xkh.ai.interview.support.AiStructuredOutputException;
+import com.xkh.ai.interview.support.AgentConversationAuditQueryService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
@@ -24,11 +26,17 @@ public class MockInterviewController {
 
     private final InterviewAgentOrchestrator interviewAgentOrchestrator;
     private final AiModelCallAuditQueryService auditQueryService;
+    private final InterviewAssistantAgentService interviewAssistantAgentService;
+    private final AgentConversationAuditQueryService agentConversationAuditQueryService;
 
     public MockInterviewController(InterviewAgentOrchestrator interviewAgentOrchestrator,
-                                   AiModelCallAuditQueryService auditQueryService) {
+                                   AiModelCallAuditQueryService auditQueryService,
+                                   InterviewAssistantAgentService interviewAssistantAgentService,
+                                   AgentConversationAuditQueryService agentConversationAuditQueryService) {
         this.interviewAgentOrchestrator = interviewAgentOrchestrator;
         this.auditQueryService = auditQueryService;
+        this.interviewAssistantAgentService = interviewAssistantAgentService;
+        this.agentConversationAuditQueryService = agentConversationAuditQueryService;
     }
 
     /**
@@ -263,6 +271,34 @@ public class MockInterviewController {
             logger.error("JD 匹配失败", e);
             return ResponseEntity.internalServerError().body(Map.of("error", "JD 匹配失败：" + e.getMessage()));
         }
+    }
+
+    /**
+     * ReAct Agent 对话入口，可自主调用简历画像、面试问题和相似简历检索工具
+     */
+    @PostMapping("/api/agent/interview-assistant/chat")
+    @ResponseBody
+    public ResponseEntity<?> chatWithInterviewAssistant(@RequestBody AgentChatRequest request) {
+        try {
+            return ResponseEntity.ok(interviewAssistantAgentService.chat(request));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        } catch (Exception e) {
+            logger.error("Agent 对话失败", e);
+            return ResponseEntity.internalServerError().body(Map.of("error", "Agent 对话失败：" + e.getMessage()));
+        }
+    }
+
+    /**
+     * 查询 Agent 对话消息审计记录
+     */
+    @GetMapping("/api/audit/agent-messages")
+    @ResponseBody
+    public ResponseEntity<?> listAgentConversationMessages(
+            @RequestParam(required = false) String conversationId,
+            @RequestParam(required = false) String traceId,
+            @RequestParam(defaultValue = "100") int limit) {
+        return ResponseEntity.ok(agentConversationAuditQueryService.listRecent(conversationId, traceId, limit));
     }
 
     /**

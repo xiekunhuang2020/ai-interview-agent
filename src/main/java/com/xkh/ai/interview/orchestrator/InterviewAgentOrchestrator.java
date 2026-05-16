@@ -128,14 +128,11 @@ public class InterviewAgentOrchestrator {
         }
 
         ResumeData resumeData = requireResume(resumeId);
-        List<ResumeSearchResult> retrievedResumes = searchResumes(jobDescription, normalizeTopK(topK)).stream()
-                .filter(result -> !resumeId.equals(result.getResumeId()))
-                .toList();
-
         InterviewQuestions questions = ragInterviewQuestionAgent.generate(
                 resumeData.getResumeText(),
                 jobDescription,
-                retrievedResumes
+                resumeId,
+                normalizeTopK(topK)
         );
         resumeRepositoryTool.saveQuestions(resumeId, questions);
         return questions;

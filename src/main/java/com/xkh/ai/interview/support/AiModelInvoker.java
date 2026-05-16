@@ -1,12 +1,13 @@
 package com.xkh.ai.interview.support;
 
-import com.alibaba.cloud.ai.dashscope.chat.DashScopeChatModel;
 import com.alibaba.cloud.ai.dashscope.chat.DashScopeChatOptions;
-import jakarta.annotation.PreDestroy;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.ai.chat.client.ChatClient;
+import org.springframework.ai.chat.client.advisor.api.Advisor;
 import org.springframework.ai.chat.messages.Message;
 import org.springframework.ai.chat.prompt.Prompt;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
@@ -14,20 +15,17 @@ import java.time.Duration;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ThreadFactory;
+import java.util.concurrent.Executor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
-import java.util.concurrent.atomic.AtomicInteger;
 
 @Component
 public class AiModelInvoker {
 
     private static final Logger logger = LoggerFactory.getLogger(AiModelInvoker.class);
 
-    private final DashScopeChatModel chatModel;
-    private final ExecutorService executorService;
+    private final ChatClient chatClient;
+    private final Executor aiModelExecutor;
     private final PromptVersionRegistry promptVersionRegistry;
     private final AiModelCallAuditRecorder auditRecorder;
     private final AiModelFallbackResponseFactory fallbackResponseFactory;
@@ -36,16 +34,17 @@ public class AiModelInvoker {
     private final Duration timeout;
     private final Duration backoff;
 
-    public AiModelInvoker(DashScopeChatModel chatModel,
+    public AiModelInvoker(ChatClient.Builder chatClientBuilder,
+                          @Qualifier("aiModelExecutor") Executor aiModelExecutor,
                           PromptVersionRegistry promptVersionRegistry,
                           AiModelCallAuditRecorder auditRecorder,
                           AiModelFallbackResponseFactory fallbackResponseFactory,
                           @Value("${ai-interview.model.fallback-enabled:true}") boolean fallbackEnabled,
                           @Value("${ai-interview.model.max-attempts:3}") int maxAttempts,
                           @Value("${ai-interview.model.timeout-seconds:60}") long timeoutSeconds,
-                          @Value("${ai-interview.model.backoff-millis:800}") long backoffMillis,
-                          @Value("${ai-interview.model.executor-pool-size:4}") int executorPoolSize) {
-        this.chatModel = chatModel;
+                          @Value("${ai-interview.model.backoff-millis:800}") long backoffMillis) {
+        this.chatClient = chatClientBuilder.build();
+        this.aiModelExecutor = aiModelExecutor;
         this.promptVersionRegistry = promptVersionRegistry;
         this.auditRecorder = auditRecorder;
         this.fallbackResponseFactory = fallbackResponseFactory;
@@ -53,10 +52,13 @@ public class AiModelInvoker {
         this.maxAttempts = Math.max(1, maxAttempts);
         this.timeout = Duration.ofSeconds(Math.max(1, timeoutSeconds));
         this.backoff = Duration.ofMillis(Math.max(0, backoffMillis));
-        this.executorService = Executors.newFixedThreadPool(Math.max(1, executorPoolSize), new NamedThreadFactory());
     }
 
     public String call(String operationName, List<Message> messages, double temperature) {
+        return call(operationName, messages, temperature, List.of());
+    }
+
+    public String call(String operationName, List<Message> messages, double temperature, List<Advisor> advisors) {
         String promptVersion = promptVersionRegistry.versionOf(operationName);
         Prompt prompt = new Prompt(messages, DashScopeChatOptions.builder()
                 .temperature(temperature)
@@ -67,7 +69,7 @@ public class AiModelInvoker {
         for (int attempt = 1; attempt <= maxAttempts; attempt++) {
             long start = System.currentTimeMillis();
             try {
-                String text = callOnce(prompt);
+                String text = callOnce(prompt, advisors);
                 long totalCostMs = System.currentTimeMillis() - totalStart;
                 logger.info("AI model call succeeded, operation={}, promptVersion={}, attempt={}, attemptCostMs={}, totalCostMs={}",
                         operationName, promptVersion, attempt, System.currentTimeMillis() - start, totalCostMs);
@@ -105,9 +107,9 @@ public class AiModelInvoker {
         throw new AiModelCallException("AI 模型调用失败，operation=" + operationName, lastError);
     }
 
-    private String callOnce(Prompt prompt) {
+    private String callOnce(Prompt prompt, List<Advisor> advisors) {
         CompletableFuture<String> future = CompletableFuture.supplyAsync(() ->
-                chatModel.call(prompt).getResult().getOutput().getText(), executorService);
+                doCall(prompt, advisors), aiModelExecutor);
 
         try {
             return future.get(timeout.toMillis(), TimeUnit.MILLISECONDS);
@@ -123,6 +125,18 @@ public class AiModelInvoker {
         }
     }
 
+    private String doCall(Prompt prompt, List<Advisor> advisors) {
+        if (advisors == null || advisors.isEmpty()) {
+            return chatClient.prompt(prompt)
+                    .call()
+                    .content();
+        }
+        return chatClient.prompt(prompt)
+                .advisors(advisors)
+                .call()
+                .content();
+    }
+
     private void sleepBeforeRetry(int attempt) {
         long sleepMillis = backoff.toMillis() * attempt;
         if (sleepMillis <= 0) {
@@ -136,20 +150,4 @@ public class AiModelInvoker {
         }
     }
 
-    @PreDestroy
-    public void shutdown() {
-        executorService.shutdownNow();
-    }
-
-    private static class NamedThreadFactory implements ThreadFactory {
-        private final AtomicInteger counter = new AtomicInteger();
-
-        @Override
-        public Thread newThread(Runnable runnable) {
-            Thread thread = new Thread(runnable);
-            thread.setName("ai-model-invoker-" + counter.incrementAndGet());
-            thread.setDaemon(true);
-            return thread;
-        }
-    }
 }
