@@ -4,6 +4,7 @@
 
 ```bash
 curl -X POST http://localhost:8080/api/resume/upload \
+  -H "X-Trace-Id: demo-trace-001" \
   -F "file=@samples/java-backend-resume.txt"
 ```
 
@@ -17,6 +18,8 @@ curl -X POST http://localhost:8080/api/resume/upload \
   }
 }
 ```
+
+所有接口都会在响应头返回 `X-Trace-Id`。如果请求未传入该 header，服务端会自动生成，方便把 HTTP 请求、Agent 编排和模型调用日志串起来。
 
 ## 获取简历分析
 

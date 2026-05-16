@@ -12,6 +12,7 @@ AI Interview Agent Platform 是一个面向求职者和技术面试训练场景�
 - 答案评估：结合简历背景和候选人回答，输出逐题评分、分类得分、优势、不足和参考答案。
 - RAG 基础能力：将简历写入 Milvus 向量库，支持基于 JD 或关键词的相似简历检索。
 - 会话存储：使用 MySQL 持久化简历、问题和评估结果，使用 Redis 缓存热点面试会话。
+- 模型调用治理：统一封装大模型调用，支持超时、重试、退避、结构化输出校验和 traceId 日志追踪。
 
 ## 技术栈
 
@@ -74,6 +75,15 @@ cp .env.example .env
 
 应用会通过 `spring.config.import=optional:file:.env[.properties]` 读取当前目录下的 `.env`，Docker Compose 也会复用同一份配置。
 
+模型调用治理参数也可以通过 `.env` 调整：
+
+```text
+AI_MODEL_MAX_ATTEMPTS=3
+AI_MODEL_TIMEOUT_SECONDS=60
+AI_MODEL_BACKOFF_MILLIS=800
+AI_MODEL_EXECUTOR_POOL_SIZE=4
+```
+
 ### 2. 启动依赖
 
 ```bash
@@ -115,6 +125,7 @@ AI 面试 Agent 平台｜Java 17 / Spring Boot / Spring AI Alibaba / DashScope /
 
 - 设计并实现“简历解析 -> 能力画像 -> 个性化出题 -> 回答评估 -> 面试报告生成”的 Agent 工作流，提升模拟面试的个性化与反馈质量。
 - 基于 Spring AI Alibaba 接入通义千问模型，通过 System/User Prompt 分层设计、结构化 JSON 输出约束和容错解析，降低大模型输出不稳定对业务流程的影响。
+- 封装统一模型调用器，支持调用超时、失败重试、线性退避和 traceId 日志追踪，将模型侧故障映射为 502，提升 AI 链路可观测性和稳定性。
 - 使用 Apache Tika 支持多格式简历解析，并围绕项目深度、技能匹配、内容完整性、结构清晰度和表达专业性生成多维度评分。
 - 基于 Milvus 构建简历向量知识库，结合 JD 检索相似简历片段，为岗位定制化出题提供 RAG 上下文。
 - 实现 JD 匹配 Agent，输出岗位匹配分、能力证据、缺失技能、风险点和面试追问方向。
@@ -123,6 +134,6 @@ AI 面试 Agent 平台｜Java 17 / Spring Boot / Spring AI Alibaba / DashScope /
 
 ## 后续规划
 
-- 增加模型调用重试、超时控制和降级策略。
-- 增加 JSON Schema 校验和 Prompt 版本管理。
+- 增加模型降级策略和 Prompt 版本管理。
+- 增加更严格的 JSON Schema 校验。
 - 补充单元测试、集成测试和接口文档。

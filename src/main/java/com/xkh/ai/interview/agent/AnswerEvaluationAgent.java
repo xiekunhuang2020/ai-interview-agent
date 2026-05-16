@@ -1,18 +1,16 @@
 package com.xkh.ai.interview.agent;
 
-import com.alibaba.cloud.ai.dashscope.chat.DashScopeChatModel;
-import com.alibaba.cloud.ai.dashscope.chat.DashScopeChatOptions;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.xkh.ai.interview.service.dto.InterviewEvaluation;
 import com.xkh.ai.interview.service.dto.InterviewQuestions;
 import com.xkh.ai.interview.support.AiJsonResponseParser;
+import com.xkh.ai.interview.support.AiModelInvoker;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.ai.chat.messages.Message;
 import org.springframework.ai.chat.messages.SystemMessage;
 import org.springframework.ai.chat.messages.UserMessage;
-import org.springframework.ai.chat.prompt.Prompt;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.Resource;
 import org.springframework.stereotype.Component;
@@ -26,14 +24,14 @@ public class AnswerEvaluationAgent {
 
     private static final Logger logger = LoggerFactory.getLogger(AnswerEvaluationAgent.class);
 
-    private final DashScopeChatModel chatModel;
+    private final AiModelInvoker aiModelInvoker;
     private final AiJsonResponseParser responseParser;
 
     @Value("classpath:/prompt/interview-evaluation-system.st")
     private Resource systemPromptResource;
 
-    public AnswerEvaluationAgent(DashScopeChatModel chatModel, AiJsonResponseParser responseParser) {
-        this.chatModel = chatModel;
+    public AnswerEvaluationAgent(AiModelInvoker aiModelInvoker, AiJsonResponseParser responseParser) {
+        this.aiModelInvoker = aiModelInvoker;
         this.responseParser = responseParser;
     }
 
@@ -44,7 +42,7 @@ public class AnswerEvaluationAgent {
         messages.add(new SystemMessage(systemPromptResource));
         messages.add(new UserMessage(buildUserPrompt(resumeText, questions, answers)));
 
-        String response = callModel(messages);
+        String response = aiModelInvoker.call("answer-evaluation", messages, 0.7);
         try {
             return responseParser.parseInterviewEvaluation(response);
         } catch (JsonProcessingException e) {
@@ -72,10 +70,4 @@ public class AnswerEvaluationAgent {
                 """.formatted(resumeText, qaText);
     }
 
-    private String callModel(List<Message> messages) {
-        Prompt prompt = new Prompt(messages, DashScopeChatOptions.builder()
-                .temperature(0.7)
-                .build());
-        return chatModel.call(prompt).getResult().getOutput().getText();
-    }
 }

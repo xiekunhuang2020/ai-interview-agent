@@ -51,6 +51,13 @@ spring:
 server:
   port: 8080
 
+ai-interview:
+  model:
+    max-attempts: ${AI_MODEL_MAX_ATTEMPTS:3}
+    timeout-seconds: ${AI_MODEL_TIMEOUT_SECONDS:60}
+    backoff-millis: ${AI_MODEL_BACKOFF_MILLIS:800}
+    executor-pool-size: ${AI_MODEL_EXECUTOR_POOL_SIZE:4}
+
 mybatis-plus:
   mapper-locations: classpath*:/mapper/**/*.xml
   type-aliases-package: com.xkh.ai.interview.entity
@@ -65,6 +72,8 @@ mybatis-plus:
       logic-not-delete-value: 0
 
 logging:
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss.SSS} %-5level [%thread] traceId=%X{traceId:-} %logger{36} - %msg%n"
   level:
     org.springframework.ai: DEBUG
     com.alibaba.cloud.ai: DEBUG

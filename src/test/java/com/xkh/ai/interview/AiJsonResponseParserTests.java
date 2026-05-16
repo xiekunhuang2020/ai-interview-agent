@@ -4,9 +4,11 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.xkh.ai.interview.service.dto.JobDescriptionMatchResult;
 import com.xkh.ai.interview.service.dto.ResumeScoreResult;
 import com.xkh.ai.interview.support.AiJsonResponseParser;
+import com.xkh.ai.interview.support.AiStructuredOutputException;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 class AiJsonResponseParserTests {
 
@@ -81,5 +83,13 @@ class AiJsonResponseParserTests {
         assertEquals("Spring Boot", result.getMatchedSkills().get(0).getSkill());
         assertEquals("工具调用", result.getMissingSkills().get(0).getSkill());
         assertEquals("追问 Agent 编排边界", result.getInterviewFocus().get(0));
+    }
+
+    @Test
+    void rejectsInterviewQuestionsWithoutQuestionsArray() {
+        String response = "{\"summary\":\"缺少 questions 字段\"}";
+
+        assertThrows(AiStructuredOutputException.class,
+                () -> parser.parseInterviewQuestions(response));
     }
 }

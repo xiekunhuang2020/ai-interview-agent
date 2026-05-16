@@ -20,11 +20,12 @@ flowchart TD
     O --> A4["JobDescriptionMatchAgent"]
     O --> A5["RagInterviewQuestionAgent"]
 
-    A1 --> LLM["DashScope Chat Model"]
-    A2 --> LLM
-    A3 --> LLM
-    A4 --> LLM
-    A5 --> LLM
+    A1 --> INV["AiModelInvoker"]
+    A2 --> INV
+    A3 --> INV
+    A4 --> INV
+    A5 --> INV
+    INV --> LLM["DashScope Chat Model"]
 
     T1 --> Tika["Apache Tika"]
     T2 --> MySQL["MySQL"]
@@ -62,6 +63,20 @@ Agent 负责需要模型推理的任务，目前包含：
 - `JobDescriptionMatchAgent`：分析候选人简历与目标 JD 的匹配度
 - `RagInterviewQuestionAgent`：结合 JD、候选人简历和向量检索上下文生成岗位定制题
 
+### Model Invoker
+
+`AiModelInvoker` 统一封装大模型调用，避免每个 Agent 分散处理网络异常和模型波动。
+
+当前治理能力：
+
+- 单次调用超时控制
+- 最大重试次数控制
+- 线性退避等待
+- 调用耗时日志
+- traceId 贯穿 HTTP 请求和模型调用日志
+- 模型调用失败映射为 502 响应
+- 结构化输出字段校验
+
 ### Tool
 
 Tool 负责确定性能力，方便后续迁移到函数调用或工具调用框架：
@@ -89,5 +104,5 @@ Tool 负责确定性能力，方便后续迁移到函数调用或工具调用框
 下一阶段可以继续引入：
 
 - Prompt 版本管理
-- 大模型调用重试和降级策略
-- JSON Schema 校验
+- 模型降级策略
+- 更严格的 JSON Schema 校验

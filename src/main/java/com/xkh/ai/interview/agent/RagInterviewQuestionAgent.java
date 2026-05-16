@@ -1,17 +1,15 @@
 package com.xkh.ai.interview.agent;
 
-import com.alibaba.cloud.ai.dashscope.chat.DashScopeChatModel;
-import com.alibaba.cloud.ai.dashscope.chat.DashScopeChatOptions;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.xkh.ai.interview.service.dto.InterviewQuestions;
 import com.xkh.ai.interview.service.dto.ResumeSearchResult;
 import com.xkh.ai.interview.support.AiJsonResponseParser;
+import com.xkh.ai.interview.support.AiModelInvoker;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.ai.chat.messages.Message;
 import org.springframework.ai.chat.messages.SystemMessage;
 import org.springframework.ai.chat.messages.UserMessage;
-import org.springframework.ai.chat.prompt.Prompt;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.Resource;
 import org.springframework.stereotype.Component;
@@ -25,14 +23,14 @@ public class RagInterviewQuestionAgent {
     private static final Logger logger = LoggerFactory.getLogger(RagInterviewQuestionAgent.class);
     private static final int MAX_CONTEXT_CHARS_PER_RESUME = 1200;
 
-    private final DashScopeChatModel chatModel;
+    private final AiModelInvoker aiModelInvoker;
     private final AiJsonResponseParser responseParser;
 
     @Value("classpath:/prompt/rag-interview-question-system.st")
     private Resource systemPromptResource;
 
-    public RagInterviewQuestionAgent(DashScopeChatModel chatModel, AiJsonResponseParser responseParser) {
-        this.chatModel = chatModel;
+    public RagInterviewQuestionAgent(AiModelInvoker aiModelInvoker, AiJsonResponseParser responseParser) {
+        this.aiModelInvoker = aiModelInvoker;
         this.responseParser = responseParser;
     }
 
@@ -57,7 +55,7 @@ public class RagInterviewQuestionAgent {
                 %s
                 """.formatted(resumeText, jobDescription, buildRetrievalContext(retrievedResumes))));
 
-        String response = callModel(messages);
+        String response = aiModelInvoker.call("rag-interview-question-generation", messages, 0.7);
         try {
             return responseParser.parseInterviewQuestions(response);
         } catch (JsonProcessingException e) {
@@ -87,10 +85,4 @@ public class RagInterviewQuestionAgent {
         return text.substring(0, MAX_CONTEXT_CHARS_PER_RESUME) + "\n...[truncated]";
     }
 
-    private String callModel(List<Message> messages) {
-        Prompt prompt = new Prompt(messages, DashScopeChatOptions.builder()
-                .temperature(0.7)
-                .build());
-        return chatModel.call(prompt).getResult().getOutput().getText();
-    }
 }

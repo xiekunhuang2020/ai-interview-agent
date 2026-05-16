@@ -23,7 +23,10 @@ public class AiJsonResponseParser {
     }
 
     public ResumeScoreResult parseResumeScoreResult(String json) throws JsonProcessingException {
-        JsonNode rootNode = objectMapper.readTree(cleanJsonResponse(json));
+        JsonNode rootNode = readRootObject(json, "resume-score");
+        requireFields(rootNode, "resume-score", "overallScore", "scoreDetail", "summary", "strengths", "suggestions");
+        requireArray(rootNode, "resume-score", "strengths");
+        requireArray(rootNode, "resume-score", "suggestions");
 
         Integer overallScore = rootNode.has("overallScore") ? rootNode.get("overallScore").asInt() : 0;
         String summary = rootNode.has("summary") ? rootNode.get("summary").asText() : "";
@@ -67,7 +70,9 @@ public class AiJsonResponseParser {
     }
 
     public InterviewQuestions parseInterviewQuestions(String json) throws JsonProcessingException {
-        JsonNode rootNode = objectMapper.readTree(cleanJsonResponse(json));
+        JsonNode rootNode = readRootObject(json, "interview-questions");
+        requireFields(rootNode, "interview-questions", "questions");
+        requireArray(rootNode, "interview-questions", "questions");
         List<InterviewQuestions.Question> questions = new ArrayList<>();
 
         if (rootNode.has("questions") && rootNode.get("questions").isArray()) {
@@ -86,7 +91,15 @@ public class AiJsonResponseParser {
     }
 
     public InterviewEvaluation parseInterviewEvaluation(String json) throws JsonProcessingException {
-        JsonNode rootNode = objectMapper.readTree(cleanJsonResponse(json));
+        JsonNode rootNode = readRootObject(json, "interview-evaluation");
+        requireFields(rootNode, "interview-evaluation",
+                "sessionId", "totalQuestions", "overallScore", "categoryScores", "questionDetails",
+                "overallFeedback", "strengths", "improvements", "referenceAnswers");
+        requireArray(rootNode, "interview-evaluation", "categoryScores");
+        requireArray(rootNode, "interview-evaluation", "questionDetails");
+        requireArray(rootNode, "interview-evaluation", "strengths");
+        requireArray(rootNode, "interview-evaluation", "improvements");
+        requireArray(rootNode, "interview-evaluation", "referenceAnswers");
 
         InterviewEvaluation.InterviewEvaluationBuilder builder = InterviewEvaluation.builder();
         builder.sessionId(rootNode.has("sessionId") ? rootNode.get("sessionId").asText() : UUID.randomUUID().toString());
@@ -161,7 +174,15 @@ public class AiJsonResponseParser {
     }
 
     public JobDescriptionMatchResult parseJobDescriptionMatchResult(String json) throws JsonProcessingException {
-        JsonNode rootNode = objectMapper.readTree(cleanJsonResponse(json));
+        JsonNode rootNode = readRootObject(json, "jd-match");
+        requireFields(rootNode, "jd-match",
+                "overallScore", "matchLevel", "summary", "matchedSkills", "missingSkills",
+                "interviewFocus", "risks", "learningSuggestions");
+        requireArray(rootNode, "jd-match", "matchedSkills");
+        requireArray(rootNode, "jd-match", "missingSkills");
+        requireArray(rootNode, "jd-match", "interviewFocus");
+        requireArray(rootNode, "jd-match", "risks");
+        requireArray(rootNode, "jd-match", "learningSuggestions");
 
         List<JobDescriptionMatchResult.SkillMatch> matchedSkills = new ArrayList<>();
         if (rootNode.has("matchedSkills") && rootNode.get("matchedSkills").isArray()) {
@@ -205,6 +226,28 @@ public class AiJsonResponseParser {
             }
         }
         return values;
+    }
+
+    private JsonNode readRootObject(String json, String schemaName) throws JsonProcessingException {
+        JsonNode rootNode = objectMapper.readTree(cleanJsonResponse(json));
+        if (rootNode == null || !rootNode.isObject()) {
+            throw new AiStructuredOutputException("AI 输出不符合 " + schemaName + " 结构：根节点必须是 JSON 对象");
+        }
+        return rootNode;
+    }
+
+    private void requireFields(JsonNode rootNode, String schemaName, String... fieldNames) {
+        for (String fieldName : fieldNames) {
+            if (!rootNode.has(fieldName) || rootNode.get(fieldName).isNull()) {
+                throw new AiStructuredOutputException("AI 输出不符合 " + schemaName + " 结构：缺少字段 " + fieldName);
+            }
+        }
+    }
+
+    private void requireArray(JsonNode rootNode, String schemaName, String fieldName) {
+        if (!rootNode.has(fieldName) || !rootNode.get(fieldName).isArray()) {
+            throw new AiStructuredOutputException("AI 输出不符合 " + schemaName + " 结构：" + fieldName + " 必须是数组");
+        }
     }
 
     private String cleanJsonResponse(String json) {
