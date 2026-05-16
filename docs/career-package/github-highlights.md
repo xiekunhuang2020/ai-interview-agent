@@ -35,7 +35,7 @@ milvus
 redis
 mysql
 prompt-engineering
-java17
+java21
 interview-assistant
 ```
 

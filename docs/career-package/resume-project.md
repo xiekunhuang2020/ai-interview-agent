@@ -11,7 +11,7 @@ AI 面试 Agent 平台
 ## 推荐简历版本
 
 ```text
-AI 面试 Agent 平台｜Java 17 / Spring Boot / Spring AI Alibaba / DashScope / Milvus / Redis / MySQL
+AI 面试 Agent 平台｜Java 21 / Spring Boot / Spring AI Alibaba / DashScope / Milvus / Redis / MySQL
 
 - 设计并实现“简历解析 -> 能力画像 -> JD 匹配 -> RAG 增强出题 -> 回答评估 -> 面试报告生成”的 Agent 工作流，覆盖求职者面试训练闭环。
 - 基于 Controller + Orchestrator + Agent + Tool 分层重构业务链路，将模型推理任务与文档解析、数据存储、向量检索等确定性工具解耦。

@@ -11,7 +11,7 @@
 ## 专业技能
 
 ```text
-- Java 后端：熟悉 Java 17、Spring Boot、MyBatis-Plus、RESTful API 设计和常见后端分层架构，能够完成业务系统从接口设计到持久化落地的开发工作。
+- Java 后端：熟悉 Java 21、Spring Boot、MyBatis-Plus、RESTful API 设计和常见后端分层架构，能够完成业务系统从接口设计到持久化落地的开发工作。
 - 数据库与缓存：熟悉 MySQL 表结构设计、索引优化、事务和慢 SQL 排查；熟悉 Redis 缓存设计、热点数据缓存和会话状态缓存。
 - AI 应用开发：熟悉 Spring AI Alibaba、DashScope 大模型接入、Prompt 分层设计、结构化 JSON 输出约束和模型调用异常处理。
 - Agent 工程化：理解 Orchestrator + Agent + Tool 分层设计，能够将模型推理任务与文档解析、存储、缓存、向量检索等确定性工具解耦。
@@ -29,7 +29,7 @@
 基于 Spring Boot、Spring AI Alibaba、DashScope、Milvus、Redis、MySQL 构建的岗位定制化 AI 面试训练系统，支持简历解析、能力画像、JD 匹配、RAG 增强出题、回答评估、模型调用治理和 Prompt 效果观测。
 
 技术栈：
-Java 17、Spring Boot 3、Spring AI Alibaba、DashScope、Milvus、Redis、MySQL、MyBatis-Plus、Apache Tika、Thymeleaf、Docker Compose
+Java 21、Spring Boot 3、Spring AI Alibaba、DashScope、Milvus、Redis、MySQL、MyBatis-Plus、Apache Tika、Thymeleaf、Docker Compose
 
 项目职责：
 - 设计并实现“简历解析 -> 能力画像 -> JD 匹配 -> RAG 增强出题 -> 回答评估 -> 面试报告生成”的 Agent 工作流，覆盖求职者面试训练完整链路。

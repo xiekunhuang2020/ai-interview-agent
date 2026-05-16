@@ -20,7 +20,7 @@ AI Interview Agent Platform 是一个面向求职者和技术面试训练场景�
 
 | 模块 | 技术 |
 | --- | --- |
-| 后端框架 | Java 17, Spring Boot 3 |
+| 后端框架 | Java 21, Spring Boot 3 |
 | AI 框架 | Spring AI Alibaba, DashScope |
 | 文档解析 | Apache Tika |
 | 向量检索 | Milvus Vector Store |
@@ -164,7 +164,7 @@ http://localhost:8080
 ## 简历可写亮点
 
 ```text
-AI 面试 Agent 平台｜Java 17 / Spring Boot / Spring AI Alibaba / DashScope / Milvus / Redis / MySQL
+AI 面试 Agent 平台｜Java 21 / Spring Boot / Spring AI Alibaba / DashScope / Milvus / Redis / MySQL
 
 - 设计并实现“简历解析 -> 能力画像 -> 个性化出题 -> 回答评估 -> 面试报告生成”的 Agent 工作流，提升模拟面试的个性化与反馈质量。
 - 基于 Spring AI Alibaba 接入通义千问模型，通过 System/User Prompt 分层设计、结构化 JSON 输出约束和容错解析，降低大模型输出不稳定对业务流程的影响。
