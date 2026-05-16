@@ -140,6 +140,16 @@ http://localhost:8080
 
 见 [docs/api-examples.md](docs/api-examples.md)。
 
+## 面试材料
+
+- [最终版简历文本](docs/career-package/final-resume-text.md)
+- [简历项目描述](docs/career-package/resume-project.md)
+- [面试讲稿](docs/career-package/interview-script.md)
+- [技术难点 FAQ](docs/career-package/technical-faq.md)
+- [GitHub 项目亮点清单](docs/career-package/github-highlights.md)
+- [提交拆分建议](docs/career-package/commit-plan.md)
+- [展示前检查清单](docs/career-package/showcase-checklist.md)
+
 ## 演示流程
 
 1. 打开首页，上传 `samples/java-backend-resume.txt`。

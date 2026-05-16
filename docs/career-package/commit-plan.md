@@ -1,0 +1,131 @@
+# 提交拆分建议
+
+如果你准备把项目推到 GitHub，建议按能力分组拆 commit。这样提交历史更像真实项目演进，也方便面试时讲清楚每一轮改造。
+
+## 推荐提交顺序
+
+```text
+feat(agent): introduce orchestrator, agents and tools
+feat(rag): add JD matching and RAG-enhanced question generation
+feat(model): add unified model invoker with retry, timeout and fallback
+feat(audit): add prompt versioning and model call audit logs
+feat(dashboard): add prompt metrics dashboard
+test(parser): strengthen structured output validation
+docs(project): add architecture, API examples and runtime docs
+docs(career): add resume and interview preparation package
+```
+
+## 每个提交包含什么
+
+### feat(agent)
+
+```text
+src/main/java/.../agent/
+src/main/java/.../orchestrator/
+src/main/java/.../tool/
+src/main/java/.../support/AiJsonResponseParser.java
+```
+
+说明重点：从单 Service 调 LLM 改造成 Controller + Orchestrator + Agent + Tool。
+
+### feat(rag)
+
+```text
+JobDescriptionMatchAgent
+RagInterviewQuestionAgent
+JobDescriptionMatchResult
+JobDescriptionRequest
+jd-match-system.st
+rag-interview-question-system.st
+samples/java-ai-agent-jd.txt
+```
+
+说明重点：支持 JD 匹配和 RAG 增强出题。
+
+### feat(model)
+
+```text
+AiModelInvoker
+AiModelCallException
+AiStructuredOutputException
+AiModelFallbackResponseFactory
+RequestTraceFilter
+application.yml 中 ai-interview.model 配置
+```
+
+说明重点：模型调用超时、重试、退避、显式降级和 traceId。
+
+### feat(audit)
+
+```text
+AiModelCallLog
+AiModelCallLogMapper
+AiModelCallAuditRecorder
+PromptVersionRegistry
+sql/init.sql
+sql/migration-v2-ai-model-call-log.sql
+```
+
+说明重点：Prompt 版本、模型调用审计和旧库迁移脚本。
+
+### feat(dashboard)
+
+```text
+PromptMetricsResult
+PromptFailureReasonResult
+AiModelCallAuditQueryService
+prompt-dashboard.html
+Controller 中 /audit/prompt-dashboard 和 /api/audit/* 接口
+```
+
+说明重点：Prompt 效果指标和失败原因看板。
+
+### test(parser)
+
+```text
+AiJsonResponseParserTests
+AiModelFallbackResponseFactoryTests
+PromptVersionRegistryTests
+```
+
+说明重点：结构化输出强校验和降级 JSON 契约。
+
+### docs(project)
+
+```text
+README.md
+docs/architecture.md
+docs/api-examples.md
+.env.example
+docker-compose.yml
+samples/java-backend-resume.txt
+```
+
+说明重点：项目可运行、可展示、可理解。
+
+### docs(career)
+
+```text
+docs/career-package/
+```
+
+说明重点：简历材料、面试讲稿和展示清单。
+
+## 提交前检查命令
+
+```bash
+mvn -q test
+mvn -q -DskipTests compile
+git status --short
+git diff --stat
+```
+
+## 注意
+
+如果当前工作区已经有 staged changes，先用下面命令确认：
+
+```bash
+git status --short
+```
+
+不要用 `git reset --hard` 清理工作区，避免误删已有改造结果。
