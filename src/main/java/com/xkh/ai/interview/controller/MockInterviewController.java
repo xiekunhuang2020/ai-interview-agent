@@ -48,6 +48,14 @@ public class MockInterviewController {
     }
 
     /**
+     * Prompt 效果评估看板
+     */
+    @GetMapping("/audit/prompt-dashboard")
+    public String promptDashboardPage() {
+        return "prompt-dashboard";
+    }
+
+    /**
      * 上传简历文件并评分
      */
     @PostMapping("/api/resume/upload")
@@ -279,6 +287,18 @@ public class MockInterviewController {
             @RequestParam(required = false) String promptVersion,
             @RequestParam(defaultValue = "1000") int limit) {
         return ResponseEntity.ok(auditQueryService.listPromptMetrics(operationName, promptVersion, limit));
+    }
+
+    /**
+     * 查询 Prompt 版本维度的失败原因分布
+     */
+    @GetMapping("/api/audit/failure-reasons")
+    @ResponseBody
+    public ResponseEntity<?> listFailureReasons(
+            @RequestParam(required = false) String operationName,
+            @RequestParam(required = false) String promptVersion,
+            @RequestParam(defaultValue = "1000") int limit) {
+        return ResponseEntity.ok(auditQueryService.listFailureReasons(operationName, promptVersion, limit));
     }
 
     private int parseTopK(Object topK) {

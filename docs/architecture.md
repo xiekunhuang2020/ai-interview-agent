@@ -123,6 +123,8 @@ fallbackUsed = 1
 
 `/api/audit/prompt-metrics` 基于最近的模型调用审计记录，按 operation 和 Prompt 版本聚合 totalCalls、successRate、fallbackRate、avgLatencyMs、maxLatencyMs 和 avgAttemptCount。
 
+`/audit/prompt-dashboard` 提供一个轻量看板页面，用于查看 Prompt 版本指标和失败原因分布。
+
 ### Tool
 
 Tool 负责确定性能力，方便后续迁移到函数调用或工具调用框架：
@@ -150,4 +152,4 @@ Tool 负责确定性能力，方便后续迁移到函数调用或工具调用框
 下一阶段可以继续引入：
 
 - 更严格的 JSON Schema 校验
-- Prompt 效果评估看板
+- Prompt 评估看板的时间范围筛选

@@ -86,6 +86,12 @@ GET /api/audit/prompt-metrics?operationName=jd-match&limit=1000
 
 指标包括调用总数、成功率、降级率、平均耗时、最大耗时和平均尝试次数。
 
+也可以打开页面查看：
+
+```text
+http://localhost:8080/audit/prompt-dashboard
+```
+
 ## 快速启动
 
 ### 1. 准备配置
@@ -143,6 +149,7 @@ http://localhost:8080
 5. 填写答案并提交。
 6. 查看面试评估报告、分类得分和参考答案。
 7. 通过 `/api/rag/search` 测试简历向量检索。
+8. 打开 `/audit/prompt-dashboard` 查看 Prompt 效果评估看板。
 
 ## 简历可写亮点
 
@@ -163,5 +170,5 @@ AI 面试 Agent 平台｜Java 17 / Spring Boot / Spring AI Alibaba / DashScope /
 ## 后续规划
 
 - 增加更严格的 JSON Schema 校验。
-- 增加 Prompt 效果评估看板页面。
-- 补充集成测试和接口文档。
+- 补充更严格的 JSON Schema 校验。
+- 补充集成测试。

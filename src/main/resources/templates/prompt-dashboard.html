@@ -1,0 +1,490 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Prompt 效果评估看板</title>
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            font-family: "Microsoft YaHei", "PingFang SC", Arial, sans-serif;
+            background: #f5f7fb;
+            color: #202939;
+        }
+
+        .shell {
+            max-width: 1280px;
+            margin: 0 auto;
+            padding: 24px;
+        }
+
+        .topbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            gap: 16px;
+            margin-bottom: 20px;
+        }
+
+        h1 {
+            margin: 0 0 6px;
+            font-size: 26px;
+            font-weight: 700;
+            letter-spacing: 0;
+        }
+
+        .subtitle {
+            color: #64748b;
+            font-size: 14px;
+        }
+
+        .actions {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            justify-content: flex-end;
+        }
+
+        .btn {
+            border: 1px solid #cbd5e1;
+            background: #ffffff;
+            color: #1f2937;
+            border-radius: 6px;
+            padding: 9px 14px;
+            cursor: pointer;
+            font-weight: 600;
+        }
+
+        .btn.primary {
+            border-color: #2563eb;
+            background: #2563eb;
+            color: #ffffff;
+        }
+
+        .filters {
+            display: grid;
+            grid-template-columns: minmax(180px, 1fr) minmax(180px, 1fr) 120px auto;
+            gap: 12px;
+            align-items: end;
+            background: #ffffff;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            padding: 16px;
+            margin-bottom: 16px;
+        }
+
+        label {
+            display: block;
+            font-size: 12px;
+            color: #64748b;
+            margin-bottom: 6px;
+            font-weight: 700;
+        }
+
+        input {
+            width: 100%;
+            border: 1px solid #cbd5e1;
+            border-radius: 6px;
+            padding: 10px 12px;
+            font-size: 14px;
+            background: #ffffff;
+        }
+
+        .summary-grid {
+            display: grid;
+            grid-template-columns: repeat(5, minmax(150px, 1fr));
+            gap: 12px;
+            margin-bottom: 16px;
+        }
+
+        .metric {
+            background: #ffffff;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            padding: 16px;
+            min-height: 92px;
+        }
+
+        .metric-label {
+            color: #64748b;
+            font-size: 12px;
+            font-weight: 700;
+            margin-bottom: 8px;
+        }
+
+        .metric-value {
+            font-size: 24px;
+            font-weight: 800;
+            color: #0f172a;
+            word-break: break-word;
+        }
+
+        .metric-note {
+            margin-top: 5px;
+            color: #64748b;
+            font-size: 12px;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: 1.35fr 0.9fr;
+            gap: 16px;
+        }
+
+        .panel {
+            background: #ffffff;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        .panel-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 12px;
+            padding: 14px 16px;
+            border-bottom: 1px solid #e2e8f0;
+            background: #f8fafc;
+        }
+
+        .panel-title {
+            font-size: 16px;
+            font-weight: 800;
+        }
+
+        .panel-meta {
+            color: #64748b;
+            font-size: 12px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            table-layout: fixed;
+        }
+
+        th, td {
+            padding: 12px 14px;
+            text-align: left;
+            border-bottom: 1px solid #e2e8f0;
+            vertical-align: top;
+            font-size: 13px;
+        }
+
+        th {
+            color: #475569;
+            background: #ffffff;
+            font-size: 12px;
+            font-weight: 800;
+        }
+
+        tbody tr:hover {
+            background: #f8fafc;
+        }
+
+        .mono {
+            font-family: Consolas, "Courier New", monospace;
+            font-size: 12px;
+            word-break: break-all;
+        }
+
+        .status {
+            display: inline-flex;
+            align-items: center;
+            min-width: 54px;
+            justify-content: center;
+            border-radius: 999px;
+            padding: 4px 8px;
+            font-size: 12px;
+            font-weight: 800;
+        }
+
+        .good {
+            background: #dcfce7;
+            color: #166534;
+        }
+
+        .warn {
+            background: #fef3c7;
+            color: #92400e;
+        }
+
+        .bad {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+
+        .empty {
+            padding: 28px 16px;
+            color: #64748b;
+            text-align: center;
+        }
+
+        .bar-track {
+            height: 8px;
+            background: #e2e8f0;
+            border-radius: 999px;
+            overflow: hidden;
+            margin-top: 8px;
+        }
+
+        .bar-fill {
+            height: 100%;
+            background: #2563eb;
+            width: 0;
+        }
+
+        @media (max-width: 980px) {
+            .filters,
+            .summary-grid,
+            .grid {
+                grid-template-columns: 1fr;
+            }
+
+            .topbar {
+                flex-direction: column;
+            }
+
+            .actions {
+                justify-content: flex-start;
+            }
+        }
+    </style>
+</head>
+<body>
+<main class="shell">
+    <section class="topbar">
+        <div>
+            <h1>Prompt 效果评估看板</h1>
+            <div class="subtitle">按 operation 和 Prompt 版本观察模型调用稳定性、降级率、耗时和失败原因。</div>
+        </div>
+        <div class="actions">
+            <a class="btn" href="/">首页</a>
+            <button class="btn primary" type="button" onclick="loadDashboard()">刷新</button>
+        </div>
+    </section>
+
+    <section class="filters">
+        <div>
+            <label for="operationName">Operation</label>
+            <input id="operationName" placeholder="如 jd-match，可留空">
+        </div>
+        <div>
+            <label for="promptVersion">Prompt Version</label>
+            <input id="promptVersion" placeholder="如 jd-match-v2026-05-17-01，可留空">
+        </div>
+        <div>
+            <label for="limit">样本量</label>
+            <input id="limit" type="number" min="1" max="5000" value="1000">
+        </div>
+        <button class="btn primary" type="button" onclick="loadDashboard()">应用筛选</button>
+    </section>
+
+    <section class="summary-grid">
+        <div class="metric">
+            <div class="metric-label">总调用</div>
+            <div class="metric-value" id="totalCalls">0</div>
+            <div class="metric-note">当前筛选样本</div>
+        </div>
+        <div class="metric">
+            <div class="metric-label">成功率</div>
+            <div class="metric-value" id="successRate">0%</div>
+            <div class="metric-note">success / total</div>
+        </div>
+        <div class="metric">
+            <div class="metric-label">降级率</div>
+            <div class="metric-value" id="fallbackRate">0%</div>
+            <div class="metric-note">fallback / total</div>
+        </div>
+        <div class="metric">
+            <div class="metric-label">平均耗时</div>
+            <div class="metric-value" id="avgLatency">0ms</div>
+            <div class="metric-note">按审计记录聚合</div>
+        </div>
+        <div class="metric">
+            <div class="metric-label">平均尝试</div>
+            <div class="metric-value" id="avgAttempts">0</div>
+            <div class="metric-note">重试压力参考</div>
+        </div>
+    </section>
+
+    <section class="grid">
+        <div class="panel">
+            <div class="panel-header">
+                <div class="panel-title">Prompt 版本指标</div>
+                <div class="panel-meta" id="metricsMeta">-</div>
+            </div>
+            <div id="metricsTable"></div>
+        </div>
+
+        <div class="panel">
+            <div class="panel-header">
+                <div class="panel-title">失败原因分布</div>
+                <div class="panel-meta" id="failureMeta">-</div>
+            </div>
+            <div id="failureTable"></div>
+        </div>
+    </section>
+</main>
+
+<script>
+    async function loadDashboard() {
+        const operationName = document.getElementById('operationName').value.trim();
+        const promptVersion = document.getElementById('promptVersion').value.trim();
+        const limit = clampLimit(document.getElementById('limit').value);
+
+        const params = new URLSearchParams({ limit: String(limit) });
+        if (operationName) {
+            params.set('operationName', operationName);
+        }
+        if (promptVersion) {
+            params.set('promptVersion', promptVersion);
+        }
+
+        const [metrics, failures] = await Promise.all([
+            fetchJson(`/api/audit/prompt-metrics?${params.toString()}`),
+            fetchJson(`/api/audit/failure-reasons?${params.toString()}`)
+        ]);
+
+        renderSummary(metrics);
+        renderMetrics(metrics);
+        renderFailures(failures);
+    }
+
+    async function fetchJson(url) {
+        const response = await fetch(url);
+        if (!response.ok) {
+            throw new Error(`请求失败：${response.status}`);
+        }
+        return response.json();
+    }
+
+    function renderSummary(metrics) {
+        const total = sum(metrics, 'totalCalls');
+        const success = sum(metrics, 'successCalls');
+        const fallback = sum(metrics, 'fallbackCalls');
+        const latencyWeighted = metrics.reduce((acc, item) => acc + (Number(item.avgLatencyMs || 0) * Number(item.totalCalls || 0)), 0);
+        const attemptsWeighted = metrics.reduce((acc, item) => acc + (Number(item.avgAttemptCount || 0) * Number(item.totalCalls || 0)), 0);
+
+        document.getElementById('totalCalls').textContent = total;
+        document.getElementById('successRate').textContent = `${percent(success, total)}%`;
+        document.getElementById('fallbackRate').textContent = `${percent(fallback, total)}%`;
+        document.getElementById('avgLatency').textContent = `${round(total === 0 ? 0 : latencyWeighted / total)}ms`;
+        document.getElementById('avgAttempts').textContent = round(total === 0 ? 0 : attemptsWeighted / total);
+    }
+
+    function renderMetrics(metrics) {
+        document.getElementById('metricsMeta').textContent = `${metrics.length} 组`;
+        if (!metrics.length) {
+            document.getElementById('metricsTable').innerHTML = '<div class="empty">暂无指标数据</div>';
+            return;
+        }
+
+        const rows = metrics.map(item => `
+            <tr>
+                <td class="mono">${escapeHtml(item.operationName || '')}</td>
+                <td class="mono">${escapeHtml(item.promptVersion || '')}</td>
+                <td>${item.totalCalls || 0}</td>
+                <td>${rateBadge(item.successRate)}</td>
+                <td>${rateBadge(item.fallbackRate, true)}</td>
+                <td>${round(item.avgLatencyMs || 0)}ms</td>
+                <td>${round(item.avgAttemptCount || 0)}</td>
+            </tr>
+        `).join('');
+
+        document.getElementById('metricsTable').innerHTML = `
+            <table>
+                <thead>
+                <tr>
+                    <th style="width: 20%;">Operation</th>
+                    <th style="width: 26%;">Prompt Version</th>
+                    <th style="width: 10%;">调用</th>
+                    <th style="width: 12%;">成功率</th>
+                    <th style="width: 12%;">降级率</th>
+                    <th style="width: 10%;">均耗时</th>
+                    <th style="width: 10%;">均尝试</th>
+                </tr>
+                </thead>
+                <tbody>${rows}</tbody>
+            </table>
+        `;
+    }
+
+    function renderFailures(failures) {
+        document.getElementById('failureMeta').textContent = `${failures.length} 类`;
+        if (!failures.length) {
+            document.getElementById('failureTable').innerHTML = '<div class="empty">暂无失败记录</div>';
+            return;
+        }
+
+        const rows = failures.map(item => `
+            <tr>
+                <td>
+                    <div class="mono">${escapeHtml(item.reason || 'unknown')}</div>
+                    <div class="bar-track"><div class="bar-fill" style="width: ${Math.min(Number(item.percentage || 0), 100)}%;"></div></div>
+                </td>
+                <td style="width: 80px;">${item.count || 0}</td>
+                <td style="width: 90px;">${round(item.percentage || 0)}%</td>
+            </tr>
+        `).join('');
+
+        document.getElementById('failureTable').innerHTML = `
+            <table>
+                <thead>
+                <tr>
+                    <th>原因</th>
+                    <th style="width: 80px;">次数</th>
+                    <th style="width: 90px;">占比</th>
+                </tr>
+                </thead>
+                <tbody>${rows}</tbody>
+            </table>
+        `;
+    }
+
+    function rateBadge(value, reverse = false) {
+        const numeric = Number(value || 0);
+        let cls = 'warn';
+        if (reverse) {
+            cls = numeric <= 5 ? 'good' : (numeric <= 20 ? 'warn' : 'bad');
+        } else {
+            cls = numeric >= 95 ? 'good' : (numeric >= 80 ? 'warn' : 'bad');
+        }
+        return `<span class="status ${cls}">${round(numeric)}%</span>`;
+    }
+
+    function sum(items, field) {
+        return items.reduce((acc, item) => acc + Number(item[field] || 0), 0);
+    }
+
+    function percent(numerator, denominator) {
+        if (!denominator) {
+            return 0;
+        }
+        return round(numerator * 100 / denominator);
+    }
+
+    function round(value) {
+        return Math.round(Number(value || 0) * 100) / 100;
+    }
+
+    function clampLimit(value) {
+        const parsed = Number(value || 1000);
+        return Math.max(1, Math.min(parsed, 5000));
+    }
+
+    function escapeHtml(text) {
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+    }
+
+    document.addEventListener('DOMContentLoaded', loadDashboard);
+</script>
+</body>
+</html>

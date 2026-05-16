@@ -3,6 +3,7 @@ package com.xkh.ai.interview.support;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.xkh.ai.interview.entity.AiModelCallLog;
 import com.xkh.ai.interview.mapper.AiModelCallLogMapper;
+import com.xkh.ai.interview.service.dto.PromptFailureReasonResult;
 import com.xkh.ai.interview.service.dto.PromptMetricsResult;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Service;
@@ -49,6 +50,26 @@ public class AiModelCallAuditQueryService {
                 .toList();
     }
 
+    public List<PromptFailureReasonResult> listFailureReasons(String operationName, String promptVersion, int limit) {
+        int safeLimit = Math.max(1, Math.min(limit, 5000));
+        LambdaQueryWrapper<AiModelCallLog> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(StringUtils.isNotBlank(operationName), AiModelCallLog::getOperationName, operationName);
+        wrapper.eq(StringUtils.isNotBlank(promptVersion), AiModelCallLog::getPromptVersion, promptVersion);
+        wrapper.eq(AiModelCallLog::getSuccess, 0);
+        wrapper.orderByDesc(AiModelCallLog::getCreateTime);
+        wrapper.last("LIMIT " + safeLimit);
+
+        List<AiModelCallLog> logs = aiModelCallLogMapper.selectList(wrapper);
+        long totalFailures = logs.size();
+        Map<String, List<AiModelCallLog>> groupedLogs = logs.stream()
+                .collect(Collectors.groupingBy(this::failureReasonKey));
+
+        return groupedLogs.entrySet().stream()
+                .map(entry -> toFailureReason(entry.getKey(), entry.getValue(), totalFailures))
+                .sorted(Comparator.comparing(PromptFailureReasonResult::getCount).reversed())
+                .toList();
+    }
+
     private PromptMetricsResult toMetrics(List<AiModelCallLog> logs) {
         long totalCalls = logs.size();
         long successCalls = logs.stream().filter(log -> Integer.valueOf(1).equals(log.getSuccess())).count();
@@ -81,6 +102,28 @@ public class AiModelCallAuditQueryService {
                 .maxLatencyMs(maxLatencyMs)
                 .avgAttemptCount(round(avgAttemptCount))
                 .build();
+    }
+
+    private PromptFailureReasonResult toFailureReason(String reason, List<AiModelCallLog> logs, long totalFailures) {
+        AiModelCallLog sample = logs.get(0);
+        return PromptFailureReasonResult.builder()
+                .operationName(sample.getOperationName())
+                .promptVersion(sample.getPromptVersion())
+                .reason(reason)
+                .count((long) logs.size())
+                .percentage(rate(logs.size(), totalFailures))
+                .build();
+    }
+
+    private String failureReasonKey(AiModelCallLog log) {
+        if (StringUtils.isBlank(log.getErrorMessage())) {
+            return "unknown";
+        }
+        String reason = log.getErrorMessage().replaceAll("\\s+", " ").trim();
+        if (reason.length() > 120) {
+            return reason.substring(0, 120);
+        }
+        return reason;
     }
 
     private double rate(long numerator, long denominator) {

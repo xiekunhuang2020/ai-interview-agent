@@ -89,6 +89,18 @@ curl "http://localhost:8080/api/audit/prompt-metrics?operationName=jd-match&limi
 
 响应会按 `operationName + promptVersion` 聚合模型调用总数、成功率、降级率、平均耗时、最大耗时和平均尝试次数。
 
+## 查询失败原因分布
+
+```bash
+curl "http://localhost:8080/api/audit/failure-reasons?operationName=jd-match&limit=1000"
+```
+
+## Prompt 看板页面
+
+```text
+http://localhost:8080/audit/prompt-dashboard
+```
+
 ## 旧库迁移
 
 如果本地数据库是在第五轮改造前创建的，需要手动执行：
