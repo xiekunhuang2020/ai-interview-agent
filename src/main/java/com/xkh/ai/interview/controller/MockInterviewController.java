@@ -1,12 +1,9 @@
 package com.xkh.ai.interview.controller;
 
-import com.xkh.ai.interview.service.MockInterviewService;
+import com.xkh.ai.interview.orchestrator.InterviewAgentOrchestrator;
 import com.xkh.ai.interview.service.dto.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.ai.document.Document;
-import org.springframework.ai.reader.tika.TikaDocumentReader;
-import org.springframework.ai.vectorstore.VectorStore;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -21,12 +18,10 @@ public class MockInterviewController {
 
     private static final Logger logger = LoggerFactory.getLogger(MockInterviewController.class);
 
-    private final MockInterviewService interviewService;
-    private final VectorStore vectorStore;
+    private final InterviewAgentOrchestrator interviewAgentOrchestrator;
 
-    public MockInterviewController(MockInterviewService interviewService, VectorStore vectorStore) {
-        this.interviewService = interviewService;
-        this.vectorStore = vectorStore;
+    public MockInterviewController(InterviewAgentOrchestrator interviewAgentOrchestrator) {
+        this.interviewAgentOrchestrator = interviewAgentOrchestrator;
     }
 
     /**
@@ -52,39 +47,9 @@ public class MockInterviewController {
     @ResponseBody
     public ResponseEntity<?> uploadResume(@RequestParam("file") MultipartFile file) {
         try {
-            if (file.isEmpty()) {
-                return ResponseEntity.badRequest().body(Map.of("error", "文件不能为空"));
-            }
-
-            // 检查文件类型
-            String fileName = file.getOriginalFilename();
-            if (fileName == null || (!fileName.endsWith(".pdf") && !fileName.endsWith(".doc") &&
-                    !fileName.endsWith(".docx") && !fileName.endsWith(".txt"))) {
-                return ResponseEntity.badRequest().body(Map.of("error", "仅支持 PDF、DOC、DOCX 或 TXT 格式的简历文件"));
-            }
-
-            // 读取文件内容
-            TikaDocumentReader reader = new TikaDocumentReader(file.getResource());
-            String resumeText = reader.read().get(0).getText();
-
-            // 调用 AI 服务进行评分
-            ResumeScoreResult scoreResult = interviewService.scoreResume(resumeText);
-
-            // 保存简历文本到会话（持久化到MySQL + 缓存到Redis + 向量库）
-            String resumeId = UUID.randomUUID().toString();
-            String originalFileName = file.getOriginalFilename();
-            interviewService.saveResume(resumeId, originalFileName, resumeText, scoreResult);
-
-            // 写入Spring AI Milvus Vector Store（RAG简历知识库）
-            Document doc = new Document(resumeText, Map.of("resumeId", resumeId, "fileName", originalFileName));
-            vectorStore.add(List.of(doc));
-            logger.info("Resume vectorized and stored, resumeId={}", resumeId);
-
-            Map<String, Object> response = new HashMap<>();
-            response.put("resumeId", resumeId);
-            response.put("scoreResult", scoreResult);
-
-            return ResponseEntity.ok(response);
+            return ResponseEntity.ok(interviewAgentOrchestrator.analyzeUploadedResume(file));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
         } catch (IOException e) {
             logger.error("上传简历失败", e);
             return ResponseEntity.internalServerError().body(Map.of("error", "上传失败：" + e.getMessage()));
@@ -99,7 +64,7 @@ public class MockInterviewController {
      */
     @GetMapping("/analysis/{resumeId}")
     public String analysisPage(@PathVariable String resumeId, Model model) {
-        ResumeData resumeData = interviewService.getResumeById(resumeId);
+        ResumeData resumeData = interviewAgentOrchestrator.getResumeById(resumeId);
         if (resumeData == null) {
             return "redirect:/upload";
         }
@@ -115,7 +80,7 @@ public class MockInterviewController {
     @GetMapping("/api/resume/{resumeId}/analysis")
     @ResponseBody
     public ResponseEntity<?> getResumeAnalysis(@PathVariable String resumeId) {
-        ResumeData resumeData = interviewService.getResumeById(resumeId);
+        ResumeData resumeData = interviewAgentOrchestrator.getResumeById(resumeId);
         if (resumeData == null) {
             return ResponseEntity.notFound().build();
         }
@@ -127,7 +92,7 @@ public class MockInterviewController {
      */
     @GetMapping("/interview/{resumeId}")
     public String interviewPage(@PathVariable String resumeId, Model model) {
-        ResumeData resumeData = interviewService.getResumeById(resumeId);
+        ResumeData resumeData = interviewAgentOrchestrator.getResumeById(resumeId);
         if (resumeData == null) {
             return "redirect:/upload";
         }
@@ -143,15 +108,9 @@ public class MockInterviewController {
     @ResponseBody
     public ResponseEntity<?> generateQuestions(@PathVariable String resumeId) {
         try {
-            ResumeData resumeData = interviewService.getResumeById(resumeId);
-            if (resumeData == null) {
-                return ResponseEntity.notFound().build();
-            }
-
-            InterviewQuestions questions = interviewService.generateInterviewQuestions(resumeData.getResumeText());
-            interviewService.saveQuestions(resumeId, questions);
-
-            return ResponseEntity.ok(questions);
+            return ResponseEntity.ok(interviewAgentOrchestrator.generateInterviewQuestions(resumeId));
+        } catch (NoSuchElementException e) {
+            return ResponseEntity.notFound().build();
         } catch (Exception e) {
             logger.error("生成问题失败", e);
             return ResponseEntity.internalServerError().body(Map.of("error", "生成问题失败：" + e.getMessage()));
@@ -167,19 +126,11 @@ public class MockInterviewController {
             @PathVariable String resumeId,
             @RequestBody Map<Integer, String> answers) {
         try {
-            ResumeData resumeData = interviewService.getResumeById(resumeId);
-            if (resumeData == null) {
-                return ResponseEntity.notFound().build();
-            }
-
-            InterviewEvaluation evaluation = interviewService.evaluateAnswers(
-                resumeData.getResumeText(),
-                resumeData.getQuestions(),
-                answers
-            );
-            interviewService.saveEvaluation(resumeId, evaluation);
-
-            return ResponseEntity.ok(evaluation);
+            return ResponseEntity.ok(interviewAgentOrchestrator.evaluateAnswers(resumeId, answers));
+        } catch (NoSuchElementException e) {
+            return ResponseEntity.notFound().build();
+        } catch (IllegalStateException e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
         } catch (Exception e) {
             logger.error("评估答案失败", e);
             return ResponseEntity.internalServerError().body(Map.of("error", "评估失败：" + e.getMessage()));
@@ -191,7 +142,7 @@ public class MockInterviewController {
      */
     @GetMapping("/result/{resumeId}")
     public String resultPage(@PathVariable String resumeId, Model model) {
-        ResumeData resumeData = interviewService.getResumeById(resumeId);
+        ResumeData resumeData = interviewAgentOrchestrator.getResumeById(resumeId);
         if (resumeData == null) {
             return "redirect:/upload";
         }
@@ -211,13 +162,10 @@ public class MockInterviewController {
     @ResponseBody
     public ResponseEntity<?> vectorizeResume(@PathVariable String resumeId) {
         try {
-            ResumeData resumeData = interviewService.getResumeById(resumeId);
-            if (resumeData == null) {
-                return ResponseEntity.notFound().build();
-            }
-            Document doc = new Document(resumeData.getResumeText(), Map.of("resumeId", resumeId));
-            vectorStore.add(List.of(doc));
+            interviewAgentOrchestrator.vectorizeResume(resumeId);
             return ResponseEntity.ok(Map.of("success", true, "resumeId", resumeId));
+        } catch (NoSuchElementException e) {
+            return ResponseEntity.notFound().build();
         } catch (Exception e) {
             logger.error("向量化失败, resumeId={}", resumeId, e);
             return ResponseEntity.internalServerError().body(Map.of("error", "向量化失败：" + e.getMessage()));
@@ -232,26 +180,23 @@ public class MockInterviewController {
     public ResponseEntity<?> searchResumesByText(@RequestBody Map<String, Object> request) {
         try {
             String queryText = (String) request.get("query");
-            int topK = request.get("topK") != null ? (int) request.get("topK") : 5;
-            if (queryText == null || queryText.isBlank()) {
-                return ResponseEntity.badRequest().body(Map.of("error", "query参数不能为空"));
-            }
-
-            List<Document> docs = vectorStore.similaritySearch(queryText);
-            List<Map<String, Object>> results = new ArrayList<>();
-            int count = 0;
-            for (Document doc : docs) {
-                if (count++ >= topK) break;
-                Map<String, Object> item = new HashMap<>();
-                item.put("resumeId", doc.getMetadata().get("resumeId"));
-                item.put("fileName", doc.getMetadata().get("fileName"));
-                item.put("resumeText", doc.getText());
-                results.add(item);
-            }
-            return ResponseEntity.ok(Map.of("query", queryText, "results", results));
+            int topK = parseTopK(request.get("topK"));
+            return ResponseEntity.ok(Map.of(
+                    "query", queryText,
+                    "results", interviewAgentOrchestrator.searchResumes(queryText, topK)
+            ));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
         } catch (Exception e) {
             logger.error("文本检索失败", e);
             return ResponseEntity.internalServerError().body(Map.of("error", "检索失败：" + e.getMessage()));
         }
+    }
+
+    private int parseTopK(Object topK) {
+        if (topK instanceof Number number) {
+            return Math.max(1, Math.min(number.intValue(), 20));
+        }
+        return 5;
     }
 }

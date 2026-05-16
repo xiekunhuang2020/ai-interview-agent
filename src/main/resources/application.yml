@@ -1,4 +1,6 @@
 spring:
+  config:
+    import: optional:file:.env[.properties]
   application:
     name: ai-interview-assistant
   datasource:
@@ -28,7 +30,7 @@ spring:
         options:
           enable-thinking: true
     minimax:
-      api-key: ${MINIMAX_API_KEY}
+      api-key: ${MINIMAX_API_KEY:}
       embedding:
         options:
           model: text-embedding-v2
@@ -37,8 +39,8 @@ spring:
         client:
           host: ${MILVUS_HOST:localhost}
           port: ${MILVUS_PORT:19530}
-          username: ${MILVUS_USERNAME:minioadmin}
-          password: ${MILVUS_PASSWORD:minioadmin}
+          username: ${MILVUS_USERNAME:}
+          password: ${MILVUS_PASSWORD:}
         database-name: ${MILVUS_DB:default}
         collection-name: resume_vector_store
         embedding-dimension: 1024

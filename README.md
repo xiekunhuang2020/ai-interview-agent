@@ -1,104 +1,124 @@
-# AI智能面试辅助系统
+# AI Interview Agent Platform
 
-一个基于大语言模型的智能面试辅助系统，提供简历智能解析、多维度评分、个性化面试问题生成与答案评估功能。
+AI Interview Agent Platform 是一个面向求职者和技术面试训练场景的智能面试 Agent 应用。系统围绕“简历解析、能力画像、个性化出题、回答评估、报告生成、向量检索”构建完整闭环，适合作为 Java 后端转型 AI Agent 应用开发的展示项目。
 
-## 功能特点
+## 核心能力
 
-### 1. 智能简历评分
-- 多维度深度分析（项目经验、技能匹配、内容完整性、结构清晰度、表达专业性）
-- 提供具体的优化建议和改进方案
-- 基于资深技术架构师视角进行深度审计
+- 简历解析：支持 PDF、DOC、DOCX、TXT，通过 Apache Tika 提取简历文本。
+- 简历评分：基于大模型从项目深度、技能匹配、内容完整性、结构清晰度和表达专业性进行多维度评分。
+- 个性化出题：根据简历中出现的项目和技术栈生成定制化面试题。
+- 答案评估：结合简历背景和候选人回答，输出逐题评分、分类得分、优势、不足和参考答案。
+- RAG 基础能力：将简历写入 Milvus 向量库，支持基于 JD 或关键词的相似简历检索。
+- 会话存储：使用 MySQL 持久化简历、问题和评估结果，使用 Redis 缓存热点面试会话。
 
-### 2. 个性化模拟面试
-- 根据简历内容定制专属面试问题
-- 覆盖 Java 基础、并发编程、数据库、缓存、Spring、AI 框架等多个技术领域
-- 题目难度梯度分布（基础 30%、进阶 50%、专家 20%）
+## 技术栈
 
-### 3. 深度答案评估
-- 全方位专业评估（准确性 40%、完整性 20%、深度 25%、表达 15%）
-- 详细反馈指出优点与不足
-- 提供源码级参考答案和核心要点
+| 模块 | 技术 |
+| --- | --- |
+| 后端框架 | Java 17, Spring Boot 3 |
+| AI 框架 | Spring AI Alibaba, DashScope |
+| 文档解析 | Apache Tika |
+| 向量检索 | Milvus Vector Store |
+| 数据存储 | MySQL, MyBatis-Plus |
+| 缓存 | Redis |
+| 页面渲染 | Thymeleaf, HTML, CSS, JavaScript |
+| 工程化 | Maven, Docker Compose |
 
-## 技术架构
+## Agent 架构
 
-- **后端框架**: Spring Boot 3.5.7
-- **AI 框架**: Spring AI Alibaba (通义千问)
-- **数据持久化**: MySQL + MyBatis-Plus
-- **缓存层**: Redis
-- **模板引擎**: Thymeleaf
-- **开发语言**: Java 17
-- **前端**: HTML5 + CSS3 + JavaScript
+项目已从单一 Service 调用模型，改造成 Controller + Orchestrator + Agent + Tool 分层。
 
-## 快速开始
-
-### 环境要求
-- JDK 17+
-- Maven 3.6+
-- MySQL 8.0+
-- Redis 6.0+
-- 通义千问 API Key
-
-### 数据库初始化
-
-```sql
-CREATE DATABASE ai_interview CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+```text
+Controller
+  -> InterviewAgentOrchestrator
+      -> ResumeParseTool
+      -> ResumeAnalysisAgent
+      -> ResumeRepositoryTool
+      -> ResumeVectorTool
+      -> InterviewQuestionAgent
+      -> AnswerEvaluationAgent
 ```
 
-表结构由 MyBatis-Plus 自动创建（需配置 `spring.sql.init.mode=always` 或手动执行建表SQL）。
+详细说明见 [docs/architecture.md](docs/architecture.md)。
 
-### 配置步骤
+## 目录结构
 
-1. **设置环境变量**
-   ```bash
-   export DASHSCOPE_API_KEY=your-api-key-here
-   export MYSQL_HOST=localhost
-   export MYSQL_PORT=3306
-   export MYSQL_DB=ai_interview
-   export MYSQL_USER=root
-   export MYSQL_PASSWORD=root
-   export REDIS_HOST=localhost
-   export REDIS_PORT=6379
-   ```
-
-2. **启动应用**
-   ```bash
-   mvn spring-boot:run
-   ```
-
-3. **访问应用**
-   打开浏览器访问：http://localhost:8080
-
-## 核心架构设计
-
-### 存储层设计
-- **MySQL**: 简历元数据、评分结果、面试问题、评估结果持久化存储
-- **Redis**: 热点数据缓存（简历评分结果、面试会话状态），TTL 1小时
-- **缓存策略**: 读时先查Redis，未命中再查MySQL，回写缓存
-
-### AI 集成
-- **Prompt 工程**: System/User Prompt 分离，4套结构化 Prompt 模板
-- **模型调用**: Spring AI Alibaba DashScopeChatModel，temperature 0.7
-- **输出治理**: JSON 结构化输出 + Markdown 代码块清洗 + 字段级容错解析
-
-### 项目结构
-```
-ai-interview-assistant/
-├── src/main/
-│   ├── java/com/xkh/ai/interview/
-│   │   ├── config/              # 配置类（MyBatis-Plus、Redis）
-│   │   ├── controller/          # Web 控制器
-│   │   ├── entity/              # 数据库实体
-│   │   ├── mapper/              # MyBatis-Plus Mapper
-│   │   ├── service/             # 业务逻辑 + DTO
-│   │   └── AiInterviewAssistantApplication.java
-│   └── resources/
-│       ├── mapper/              # MyBatis XML（预留）
-│       ├── prompt/              # AI 提示词模板
-│       ├── templates/           # HTML 页面
-│       └── application.yml      # 配置文件
-└── pom.xml
+```text
+src/main/java/com/xkh/ai/interview
+├── agent             # 需要大模型推理的任务角色
+├── config            # MyBatis-Plus、Redis 配置
+├── controller        # HTTP 入口
+├── entity            # 数据库实体
+├── mapper            # MyBatis-Plus Mapper
+├── orchestrator      # Agent 工作流编排
+├── service/dto       # 业务 DTO
+├── support           # 通用支持能力
+└── tool              # 确定性工具能力
 ```
 
-## 许可证
+## 快速启动
 
-Apache License 2.0
+### 1. 准备配置
+
+复制环境变量模板：
+
+```bash
+cp .env.example .env
+```
+
+将 `.env` 中的 `DASHSCOPE_API_KEY` 替换成你的通义千问 API Key。
+
+应用会通过 `spring.config.import=optional:file:.env[.properties]` 读取当前目录下的 `.env`，Docker Compose 也会复用同一份配置。
+
+### 2. 启动依赖
+
+```bash
+docker compose up -d
+```
+
+会启动 MySQL、Redis、Milvus、etcd、MinIO。
+
+### 3. 启动应用
+
+```bash
+mvn spring-boot:run
+```
+
+浏览器访问：
+
+```text
+http://localhost:8080
+```
+
+## API 示例
+
+见 [docs/api-examples.md](docs/api-examples.md)。
+
+## 演示流程
+
+1. 打开首页，上传 `samples/java-backend-resume.txt`。
+2. 查看简历评分、优势和优化建议。
+3. 进入模拟面试，生成个性化面试问题。
+4. 填写答案并提交。
+5. 查看面试评估报告、分类得分和参考答案。
+6. 通过 `/api/rag/search` 测试简历向量检索。
+
+## 简历可写亮点
+
+```text
+AI 面试 Agent 平台｜Java 17 / Spring Boot / Spring AI Alibaba / DashScope / Milvus / Redis / MySQL
+
+- 设计并实现“简历解析 -> 能力画像 -> 个性化出题 -> 回答评估 -> 面试报告生成”的 Agent 工作流，提升模拟面试的个性化与反馈质量。
+- 基于 Spring AI Alibaba 接入通义千问模型，通过 System/User Prompt 分层设计、结构化 JSON 输出约束和容错解析，降低大模型输出不稳定对业务流程的影响。
+- 使用 Apache Tika 支持多格式简历解析，并围绕项目深度、技能匹配、内容完整性、结构清晰度和表达专业性生成多维度评分。
+- 基于 Milvus 构建简历向量知识库，支持相似简历检索和 JD 匹配场景扩展。
+- 设计 MySQL + Redis 的存储与缓存机制，持久化简历评分、面试题和回答评估结果，并对热点会话数据做缓存加速。
+```
+
+## 后续规划
+
+- 增加 JD 匹配 Agent，输出岗位匹配度和风险点。
+- 增加 RAG 增强出题 Agent，结合 JD、简历片段和历史面试题生成问题。
+- 增加模型调用重试、超时控制和降级策略。
+- 增加 JSON Schema 校验和 Prompt 版本管理。
+- 补充单元测试、集成测试和接口文档。
