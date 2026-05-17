@@ -787,18 +787,54 @@ p {
     grid-template-columns: minmax(0, 1fr) 300px;
 }
 
+#app[data-page="assistant"] {
+    height: 100vh;
+    overflow: hidden;
+}
+
+#app[data-page="assistant"] .main-shell {
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+#app[data-page="assistant"] .topbar {
+    flex: 0 0 auto;
+}
+
+#app[data-page="assistant"] .notice {
+    flex: 0 0 auto;
+}
+
+#app[data-page="assistant"] .assistant-layout {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow: hidden;
+}
+
+#app[data-page="assistant"] .assistant-layout > .panel {
+    min-height: 0;
+}
+
 .chat-panel {
-    min-height: 640px;
+    min-height: 0;
     display: grid;
-    grid-template-rows: auto minmax(340px, 1fr) auto;
+    grid-template-rows: auto minmax(0, 1fr) auto;
+    height: 100%;
+    overflow: hidden;
 }
 
 .message-list {
     display: grid;
     align-content: start;
     gap: 12px;
-    overflow: auto;
+    overflow-x: hidden;
+    overflow-y: auto;
     padding-right: 4px;
+    min-height: 0;
+    max-height: none;
+    scrollbar-gutter: stable;
 }
 
 .message {
@@ -985,6 +1021,31 @@ p {
     .side-author {
         margin-top: 0;
         padding: 0 8px;
+    }
+
+    #app[data-page="assistant"] {
+        height: auto;
+        overflow: visible;
+    }
+
+    #app[data-page="assistant"] .main-shell {
+        height: auto;
+        display: block;
+        overflow: visible;
+    }
+
+    #app[data-page="assistant"] .assistant-layout {
+        overflow: visible;
+    }
+
+    #app[data-page="assistant"] .chat-panel {
+        height: auto;
+        min-height: 640px;
+        overflow: visible;
+    }
+
+    #app[data-page="assistant"] .message-list {
+        max-height: min(52vh, 520px);
     }
 
     .main-shell {
