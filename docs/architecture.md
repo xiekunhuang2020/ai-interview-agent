@@ -75,10 +75,10 @@ Agent 负责需要模型推理的任务，目前包含：
 Agent 可调用的工具集中在 `ResumeAgentTools`，只暴露查询类能力：
 
 - `get_resume_profile`：查询简历画像
-- `get_resume_interview_questions`：查询已生成面试问题
-- `search_similar_resumes`：按文本检索相似简历
+- `get_resume_interview_questions`：查询已生成面试问题摘要
+- `search_similar_resumes`：按文本检索相似简历片段
 
-上传、保存、向量写入等副作用操作不暴露给模型直接调用，避免 Agent 自主执行不可控写操作。
+上传、保存、向量写入等副作用操作不暴露给模型直接调用，避免 Agent 自主执行不可控写操作。模型可见工具返回的是裁剪后的摘要或片段：简历画像只返回有限优势/建议和文本片段，面试问题最多返回前 10 题，相似简历返回 `snippet` 而不是完整简历原文。
 
 ### Model Invoker
 

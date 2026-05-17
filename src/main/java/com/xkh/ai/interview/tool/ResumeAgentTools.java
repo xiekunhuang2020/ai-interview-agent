@@ -1,10 +1,8 @@
 package com.xkh.ai.interview.tool;
 
 import com.xkh.ai.interview.service.dto.InterviewEvaluation;
-import com.xkh.ai.interview.service.dto.InterviewQuestions;
 import com.xkh.ai.interview.service.dto.ResumeData;
 import com.xkh.ai.interview.service.dto.ResumeScoreResult;
-import com.xkh.ai.interview.service.dto.ResumeSearchResult;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.ai.document.Document;
 import org.springframework.ai.tool.annotation.Tool;
@@ -17,9 +15,12 @@ import java.util.List;
 public class ResumeAgentTools {
 
     private static final int DEFAULT_TOP_K = 5;
-    private static final int MAX_TOP_K = 20;
-    private static final int MAX_RESUME_PREVIEW_CHARS = 1200;
-    private static final int MAX_SEARCH_RESULT_CHARS = 1000;
+    private static final int MAX_TOP_K = 10;
+    private static final int MAX_PROFILE_LIST_SIZE = 5;
+    private static final int MAX_QUESTION_COUNT = 10;
+    private static final int MAX_QUESTION_CHARS = 500;
+    private static final int MAX_RESUME_SNIPPET_CHARS = 800;
+    private static final int MAX_SEARCH_SNIPPET_CHARS = 700;
 
     private final ResumeRepositoryTool resumeRepositoryTool;
     private final ResumeVectorTool resumeVectorTool;
@@ -29,7 +30,7 @@ public class ResumeAgentTools {
         this.resumeVectorTool = resumeVectorTool;
     }
 
-    @Tool(name = "get_resume_profile", description = "根据 resumeId 查询候选人的简历画像、评分摘要、优势、建议以及面试流程状态。")
+    @Tool(name = "get_resume_profile", description = "只读工具。根据 resumeId 查询候选人的简历画像、评分摘要、优势、建议以及面试流程状态；返回内容会裁剪，不返回完整简历原文。")
     public ResumeProfileToolResult getResumeProfile(
             @ToolParam(required = true, description = "简历唯一标识 resumeId。") String resumeId) {
         ResumeData resumeData = requireResume(resumeId);
@@ -46,24 +47,37 @@ public class ResumeAgentTools {
                         && !resumeData.getQuestions().getQuestions().isEmpty(),
                 evaluation == null ? null : evaluation.getOverallScore(),
                 evaluation == null ? "" : evaluation.getOverallFeedback(),
-                truncate(resumeData.getResumeText(), MAX_RESUME_PREVIEW_CHARS)
+                truncate(resumeData.getResumeText(), MAX_RESUME_SNIPPET_CHARS)
         );
     }
 
-    @Tool(name = "get_resume_interview_questions", description = "根据 resumeId 查询该候选人已经生成的面试问题。")
-    public InterviewQuestions getResumeInterviewQuestions(
+    @Tool(name = "get_resume_interview_questions", description = "只读工具。根据 resumeId 查询候选人已生成的面试问题；最多返回前 10 题，每题内容会裁剪。")
+    public InterviewQuestionsToolResult getResumeInterviewQuestions(
             @ToolParam(required = true, description = "简历唯一标识 resumeId。") String resumeId) {
         ResumeData resumeData = requireResume(resumeId);
-        if (resumeData.getQuestions() == null) {
-            return InterviewQuestions.builder().questions(List.of()).build();
+        if (resumeData.getQuestions() == null || resumeData.getQuestions().getQuestions() == null) {
+            return new InterviewQuestionsToolResult(resumeId, 0, List.of());
         }
-        return resumeData.getQuestions();
+        List<QuestionToolItem> questions = resumeData.getQuestions().getQuestions().stream()
+                .limit(MAX_QUESTION_COUNT)
+                .map(question -> new QuestionToolItem(
+                        truncate(question.getQuestion(), MAX_QUESTION_CHARS),
+                        nullToEmpty(question.getType()),
+                        nullToEmpty(question.getCategory())
+                ))
+                .toList();
+
+        return new InterviewQuestionsToolResult(
+                resumeId,
+                resumeData.getQuestions().getQuestions().size(),
+                questions
+        );
     }
 
-    @Tool(name = "search_similar_resumes", description = "根据岗位 JD、技能关键词或面试关注点检索相似简历片段，辅助生成追问方向。")
-    public List<ResumeSearchResult> searchSimilarResumes(
+    @Tool(name = "search_similar_resumes", description = "只读工具。根据岗位 JD、技能关键词或面试关注点检索相似简历片段；返回的是裁剪后的参考片段，不代表当前候选人经历。")
+    public List<SimilarResumeToolResult> searchSimilarResumes(
             @ToolParam(required = true, description = "检索文本，推荐传入岗位 JD 或核心技能要求。") String queryText,
-            @ToolParam(required = false, description = "返回数量，范围 1-20，默认 5。") Integer topK) {
+            @ToolParam(required = false, description = "返回数量，范围 1-10，默认 5。") Integer topK) {
         if (StringUtils.isBlank(queryText)) {
             throw new IllegalArgumentException("queryText 不能为空");
         }
@@ -84,13 +98,13 @@ public class ResumeAgentTools {
         return resumeData;
     }
 
-    private ResumeSearchResult toSearchResult(Document document) {
+    private SimilarResumeToolResult toSearchResult(Document document) {
         Object resumeId = document.getMetadata().get("resumeId");
         Object fileName = document.getMetadata().get("fileName");
-        return new ResumeSearchResult(
+        return new SimilarResumeToolResult(
                 resumeId == null ? "" : resumeId.toString(),
                 fileName == null ? "" : fileName.toString(),
-                truncate(document.getText(), MAX_SEARCH_RESULT_CHARS)
+                truncate(document.getText(), MAX_SEARCH_SNIPPET_CHARS)
         );
     }
 
@@ -106,6 +120,7 @@ public class ResumeAgentTools {
             return List.of();
         }
         return suggestions.stream()
+                .limit(MAX_PROFILE_LIST_SIZE)
                 .map(suggestion -> "%s/%s：%s -> %s".formatted(
                         nullToEmpty(suggestion.getCategory()),
                         nullToEmpty(suggestion.getPriority()),
@@ -116,7 +131,7 @@ public class ResumeAgentTools {
     }
 
     private List<String> nullToEmpty(List<String> values) {
-        return values == null ? List.of() : values;
+        return values == null ? List.of() : values.stream().limit(MAX_PROFILE_LIST_SIZE).toList();
     }
 
     private String nullToEmpty(String value) {
@@ -139,7 +154,28 @@ public class ResumeAgentTools {
             boolean hasInterviewQuestions,
             Integer evaluationScore,
             String evaluationFeedback,
-            String resumePreview
+            String resumeTextSnippet
+    ) {
+    }
+
+    public record InterviewQuestionsToolResult(
+            String resumeId,
+            int totalQuestionCount,
+            List<QuestionToolItem> questions
+    ) {
+    }
+
+    public record QuestionToolItem(
+            String question,
+            String type,
+            String category
+    ) {
+    }
+
+    public record SimilarResumeToolResult(
+            String resumeId,
+            String fileName,
+            String snippet
     ) {
     }
 }
