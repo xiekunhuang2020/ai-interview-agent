@@ -16,6 +16,7 @@ import java.util.concurrent.atomic.AtomicReference;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class ResumeRepositoryToolTests {
 
@@ -51,6 +52,28 @@ class ResumeRepositoryToolTests {
         ));
         assertNotNull(inserted.get());
         assertEquals("resume-001", inserted.get().getResumeId());
+    }
+
+    @Test
+    void findByIdTreatsMissingScoreListsAsEmptyLists() {
+        ResumeInfo entity = new ResumeInfo();
+        entity.setResumeId("resume-001");
+        entity.setResumeText("Java backend resume");
+        entity.setOverallScore(80);
+        entity.setScoreDetailJson("""
+                {"projectScore":30,"skillMatchScore":20,"contentScore":10,"structureScore":10,"expressionScore":10}
+                """);
+        entity.setSummary("summary");
+        ResumeInfoMapper mapper = mapperReturning(entity, new AtomicReference<>(), new AtomicReference<>());
+        RedisTemplate<String, Object> redisTemplate = new StubRedisTemplate(valueOperations(false, false));
+        ResumeRepositoryTool repositoryTool = new ResumeRepositoryTool(mapper, redisTemplate, new ObjectMapper());
+
+        ResumeData data = repositoryTool.findById("resume-001");
+
+        assertNotNull(data.getScoreResult());
+        assertEquals(80, data.getScoreResult().getOverallScore());
+        assertTrue(data.getScoreResult().getStrengths().isEmpty());
+        assertTrue(data.getScoreResult().getSuggestions().isEmpty());
     }
 
     private ResumeScoreResult scoreResult() {

@@ -1,6 +1,7 @@
 package com.xkh.ai.interview.tool;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JavaType;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.xkh.ai.interview.entity.ResumeInfo;
 import com.xkh.ai.interview.mapper.ResumeInfoMapper;
@@ -138,10 +139,8 @@ public class ResumeRepositoryTool {
                 data.setScoreResult(ResumeScoreResult.builder()
                         .overallScore(entity.getOverallScore())
                         .scoreDetail(objectMapper.readValue(entity.getScoreDetailJson(), ResumeScoreResult.ScoreDetail.class))
-                        .strengths(objectMapper.readValue(entity.getStrengthsJson(),
-                                objectMapper.getTypeFactory().constructCollectionType(List.class, String.class)))
-                        .suggestions(objectMapper.readValue(entity.getSuggestionsJson(),
-                                objectMapper.getTypeFactory().constructCollectionType(List.class, ResumeScoreResult.Suggestion.class)))
+                        .strengths(readList(entity.getStrengthsJson(), String.class))
+                        .suggestions(readList(entity.getSuggestionsJson(), ResumeScoreResult.Suggestion.class))
                         .summary(entity.getSummary())
                         .build());
             }
@@ -158,5 +157,13 @@ public class ResumeRepositoryTool {
         } catch (JsonProcessingException e) {
             throw new IllegalStateException("简历数据解析失败", e);
         }
+    }
+
+    private <T> List<T> readList(String json, Class<T> elementType) throws JsonProcessingException {
+        if (StringUtils.isBlank(json)) {
+            return List.of();
+        }
+        JavaType listType = objectMapper.getTypeFactory().constructCollectionType(List.class, elementType);
+        return objectMapper.readValue(json, listType);
     }
 }
