@@ -4,7 +4,7 @@
 
 ```bash
 curl -X POST http://localhost:8080/api/resume/upload \
-  -H "X-Trace-Id: demo-trace-001" \
+  -H "X-Trace-Id: trace-resume-upload-001" \
   -F "file=@samples/java-backend-resume.txt"
 ```
 
@@ -72,7 +72,7 @@ curl -X POST http://localhost:8080/api/interview/{resumeId}/rag-questions \
 ## 查询模型调用审计
 
 ```bash
-curl "http://localhost:8080/api/audit/model-calls?traceId=demo-trace-001&limit=20"
+curl "http://localhost:8080/api/audit/model-calls?traceId=trace-resume-upload-001&limit=20"
 ```
 
 也可以按 operation 查询：

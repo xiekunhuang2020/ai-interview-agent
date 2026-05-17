@@ -6,7 +6,7 @@
 - `docs/architecture.md` 能讲清 Controller + Orchestrator + Agent + Tool。
 - `docs/api-examples.md` 覆盖上传简历、出题、评估、JD 匹配、RAG 出题、审计和看板接口。
 - `.env.example` 不包含真实 API Key 或密码。
-- `samples/` 中有可演示简历和 JD。
+- `samples/` 中有展示用简历和 JD。
 - `docker-compose.yml` 覆盖 MySQL、Redis、Milvus 依赖。
 - `sql/init.sql` 包含所有表结构。
 - 旧库迁移脚本 `sql/migration-v2-ai-model-call-log.sql` 已保留。
@@ -25,7 +25,7 @@ docker compose up -d
 mvn spring-boot:run
 ```
 
-## 演示路径
+## 展示路径
 
 ```text
 1. 打开 http://localhost:8080

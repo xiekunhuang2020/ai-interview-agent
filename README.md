@@ -109,11 +109,13 @@ cp .env.example .env
 模型调用治理参数也可以通过 `.env` 调整：
 
 ```text
-AI_MODEL_MAX_ATTEMPTS=3
+AI_MODEL_RETRY_MAX_ATTEMPTS=3
+AI_MODEL_RETRY_INITIAL_INTERVAL=800ms
+AI_MODEL_RETRY_BACKOFF_MULTIPLIER=2
+AI_MODEL_RETRY_MAX_INTERVAL=5s
+HTTP_CLIENT_CONNECT_TIMEOUT=60s
+HTTP_CLIENT_READ_TIMEOUT=600s
 AI_MODEL_FALLBACK_ENABLED=true
-AI_MODEL_TIMEOUT_SECONDS=60
-AI_MODEL_BACKOFF_MILLIS=800
-AI_MODEL_EXECUTOR_POOL_SIZE=4
 ```
 
 ### 2. 启动依赖
@@ -150,7 +152,7 @@ http://localhost:8080
 - [提交拆分建议](docs/career-package/commit-plan.md)
 - [展示前检查清单](docs/career-package/showcase-checklist.md)
 
-## 演示流程
+## 展示流程
 
 1. 打开首页，上传 `samples/java-backend-resume.txt`。
 2. 查看简历评分、优势和优化建议。
@@ -168,7 +170,7 @@ AI 面试 Agent 平台｜Java 21 / Spring Boot / Spring AI Alibaba / DashScope /
 
 - 设计并实现“简历解析 -> 能力画像 -> 个性化出题 -> 回答评估 -> 面试报告生成”的 Agent 工作流，提升模拟面试的个性化与反馈质量。
 - 基于 Spring AI Alibaba 接入通义千问模型，通过 System/User Prompt 分层设计、结构化 JSON 输出约束和容错解析，降低大模型输出不稳定对业务流程的影响。
-- 封装统一模型调用器，支持调用超时、失败重试、线性退避、显式降级和 traceId 日志追踪；无可用降级时将模型侧故障映射为 502。
+- 基于 Spring AI `ChatClient` 统一模型调用入口，模型侧重试和退避交给 `spring.ai.retry` 配置，业务层保留显式降级、traceId 日志追踪和模型侧故障分层处理；无可用降级时将模型侧故障映射为 502。
 - 强化 AI 结构化输出校验，覆盖必填字段、类型、数值范围、枚举值、数组元素结构和未知字段检测，避免异常模型输出污染业务数据。
 - 设计 AI 调用审计表，记录 operation、Prompt 版本、traceId、尝试次数、耗时、成功状态和错误原因，支持模型链路问题回溯。
 - 实现显式降级策略和 Prompt 指标聚合，支持按版本观察成功率、降级率、平均耗时和平均尝试次数，为 Prompt 迭代提供数据依据。
