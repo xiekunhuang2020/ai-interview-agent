@@ -115,8 +115,15 @@ AI_MODEL_RETRY_BACKOFF_MULTIPLIER=2
 AI_MODEL_RETRY_MAX_INTERVAL=5s
 HTTP_CLIENT_CONNECT_TIMEOUT=60s
 HTTP_CLIENT_READ_TIMEOUT=600s
+HTTP_REACTIVE_CLIENT_CONNECT_TIMEOUT=60s
+HTTP_REACTIVE_CLIENT_READ_TIMEOUT=600s
 AI_MODEL_FALLBACK_ENABLED=true
+AI_AGENT_AUDIT_ENABLED=true
+AI_AGENT_AUDIT_LOG_MESSAGE_CONTENT=true
+AI_AGENT_AUDIT_MAX_MESSAGE_CONTENT_LENGTH=4000
 ```
+
+完整环境变量清单见 [.env.example](.env.example)，本地真实密钥只放在 `.env` 中。
 
 ### 2. 启动依赖
 
@@ -125,6 +132,17 @@ docker compose up -d
 ```
 
 会启动 MySQL、Redis、Milvus、etcd、MinIO。
+
+确认依赖就绪：
+
+```bash
+docker compose ps
+docker compose exec mysql sh -c 'mysqladmin ping -h 127.0.0.1 -uroot -p"$MYSQL_ROOT_PASSWORD"'
+docker compose exec redis redis-cli ping
+curl http://localhost:9091/healthz
+```
+
+`sql/init.sql` 会在 MySQL 数据卷首次初始化时自动执行。若本地已有旧数据卷，需要保留数据并补齐新表结构，请手动执行 `sql/migration-v2-ai-model-call-log.sql` 和 `sql/migration-v3-agent-conversation-message.sql`。
 
 ### 3. 启动应用
 

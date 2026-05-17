@@ -103,8 +103,9 @@ http://localhost:8080/audit/prompt-dashboard
 
 ## 旧库迁移
 
-如果本地数据库是在第五轮改造前创建的，需要手动执行：
+如果本地数据库是在审计能力补齐前创建的，需要按顺序手动执行：
 
 ```bash
 mysql -uroot -p ai_interview < sql/migration-v2-ai-model-call-log.sql
+mysql -uroot -p ai_interview < sql/migration-v3-agent-conversation-message.sql
 ```

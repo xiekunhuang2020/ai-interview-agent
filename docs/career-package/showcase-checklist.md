@@ -9,7 +9,7 @@
 - `samples/` 中有展示用简历和 JD。
 - `docker-compose.yml` 覆盖 MySQL、Redis、Milvus 依赖。
 - `sql/init.sql` 包含所有表结构。
-- 旧库迁移脚本 `sql/migration-v2-ai-model-call-log.sql` 已保留。
+- 旧库迁移脚本 `sql/migration-v2-ai-model-call-log.sql` 和 `sql/migration-v3-agent-conversation-message.sql` 已保留。
 
 ## 运行前检查
 
@@ -22,6 +22,8 @@ mvn -q -DskipTests compile
 
 ```bash
 docker compose up -d
+docker compose ps
+curl http://localhost:9091/healthz
 mvn spring-boot:run
 ```
 
