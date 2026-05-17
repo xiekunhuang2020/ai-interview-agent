@@ -29,6 +29,12 @@ spring:
         observations:
           log-prompt: ${AI_CHAT_OBSERVATIONS_LOG_PROMPT:false}
           log-completion: ${AI_CHAT_OBSERVATIONS_LOG_COMPLETION:false}
+    retry:
+      max-attempts: ${AI_MODEL_RETRY_MAX_ATTEMPTS:3}
+      backoff:
+        initial-interval: ${AI_MODEL_RETRY_INITIAL_INTERVAL:800ms}
+        multiplier: ${AI_MODEL_RETRY_BACKOFF_MULTIPLIER:2}
+        max-interval: ${AI_MODEL_RETRY_MAX_INTERVAL:5s}
     dashscope:
       api-key: ${DASHSCOPE_API_KEY:fake-key}
       chat:
@@ -64,10 +70,6 @@ ai-interview:
       max-message-content-length: ${AI_AGENT_AUDIT_MAX_MESSAGE_CONTENT_LENGTH:4000}
   model:
     fallback-enabled: ${AI_MODEL_FALLBACK_ENABLED:true}
-    max-attempts: ${AI_MODEL_MAX_ATTEMPTS:3}
-    timeout-seconds: ${AI_MODEL_TIMEOUT_SECONDS:60}
-    backoff-millis: ${AI_MODEL_BACKOFF_MILLIS:800}
-    executor-pool-size: ${AI_MODEL_EXECUTOR_POOL_SIZE:4}
   prompt:
     versions:
       resume-analysis: resume-analysis-v2026-05-17-01

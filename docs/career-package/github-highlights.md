@@ -17,7 +17,7 @@ An AI Interview Agent platform built with Spring Boot, Spring AI Alibaba, DashSc
 ```text
 - Agent workflow: resume parsing, profile analysis, JD matching, RAG question generation, answer evaluation.
 - RAG with Milvus: retrieve similar resume snippets by JD and generate job-specific interview questions.
-- Production-minded LLM governance: timeout, retry, backoff, fallback, traceId and structured output validation.
+- Production-minded LLM governance: Spring AI retry, fallback, traceId, audit logs and structured output validation.
 - Prompt observability: prompt version registry, model-call audit logs and prompt metrics dashboard.
 - Java backend stack: Spring Boot 3, Spring AI Alibaba, MyBatis-Plus, Redis, MySQL, Thymeleaf.
 ```
@@ -56,7 +56,7 @@ interview-assistant
 ```text
 feat(agent): introduce orchestrator, agents and tools
 feat(rag): add JD matching and RAG-enhanced question generation
-feat(model): add model invoker with retry, timeout and fallback
+feat(model): use ChatClient with Spring AI retry and business fallback
 feat(audit): add prompt versioning and model call audit logs
 feat(dashboard): add prompt metrics dashboard
 test(parser): strengthen structured output validation tests
@@ -69,7 +69,7 @@ docs(career): add resume and interview preparation package
 1. 打开 README，说明项目定位和技术栈。
 2. 展示 architecture.md，讲 Controller + Orchestrator + Agent + Tool。
 3. 展示 prompt-dashboard 页面，说明 Prompt 版本、调用审计和效果评估。
-4. 展示 AiModelInvoker，讲超时、重试、降级和 traceId。
+4. 展示 AiModelInvoker，讲框架级重试、业务降级和 traceId。
 5. 展示 AiJsonResponseParser，讲结构化输出强校验。
 6. 展示 RagInterviewQuestionAgent，讲 RAG 出题边界和防幻觉约束。
 ```

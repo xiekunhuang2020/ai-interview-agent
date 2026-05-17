@@ -44,7 +44,7 @@ mvn spring-boot:run
 - 能画出 Controller + Orchestrator + Agent + Tool。
 - 能解释为什么采用确定性 Orchestrator，而不是完全自主 Agent。
 - 能解释 RAG 检索上下文如何防止张冠李戴。
-- 能解释模型超时、重试、降级、traceId 和审计怎么协作。
+- 能解释 Spring AI 模型重试、业务降级、traceId 和审计怎么协作。
 - 能解释结构化输出强校验拦截了哪些问题。
 - 能诚实说明这是个人自研项目，没有虚构线上 QPS 或准确率。
 

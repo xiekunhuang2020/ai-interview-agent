@@ -87,7 +87,7 @@ curl "http://localhost:8080/api/audit/model-calls?operationName=jd-match&limit=2
 curl "http://localhost:8080/api/audit/prompt-metrics?operationName=jd-match&limit=1000"
 ```
 
-响应会按 `operationName + promptVersion` 聚合模型调用总数、成功率、降级率、平均耗时、最大耗时和平均尝试次数。
+响应会按 `operationName + promptVersion` 聚合模型调用总数、成功率、降级率、平均耗时和最大耗时。`avgAttemptCount` 保留用于兼容早期手写重试审计；当前模型侧重试由 Spring AI 管理。
 
 ## 查询失败原因分布
 

@@ -18,7 +18,7 @@ Prompt 会持续迭代，如果不记录版本，很难判断一次调用失败�
 
 ## 5. 模型调用失败怎么处理？
 
-所有模型调用统一经过 `AiModelInvoker`，支持超时、重试和线性退避。最终失败后，如果当前 operation 有降级响应且开启了降级配置，会返回结构合法的降级 JSON，同时审计记录 `success=0`、`fallbackUsed=1`。如果没有可用降级，则接口返回模型网关错误。
+所有模型调用统一经过 Spring AI `ChatClient`。模型侧重试和退避使用 Spring AI Alibaba 注入到 `DashScopeChatModel` 的 `RetryTemplate`，通过 `spring.ai.retry` 配置管理。业务层 `AiModelInvoker` 不再手写 retry/backoff，只负责 Prompt 版本、调用审计和最终失败后的显式降级。如果当前 operation 有降级响应且开启了降级配置，会返回结构合法的降级 JSON，同时审计记录 `success=0`、`fallbackUsed=1`。如果没有可用降级，则接口返回模型网关错误。
 
 ## 6. 为什么降级结果不算成功？
 
@@ -48,7 +48,7 @@ Milvus 用于简历向量检索。当前场景里，JD 可以作为查询语义�
 
 ## 10. 这个项目最大的工程亮点是什么？
 
-不是单纯接入大模型，而是补了 AI 应用落地常见的工程治理：Agent/Tool 分层、RAG、Prompt 版本、结构化输出强校验、超时重试、显式降级、traceId、调用审计和 Prompt 效果看板。
+不是单纯接入大模型，而是补了 AI 应用落地常见的工程治理：Agent/Tool 分层、RAG、Prompt 版本、结构化输出强校验、框架级模型重试、显式降级、traceId、调用审计和 Prompt 效果看板。
 
 ## 11. 如果面试官问“有没有真实线上数据”怎么回答？
 

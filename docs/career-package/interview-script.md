@@ -2,7 +2,7 @@
 
 ## 30 秒版本
 
-这个项目是我为了系统化学习 AI Agent 应用开发做的一个自研项目，场景是 AI 面试训练。它不是简单的 ChatBot，而是把面试训练拆成简历解析、能力画像、JD 匹配、RAG 增强出题、答案评估和报告生成几个阶段。工程上我用了 Spring Boot、Spring AI Alibaba、通义千问、Milvus、Redis 和 MySQL，并且补了模型调用治理，比如超时、重试、降级、traceId、Prompt 版本管理、调用审计和 Prompt 效果看板。
+这个项目是我为了系统化学习 AI Agent 应用开发做的一个自研项目，场景是 AI 面试训练。它不是简单的 ChatBot，而是把面试训练拆成简历解析、能力画像、JD 匹配、RAG 增强出题、答案评估和报告生成几个阶段。工程上我用了 Spring Boot、Spring AI Alibaba、通义千问、Milvus、Redis 和 MySQL，并且补了模型调用治理，比如框架级重试、业务降级、traceId、Prompt 版本管理、调用审计和 Prompt 效果看板。
 
 ## 2 分钟版本
 
@@ -12,7 +12,7 @@
 
 架构上我没有把所有逻辑堆在 Service 里，而是拆成 Controller、Orchestrator、Agent 和 Tool。Controller 只处理 HTTP，`InterviewAgentOrchestrator` 负责编排流程，Agent 处理需要模型推理的任务，Tool 处理文档解析、存储、缓存和向量检索等确定性能力。
 
-我重点补了 AI 应用工程化能力。所有模型调用都经过 `AiModelInvoker`，支持超时、重试、线性退避、显式降级和 traceId 日志追踪。模型输出会经过强校验，包括字段、类型、数值范围、枚举值、数组元素结构和未知字段检测。每次模型调用还会记录 operation、Prompt 版本、耗时、尝试次数、成功状态、降级状态和失败原因，并提供 Prompt 效果看板观察成功率、降级率和平均耗时。
+我重点补了 AI 应用工程化能力。所有模型调用都经过 Spring AI `ChatClient`，模型侧重试和退避交给 Spring AI 的 `spring.ai.retry` 配置；业务层的 `AiModelInvoker` 只保留 Prompt 版本、调用审计、显式降级和 traceId 日志追踪。模型输出会经过强校验，包括字段、类型、数值范围、枚举值、数组元素结构和未知字段检测。每次模型调用还会记录 operation、Prompt 版本、耗时、成功状态、降级状态和失败原因，并提供 Prompt 效果看板观察成功率、降级率和平均耗时。
 
 ## 架构讲法
 
@@ -46,7 +46,7 @@ RAG Prompt 明确约束：检索上下文只能作为同类岗位面试深度参
 
 ```text
 AI 应用落地时，模型调用不稳定是高频问题，所以我把模型调用统一收敛到 AiModelInvoker。
-这里处理了超时、重试、退避、显式降级和 traceId 日志追踪。
+这里没有重复造模型重试轮子：底层调用走 Spring AI Alibaba 的 ChatClient 和 RetryTemplate，业务层只处理 Prompt 版本、审计、显式降级和 traceId 日志追踪。
 如果模型最终失败，系统可以返回结构合法的降级 JSON，但审计表会记录 success=0、fallbackUsed=1。
 这样业务可以继续走，但观测层不会把降级伪装成成功。
 ```

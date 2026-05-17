@@ -7,17 +7,10 @@ import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.chat.client.advisor.api.Advisor;
 import org.springframework.ai.chat.messages.Message;
 import org.springframework.ai.chat.prompt.Prompt;
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
-import java.time.Duration;
 import java.util.List;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.Executor;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
 
 @Component
 public class AiModelInvoker {
@@ -25,33 +18,21 @@ public class AiModelInvoker {
     private static final Logger logger = LoggerFactory.getLogger(AiModelInvoker.class);
 
     private final ChatClient chatClient;
-    private final Executor aiModelExecutor;
     private final PromptVersionRegistry promptVersionRegistry;
     private final AiModelCallAuditRecorder auditRecorder;
     private final AiModelFallbackResponseFactory fallbackResponseFactory;
     private final boolean fallbackEnabled;
-    private final int maxAttempts;
-    private final Duration timeout;
-    private final Duration backoff;
 
     public AiModelInvoker(ChatClient.Builder chatClientBuilder,
-                          @Qualifier("aiModelExecutor") Executor aiModelExecutor,
                           PromptVersionRegistry promptVersionRegistry,
                           AiModelCallAuditRecorder auditRecorder,
                           AiModelFallbackResponseFactory fallbackResponseFactory,
-                          @Value("${ai-interview.model.fallback-enabled:true}") boolean fallbackEnabled,
-                          @Value("${ai-interview.model.max-attempts:3}") int maxAttempts,
-                          @Value("${ai-interview.model.timeout-seconds:60}") long timeoutSeconds,
-                          @Value("${ai-interview.model.backoff-millis:800}") long backoffMillis) {
+                          @Value("${ai-interview.model.fallback-enabled:true}") boolean fallbackEnabled) {
         this.chatClient = chatClientBuilder.build();
-        this.aiModelExecutor = aiModelExecutor;
         this.promptVersionRegistry = promptVersionRegistry;
         this.auditRecorder = auditRecorder;
         this.fallbackResponseFactory = fallbackResponseFactory;
         this.fallbackEnabled = fallbackEnabled;
-        this.maxAttempts = Math.max(1, maxAttempts);
-        this.timeout = Duration.ofSeconds(Math.max(1, timeoutSeconds));
-        this.backoff = Duration.ofMillis(Math.max(0, backoffMillis));
     }
 
     public String call(String operationName, List<Message> messages, double temperature) {
@@ -64,64 +45,19 @@ public class AiModelInvoker {
                 .temperature(temperature)
                 .build());
 
-        long totalStart = System.currentTimeMillis();
-        RuntimeException lastError = null;
-        for (int attempt = 1; attempt <= maxAttempts; attempt++) {
-            long start = System.currentTimeMillis();
-            try {
-                String text = callOnce(prompt, advisors);
-                long totalCostMs = System.currentTimeMillis() - totalStart;
-                logger.info("AI model call succeeded, operation={}, promptVersion={}, attempt={}, attemptCostMs={}, totalCostMs={}",
-                        operationName, promptVersion, attempt, System.currentTimeMillis() - start, totalCostMs);
-                auditRecorder.record(operationName, promptVersion, true, false, attempt, totalCostMs, null);
-                return text;
-            } catch (RuntimeException e) {
-                lastError = e;
-                logger.warn("AI model call failed, operation={}, promptVersion={}, attempt={}, maxAttempts={}, costMs={}, error={}",
-                        operationName, promptVersion, attempt, maxAttempts, System.currentTimeMillis() - start, e.getMessage());
-                if (attempt < maxAttempts) {
-                    try {
-                        sleepBeforeRetry(attempt);
-                    } catch (RuntimeException retryError) {
-                        long totalCostMs = System.currentTimeMillis() - totalStart;
-                        auditRecorder.record(operationName, promptVersion, false, false, attempt, totalCostMs, retryError.getMessage());
-                        throw retryError;
-                    }
-                }
-            }
-        }
-
-        long totalCostMs = System.currentTimeMillis() - totalStart;
-        String errorMessage = lastError == null ? "unknown error" : lastError.getMessage();
-        if (fallbackEnabled) {
-            var fallbackResponse = fallbackResponseFactory.fallbackFor(operationName);
-            if (fallbackResponse.isPresent()) {
-                logger.warn("AI model call degraded with fallback response, operation={}, promptVersion={}, attempts={}, totalCostMs={}",
-                        operationName, promptVersion, maxAttempts, totalCostMs);
-                auditRecorder.record(operationName, promptVersion, false, true, maxAttempts, totalCostMs, errorMessage);
-                return fallbackResponse.get();
-            }
-        }
-
-        auditRecorder.record(operationName, promptVersion, false, false, maxAttempts, totalCostMs, errorMessage);
-        throw new AiModelCallException("AI 模型调用失败，operation=" + operationName, lastError);
-    }
-
-    private String callOnce(Prompt prompt, List<Advisor> advisors) {
-        CompletableFuture<String> future = CompletableFuture.supplyAsync(() ->
-                doCall(prompt, advisors), aiModelExecutor);
-
+        long start = System.currentTimeMillis();
         try {
-            return future.get(timeout.toMillis(), TimeUnit.MILLISECONDS);
-        } catch (TimeoutException e) {
-            future.cancel(true);
-            throw new AiModelCallException("AI 模型调用超时，timeout=" + timeout.toSeconds() + "s", e);
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-            throw new AiModelCallException("AI 模型调用被中断", e);
-        } catch (ExecutionException e) {
-            Throwable cause = e.getCause() == null ? e : e.getCause();
-            throw new AiModelCallException("AI 模型调用异常：" + cause.getMessage(), cause);
+            String text = doCall(prompt, advisors);
+            long latencyMs = System.currentTimeMillis() - start;
+            logger.info("AI model call succeeded, operation={}, promptVersion={}, latencyMs={}",
+                    operationName, promptVersion, latencyMs);
+            auditRecorder.record(operationName, promptVersion, true, false, 1, latencyMs, null);
+            return text;
+        } catch (RuntimeException e) {
+            long latencyMs = System.currentTimeMillis() - start;
+            logger.warn("AI model call failed after Spring AI retry, operation={}, promptVersion={}, latencyMs={}, error={}",
+                    operationName, promptVersion, latencyMs, e.getMessage());
+            return handleFailure(operationName, promptVersion, latencyMs, e);
         }
     }
 
@@ -137,17 +73,19 @@ public class AiModelInvoker {
                 .content();
     }
 
-    private void sleepBeforeRetry(int attempt) {
-        long sleepMillis = backoff.toMillis() * attempt;
-        if (sleepMillis <= 0) {
-            return;
+    private String handleFailure(String operationName, String promptVersion, long latencyMs, RuntimeException error) {
+        if (fallbackEnabled) {
+            var fallbackResponse = fallbackResponseFactory.fallbackFor(operationName);
+            if (fallbackResponse.isPresent()) {
+                logger.warn("AI model call degraded with fallback response, operation={}, promptVersion={}, latencyMs={}",
+                        operationName, promptVersion, latencyMs);
+                auditRecorder.record(operationName, promptVersion, false, true, 1, latencyMs, error.getMessage());
+                return fallbackResponse.get();
+            }
         }
-        try {
-            Thread.sleep(sleepMillis);
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-            throw new AiModelCallException("AI 模型重试等待被中断", e);
-        }
+
+        auditRecorder.record(operationName, promptVersion, false, false, 1, latencyMs, error.getMessage());
+        throw new AiModelCallException("AI 模型调用失败，operation=" + operationName, error);
     }
 
 }

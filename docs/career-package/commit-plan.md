@@ -7,7 +7,7 @@
 ```text
 feat(agent): introduce orchestrator, agents and tools
 feat(rag): add JD matching and RAG-enhanced question generation
-feat(model): add unified model invoker with retry, timeout and fallback
+feat(model): use ChatClient with Spring AI retry and business fallback
 feat(audit): add prompt versioning and model call audit logs
 feat(dashboard): add prompt metrics dashboard
 test(parser): strengthen structured output validation
@@ -50,10 +50,10 @@ AiModelCallException
 AiStructuredOutputException
 AiModelFallbackResponseFactory
 RequestTraceFilter
-application.yml 中 ai-interview.model 配置
+application.yml 中 spring.ai.retry 和 ai-interview.model 配置
 ```
 
-说明重点：模型调用超时、重试、退避、显式降级和 traceId。
+说明重点：Spring AI 框架级重试、业务显式降级、Prompt 版本和 traceId。
 
 ### feat(audit)
 

@@ -86,9 +86,8 @@ Agent 可调用的工具集中在 `ResumeAgentTools`，只暴露查询类能力�
 
 当前治理能力：
 
-- 单次调用超时控制
-- 最大重试次数控制
-- 线性退避等待
+- 基于 Spring AI Alibaba `ChatClient` 统一模型调用入口
+- 模型侧重试和退避交给 Spring AI `spring.ai.retry` 自动配置
 - 调用耗时日志
 - traceId 贯穿 HTTP 请求和模型调用日志
 - 无可用降级时将模型调用失败映射为 502 响应
@@ -96,6 +95,8 @@ Agent 可调用的工具集中在 `ResumeAgentTools`，只暴露查询类能力�
 - Prompt 版本记录
 - 调用审计落库
 - 最终失败后的显式降级结果
+
+`AiModelInvoker` 只保留业务层必须关心的审计、Prompt 版本和 fallback，不再手写 retry/backoff/线程池调度，避免和框架模型层能力重复。
 
 ### Prompt Version
 
@@ -117,7 +118,7 @@ jd-match -> jd-match-v2026-05-17-01
 - promptVersion
 - success
 - fallbackUsed
-- attemptCount
+- attemptCount（兼容早期外层重试审计；当前模型侧重试由 Spring AI 管理）
 - latencyMs
 - errorMessage
 - createTime
@@ -162,7 +163,7 @@ fallbackUsed = 1
 
 ### Prompt Metrics
 
-`/api/audit/prompt-metrics` 基于最近的模型调用审计记录，按 operation 和 Prompt 版本聚合 totalCalls、successRate、fallbackRate、avgLatencyMs、maxLatencyMs 和 avgAttemptCount。
+`/api/audit/prompt-metrics` 基于最近的模型调用审计记录，按 operation 和 Prompt 版本聚合 totalCalls、successRate、fallbackRate、avgLatencyMs 和 maxLatencyMs。`avgAttemptCount` 保留用于兼容早期外层重试审计。
 
 `/audit/prompt-dashboard` 提供一个轻量看板页面，用于查看 Prompt 版本指标和失败原因分布。
 
