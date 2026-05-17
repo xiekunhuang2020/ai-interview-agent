@@ -20,19 +20,19 @@ import java.io.IOException;
 import java.util.*;
 
 @Controller
-public class MockInterviewController {
+public class InterviewController {
 
-    private static final Logger logger = LoggerFactory.getLogger(MockInterviewController.class);
+    private static final Logger logger = LoggerFactory.getLogger(InterviewController.class);
 
     private final InterviewAgentOrchestrator interviewAgentOrchestrator;
     private final AiModelCallAuditQueryService auditQueryService;
     private final InterviewAssistantAgentService interviewAssistantAgentService;
     private final AgentConversationAuditQueryService agentConversationAuditQueryService;
 
-    public MockInterviewController(InterviewAgentOrchestrator interviewAgentOrchestrator,
-                                   AiModelCallAuditQueryService auditQueryService,
-                                   InterviewAssistantAgentService interviewAssistantAgentService,
-                                   AgentConversationAuditQueryService agentConversationAuditQueryService) {
+    public InterviewController(InterviewAgentOrchestrator interviewAgentOrchestrator,
+                               AiModelCallAuditQueryService auditQueryService,
+                               InterviewAssistantAgentService interviewAssistantAgentService,
+                               AgentConversationAuditQueryService agentConversationAuditQueryService) {
         this.interviewAgentOrchestrator = interviewAgentOrchestrator;
         this.auditQueryService = auditQueryService;
         this.interviewAssistantAgentService = interviewAssistantAgentService;
@@ -72,15 +72,13 @@ public class MockInterviewController {
         try {
             return ResponseEntity.ok(interviewAgentOrchestrator.analyzeUploadedResume(file));
         } catch (IllegalArgumentException e) {
-            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+            return badRequest(e);
         } catch (AiModelCallException | AiStructuredOutputException e) {
             return aiGatewayError(e);
         } catch (IOException e) {
-            logger.error("上传简历失败", e);
-            return ResponseEntity.internalServerError().body(Map.of("error", "上传失败：" + e.getMessage()));
+            return serverError("上传简历失败", e, "上传失败：" + e.getMessage());
         } catch (Exception e) {
-            logger.error("评分失败", e);
-            return ResponseEntity.internalServerError().body(Map.of("error", "评分失败：" + e.getMessage()));
+            return serverError("评分失败", e, "评分失败：" + e.getMessage());
         }
     }
 
@@ -139,8 +137,7 @@ public class MockInterviewController {
         } catch (AiModelCallException | AiStructuredOutputException e) {
             return aiGatewayError(e);
         } catch (Exception e) {
-            logger.error("生成问题失败", e);
-            return ResponseEntity.internalServerError().body(Map.of("error", "生成问题失败：" + e.getMessage()));
+            return serverError("生成问题失败", e, "生成问题失败：" + e.getMessage());
         }
     }
 
@@ -161,12 +158,11 @@ public class MockInterviewController {
         } catch (NoSuchElementException e) {
             return ResponseEntity.notFound().build();
         } catch (IllegalArgumentException e) {
-            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+            return badRequest(e);
         } catch (AiModelCallException | AiStructuredOutputException e) {
             return aiGatewayError(e);
         } catch (Exception e) {
-            logger.error("生成 RAG 面试问题失败", e);
-            return ResponseEntity.internalServerError().body(Map.of("error", "生成 RAG 面试问题失败：" + e.getMessage()));
+            return serverError("生成 RAG 面试问题失败", e, "生成 RAG 面试问题失败：" + e.getMessage());
         }
     }
 
@@ -183,12 +179,11 @@ public class MockInterviewController {
         } catch (NoSuchElementException e) {
             return ResponseEntity.notFound().build();
         } catch (IllegalStateException e) {
-            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+            return badRequest(e);
         } catch (AiModelCallException | AiStructuredOutputException e) {
             return aiGatewayError(e);
         } catch (Exception e) {
-            logger.error("评估答案失败", e);
-            return ResponseEntity.internalServerError().body(Map.of("error", "评估失败：" + e.getMessage()));
+            return serverError("评估答案失败", e, "评估失败：" + e.getMessage());
         }
     }
 
@@ -222,8 +217,7 @@ public class MockInterviewController {
         } catch (NoSuchElementException e) {
             return ResponseEntity.notFound().build();
         } catch (Exception e) {
-            logger.error("向量化失败, resumeId={}", resumeId, e);
-            return ResponseEntity.internalServerError().body(Map.of("error", "向量化失败：" + e.getMessage()));
+            return serverError("向量化失败, resumeId=" + resumeId, e, "向量化失败：" + e.getMessage());
         }
     }
 
@@ -241,10 +235,9 @@ public class MockInterviewController {
                     "results", interviewAgentOrchestrator.searchResumes(queryText, topK)
             ));
         } catch (IllegalArgumentException e) {
-            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+            return badRequest(e);
         } catch (Exception e) {
-            logger.error("文本检索失败", e);
-            return ResponseEntity.internalServerError().body(Map.of("error", "检索失败：" + e.getMessage()));
+            return serverError("文本检索失败", e, "检索失败：" + e.getMessage());
         }
     }
 
@@ -264,12 +257,11 @@ public class MockInterviewController {
         } catch (NoSuchElementException e) {
             return ResponseEntity.notFound().build();
         } catch (IllegalArgumentException e) {
-            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+            return badRequest(e);
         } catch (AiModelCallException | AiStructuredOutputException e) {
             return aiGatewayError(e);
         } catch (Exception e) {
-            logger.error("JD 匹配失败", e);
-            return ResponseEntity.internalServerError().body(Map.of("error", "JD 匹配失败：" + e.getMessage()));
+            return serverError("JD 匹配失败", e, "JD 匹配失败：" + e.getMessage());
         }
     }
 
@@ -282,10 +274,9 @@ public class MockInterviewController {
         try {
             return ResponseEntity.ok(interviewAssistantAgentService.chat(request));
         } catch (IllegalArgumentException e) {
-            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+            return badRequest(e);
         } catch (Exception e) {
-            logger.error("Agent 对话失败", e);
-            return ResponseEntity.internalServerError().body(Map.of("error", "Agent 对话失败：" + e.getMessage()));
+            return serverError("Agent 对话失败", e, "Agent 对话失败：" + e.getMessage());
         }
     }
 
@@ -344,8 +335,21 @@ public class MockInterviewController {
         return 5;
     }
 
+    private ResponseEntity<Map<String, String>> badRequest(RuntimeException e) {
+        return error(HttpStatus.BAD_REQUEST, e.getMessage());
+    }
+
+    private ResponseEntity<Map<String, String>> serverError(String logMessage, Exception e, String clientMessage) {
+        logger.error(logMessage, e);
+        return error(HttpStatus.INTERNAL_SERVER_ERROR, clientMessage);
+    }
+
     private ResponseEntity<Map<String, String>> aiGatewayError(RuntimeException e) {
         logger.warn("AI gateway error", e);
-        return ResponseEntity.status(HttpStatus.BAD_GATEWAY).body(Map.of("error", e.getMessage()));
+        return error(HttpStatus.BAD_GATEWAY, e.getMessage());
+    }
+
+    private ResponseEntity<Map<String, String>> error(HttpStatus status, String message) {
+        return ResponseEntity.status(status).body(Map.of("error", message));
     }
 }

@@ -8,7 +8,7 @@
 
 ```mermaid
 flowchart TD
-    U["User / Browser"] --> C["MockInterviewController"]
+    U["User / Browser"] --> C["InterviewController"]
     C --> O["InterviewAgentOrchestrator"]
 
     O --> T1["ResumeParseTool"]
@@ -42,7 +42,7 @@ flowchart TD
 
 ### Controller
 
-只处理 HTTP 入参、响应和错误码，不直接编排业务流程，也不直接调用大模型。
+只处理 HTTP 入参、响应和错误码，不直接编排业务流程，也不直接调用大模型。API 错误响应统一收敛为 `{ "error": "..." }`，由 Controller 私有方法映射 400、500 和模型网关 502。
 
 ### Orchestrator
 
