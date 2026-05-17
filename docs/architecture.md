@@ -177,6 +177,8 @@ Tool 负责确定性能力，方便后续迁移到函数调用或工具调用框
 - `ResumeRepositoryTool`：MySQL + Redis 读写
 - `ResumeVectorTool`：Milvus 向量写入和相似检索
 
+`ResumeVectorTool` 通过 Spring AI `SearchRequest.topK` 控制检索数量，避免先取默认结果再由业务代码手动截断。
+
 ## 当前边界
 
 当前版本采用确定性 Orchestrator 编排 Agent，不做完全自主规划。这样更适合业务系统落地：链路可控、错误边界清楚、易于测试和排查。

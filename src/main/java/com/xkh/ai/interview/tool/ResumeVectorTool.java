@@ -1,6 +1,7 @@
 package com.xkh.ai.interview.tool;
 
 import org.springframework.ai.document.Document;
+import org.springframework.ai.vectorstore.SearchRequest;
 import org.springframework.ai.vectorstore.VectorStore;
 import org.springframework.stereotype.Component;
 
@@ -22,8 +23,9 @@ public class ResumeVectorTool {
     }
 
     public List<Document> search(String queryText, int topK) {
-        return vectorStore.similaritySearch(queryText).stream()
-                .limit(topK)
-                .toList();
+        return vectorStore.similaritySearch(SearchRequest.builder()
+                .query(queryText)
+                .topK(topK)
+                .build());
     }
 }

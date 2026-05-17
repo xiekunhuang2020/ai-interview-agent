@@ -339,7 +339,7 @@ public class MockInterviewController {
 
     private int parseTopK(Object topK) {
         if (topK instanceof Number number) {
-            return Math.max(1, Math.min(number.intValue(), 20));
+            return number.intValue();
         }
         return 5;
     }
