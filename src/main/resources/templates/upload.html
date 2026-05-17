@@ -14,7 +14,7 @@
         <header class="topbar">
             <div>
                 <p class="eyebrow">01 / 候选人导入</p>
-                <h1>上传简历并生成首份诊断</h1>
+                <h1>上传简历并判断岗位匹配度</h1>
             </div>
             <div class="top-actions">
                 <a class="ghost-button" href="/">首页</a>
@@ -22,8 +22,18 @@
             </div>
         </header>
 
+        <div class="notice info product-scope">
+            <strong>当前版本面向程序员和技术岗求职者。</strong>
+            <span>适用：Java 后端、前端、测试、AI 应用开发。</span>
+            <span>上传后根据目标 JD 输出匹配分、缺口和追问方向。</span>
+        </div>
+
         <div class="notice error" v-if="globalError">{{ globalError }}</div>
         <div class="notice success" v-if="globalMessage">{{ globalMessage }}</div>
+        <div class="notice success" v-if="resumeId && globalError">
+            简历已经导入，可以先查看诊断结果：
+            <a v-bind:href="'/analysis/' + encodeURIComponent(resumeId)">打开简历诊断</a>
+        </div>
 
         <section class="workspace-grid">
             <div class="panel upload-panel"
@@ -46,8 +56,8 @@
                 </label>
 
                 <div class="inline-actions">
-                    <button class="primary-button" type="button" v-on:click="uploadResume" v-bind:disabled="!selectedFile || loading.upload">
-                        {{ loading.upload ? '分析中...' : '上传并分析' }}
+                    <button class="primary-button" type="button" v-on:click="uploadResume" v-bind:disabled="loading.upload">
+                        {{ loading.upload ? '处理中...' : '上传并判断匹配' }}
                     </button>
                     <button class="ghost-button" type="button" v-on:click="clearCandidate" v-bind:disabled="loading.upload">
                         清空选择
@@ -55,11 +65,23 @@
                 </div>
 
                 <div class="notice info" v-if="loading.upload">
-                    正在解析简历、调用模型评分并写入向量库，通常需要 20-60 秒。
+                    {{ uploadStage || '正在解析简历、调用模型评分、写入向量库并判断岗位匹配，通常需要 40-90 秒。' }}
                 </div>
             </div>
 
-            <div class="panel outcome-panel">
+            <div class="panel upload-panel">
+                <div class="panel-header">
+                    <div>
+                        <h2>目标岗位 JD</h2>
+                        <p>AI 会以这份岗位要求为参照，判断候选人是否适合投递。</p>
+                    </div>
+                    <button class="ghost-button" type="button" v-on:click="fillSampleJd" v-bind:disabled="loading.upload">填入示例</button>
+                </div>
+                <textarea class="jd-input upload-jd-input" v-model="jdText" placeholder="粘贴目标岗位 JD。建议包含岗位职责、必备技能、加分项和业务方向。"></textarea>
+                <p class="field-help">匹配结果会包含总分、命中技能、缺失能力、投递风险和后续面试追问重点。</p>
+            </div>
+
+            <div class="panel outcome-panel wide-panel">
                 <div class="panel-header">
                     <div>
                         <h2>导入后会得到什么</h2>
@@ -68,6 +90,7 @@
                 </div>
                 <div class="timeline">
                     <div class="timeline-item done">结构化评分：总分与五个能力维度</div>
+                    <div class="timeline-item done">岗位匹配：结合目标 JD 输出匹配分和风险点</div>
                     <div class="timeline-item done">可执行建议：按优先级输出修改方向</div>
                     <div class="timeline-item done">向量入库：用于相似简历和 JD 增强问题</div>
                     <div class="timeline-item done">后续闭环：岗位匹配、模拟面试、复盘评估</div>

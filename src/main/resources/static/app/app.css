@@ -276,6 +276,8 @@ p {
     padding: 12px 14px;
     border: 1px solid var(--line);
     background: #ffffff;
+    max-width: 100%;
+    overflow-wrap: anywhere;
 }
 
 .notice.error {
@@ -294,6 +296,18 @@ p {
     border-color: #c9dfef;
     color: #244b68;
     background: #f2f8fc;
+}
+
+.product-scope strong {
+    display: block;
+    margin-bottom: 4px;
+    color: var(--text);
+}
+
+.product-scope span {
+    display: block;
+    line-height: 1.65;
+    overflow-wrap: anywhere;
 }
 
 .compact-notice {
@@ -348,6 +362,7 @@ p {
 .pill {
     display: inline-flex;
     align-items: center;
+    justify-self: start;
     min-height: 28px;
     border-radius: 8px;
     padding: 0 10px;
@@ -617,6 +632,16 @@ p {
     outline: none;
     background: #ffffff;
     color: var(--text);
+}
+
+.upload-jd-input {
+    min-height: 188px;
+}
+
+.field-help {
+    margin-top: 10px;
+    color: var(--muted);
+    font-size: 13px;
 }
 
 .jd-input:focus,

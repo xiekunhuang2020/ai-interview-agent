@@ -50,6 +50,7 @@ function createInterviewApp() {
                     chat: false,
                     ops: false
                 },
+                uploadStage: '',
                 globalError: '',
                 globalMessage: ''
             };
@@ -132,13 +133,20 @@ function createInterviewApp() {
                     this.globalError = '请先选择简历文件。';
                     return;
                 }
+                const targetJd = this.jdText.trim();
+                if (!targetJd) {
+                    this.globalError = '请先填写目标岗位 JD，AI 需要根据岗位要求判断简历是否匹配。';
+                    return;
+                }
                 if (this.selectedFile.size > 10 * 1024 * 1024) {
                     this.globalError = '文件大小不能超过 10MB。';
                     return;
                 }
                 this.loading.upload = true;
+                this.uploadStage = '正在解析简历并生成诊断...';
                 this.globalError = '';
                 this.globalMessage = '';
+                let uploadedResumeId = '';
                 try {
                     const formData = new FormData();
                     formData.append('file', this.selectedFile);
@@ -146,11 +154,22 @@ function createInterviewApp() {
                         method: 'POST',
                         body: formData
                     });
-                    window.location.href = `/analysis/${encodeURIComponent(payload.resumeId)}`;
+                    uploadedResumeId = payload.resumeId;
+                    this.resumeId = uploadedResumeId;
+                    this.scoreResult = payload.scoreResult || null;
+                    this.uploadStage = '正在调用 JD 匹配 Agent...';
+                    this.matchResult = await this.matchJobByResumeId(uploadedResumeId, targetJd);
+                    this.jdText = targetJd;
+                    this.persistMatch();
+                    this.globalMessage = '简历诊断和岗位匹配已完成。';
+                    window.location.href = `/match/${encodeURIComponent(uploadedResumeId)}`;
                 } catch (error) {
-                    this.globalError = error.message;
+                    this.globalError = uploadedResumeId
+                        ? `简历已导入，但岗位匹配失败：${error.message}`
+                        : error.message;
                 } finally {
                     this.loading.upload = false;
+                    this.uploadStage = '';
                 }
             },
             async loadWorkspace() {
@@ -191,11 +210,7 @@ function createInterviewApp() {
                 this.globalError = '';
                 this.globalMessage = '';
                 try {
-                    this.matchResult = await fetchJson(`/api/jd/${encodeURIComponent(this.resumeId)}/match`, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ jobDescription: this.jdText })
-                    });
+                    this.matchResult = await this.matchJobByResumeId(this.resumeId, this.jdText.trim());
                     this.persistMatch();
                     this.globalMessage = '岗位匹配完成，可以继续生成定向面试题。';
                 } catch (error) {
@@ -203,6 +218,13 @@ function createInterviewApp() {
                 } finally {
                     this.loading.match = false;
                 }
+            },
+            async matchJobByResumeId(resumeId, jobDescription) {
+                return fetchJson(`/api/jd/${encodeURIComponent(resumeId)}/match`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ jobDescription })
+                });
             },
             async generateStandardQuestions() {
                 await this.generateQuestions('standard');
