@@ -8,7 +8,7 @@
 feat(agent): introduce orchestrator, agents and tools
 feat(rag): add JD matching and RAG-enhanced question generation
 feat(model): use ChatClient with Spring AI retry and business fallback
-feat(audit): add prompt versioning and model call audit logs
+feat(audit): add prompt versioning, model call logs and agent conversation audit
 feat(dashboard): add prompt metrics dashboard
 test(parser): strengthen structured output validation
 docs(project): add architecture, API examples and runtime docs
@@ -61,12 +61,17 @@ application.yml 中 spring.ai.retry 和 ai-interview.model 配置
 AiModelCallLog
 AiModelCallLogMapper
 AiModelCallAuditRecorder
+AgentConversationMessage
+AgentConversationMessageMapper
+AgentConversationAuditRecorder
+AgentConversationAuditQueryService
 PromptVersionRegistry
 sql/init.sql
 sql/migration-v2-ai-model-call-log.sql
+sql/migration-v3-agent-conversation-message.sql
 ```
 
-说明重点：Prompt 版本、模型调用审计和旧库迁移脚本。
+说明重点：Prompt 版本、模型调用审计、Agent 对话审计和旧库迁移脚本。
 
 ### feat(dashboard)
 
@@ -75,7 +80,7 @@ PromptMetricsResult
 PromptFailureReasonResult
 AiModelCallAuditQueryService
 prompt-dashboard.html
-Controller 中 /audit/prompt-dashboard 和 /api/audit/* 接口
+InterviewController 中 /audit/prompt-dashboard 和 /api/audit/* 接口
 ```
 
 说明重点：Prompt 效果指标和失败原因看板。
