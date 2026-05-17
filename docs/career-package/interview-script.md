@@ -12,7 +12,7 @@
 
 架构上我没有把所有逻辑堆在 Service 里，而是拆成 Controller、Orchestrator、Agent 和 Tool。Controller 只处理 HTTP，`InterviewAgentOrchestrator` 负责编排流程，Agent 处理需要模型推理的任务，Tool 处理文档解析、存储、缓存和向量检索等确定性能力。
 
-我重点补了 AI 应用工程化能力。所有模型调用都经过 Spring AI `ChatClient`，模型侧重试和退避交给 Spring AI 的 `spring.ai.retry` 配置；业务层的 `AiModelInvoker` 只保留 Prompt 版本、调用审计、显式降级和 traceId 日志追踪。模型输出会经过强校验，包括字段、类型、数值范围、枚举值、数组元素结构和未知字段检测。每次模型调用还会记录 operation、Prompt 版本、耗时、成功状态、降级状态和失败原因，并提供 Prompt 效果看板观察成功率、降级率和平均耗时。
+我重点补了 AI 应用工程化能力。所有模型调用都经过 Spring AI `ChatClient`，模型侧重试和退避交给 Spring AI 的 `spring.ai.retry` 配置；业务层的 `AiModelInvoker` 只保留 Prompt 版本、调用审计、显式降级和 traceId 日志追踪。模型输出先由 Spring AI `BeanOutputConverter` 转成 DTO，再用 Jakarta Bean Validation 做必填、范围、枚举和级联校验，少量业务规则比如简历分项分数归一化才保留在代码里。每次模型调用还会记录 operation、Prompt 版本、耗时、成功状态、降级状态和失败原因，并提供 Prompt 效果看板观察成功率、降级率和平均耗时。
 
 ## 架构讲法
 
@@ -56,7 +56,7 @@ AI 应用落地时，模型调用不稳定是高频问题，所以我把模型�
 ```text
 大模型输出 JSON 最大的问题不是“完全不可解析”，而是半对半错。
 比如字段存在但类型错，分数越界，枚举值不在范围内，数组元素结构不对。
-所以我没有只做 JSON parse，而是做了结构化输出强校验，覆盖必填字段、类型、范围、枚举、数组元素结构和未知字段。
+所以我没有只做 JSON parse，也没有把所有规则写成手工 if 判断；而是用 Spring AI `BeanOutputConverter` 做严格 DTO 转换，用 Jakarta Bean Validation 把必填、范围、枚举和嵌套对象校验声明在 DTO 上。
 不合规输出会抛 AiStructuredOutputException，并在接口层按模型网关问题处理。
 ```
 

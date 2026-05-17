@@ -5,6 +5,8 @@ import com.xkh.ai.interview.service.dto.JobDescriptionMatchResult;
 import com.xkh.ai.interview.service.dto.ResumeScoreResult;
 import com.xkh.ai.interview.support.AiJsonResponseParser;
 import com.xkh.ai.interview.support.AiStructuredOutputException;
+import jakarta.validation.Validation;
+import jakarta.validation.Validator;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -12,7 +14,9 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 
 class AiJsonResponseParserTests {
 
-    private final AiJsonResponseParser parser = new AiJsonResponseParser(new ObjectMapper());
+    private static final Validator VALIDATOR = Validation.buildDefaultValidatorFactory().getValidator();
+
+    private final AiJsonResponseParser parser = new AiJsonResponseParser(new ObjectMapper(), VALIDATOR);
 
     @Test
     void parsesResumeScoreResultFromMarkdownJsonBlock() throws Exception {
@@ -88,6 +92,25 @@ class AiJsonResponseParserTests {
     @Test
     void rejectsInterviewQuestionsWithoutQuestionsArray() {
         String response = "{\"summary\":\"缺少 questions 字段\"}";
+
+        assertThrows(AiStructuredOutputException.class,
+                () -> parser.parseInterviewQuestions(response));
+    }
+
+    @Test
+    void rejectsUnknownFieldsByStrictDtoConversion() {
+        String response = """
+                {
+                  "questions": [
+                    {
+                      "question": "请介绍你的项目。",
+                      "type": "PROJECT",
+                      "category": "项目经历",
+                      "extra": "不允许的字段"
+                    }
+                  ]
+                }
+                """;
 
         assertThrows(AiStructuredOutputException.class,
                 () -> parser.parseInterviewQuestions(response));

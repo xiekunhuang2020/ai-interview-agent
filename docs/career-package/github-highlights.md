@@ -70,7 +70,7 @@ docs(career): add resume and interview preparation package
 2. 展示 architecture.md，讲 Controller + Orchestrator + Agent + Tool。
 3. 展示 prompt-dashboard 页面，说明 Prompt 版本、调用审计和效果评估。
 4. 展示 AiModelInvoker，讲框架级重试、业务降级和 traceId。
-5. 展示 AiJsonResponseParser，讲结构化输出强校验。
+5. 展示 DTO 校验注解和 AiJsonResponseParser，讲 BeanOutputConverter + Bean Validation。
 6. 展示 RagInterviewQuestionAgent，讲 RAG 出题边界和防幻觉约束。
 ```
 

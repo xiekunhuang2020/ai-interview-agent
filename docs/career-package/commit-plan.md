@@ -88,7 +88,7 @@ AiModelFallbackResponseFactoryTests
 PromptVersionRegistryTests
 ```
 
-说明重点：结构化输出强校验和降级 JSON 契约。
+说明重点：Spring AI 结构化输出转换、Jakarta Bean Validation 约束和降级 JSON 契约。
 
 ### docs(project)
 

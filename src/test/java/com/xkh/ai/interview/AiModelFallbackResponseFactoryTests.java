@@ -3,14 +3,18 @@ package com.xkh.ai.interview;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.xkh.ai.interview.support.AiJsonResponseParser;
 import com.xkh.ai.interview.support.AiModelFallbackResponseFactory;
+import jakarta.validation.Validation;
+import jakarta.validation.Validator;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class AiModelFallbackResponseFactoryTests {
 
+    private static final Validator VALIDATOR = Validation.buildDefaultValidatorFactory().getValidator();
+
     private final AiModelFallbackResponseFactory fallbackFactory = new AiModelFallbackResponseFactory();
-    private final AiJsonResponseParser parser = new AiJsonResponseParser(new ObjectMapper());
+    private final AiJsonResponseParser parser = new AiJsonResponseParser(new ObjectMapper(), VALIDATOR);
 
     @Test
     void resumeAnalysisFallbackMatchesStructuredOutputContract() throws Exception {

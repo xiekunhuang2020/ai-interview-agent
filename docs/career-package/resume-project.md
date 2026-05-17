@@ -15,7 +15,7 @@ AI 面试 Agent 平台｜Java 21 / Spring Boot / Spring AI Alibaba / DashScope /
 
 - 设计并实现“简历解析 -> 能力画像 -> JD 匹配 -> RAG 增强出题 -> 回答评估 -> 面试报告生成”的 Agent 工作流，覆盖求职者面试训练闭环。
 - 基于 Controller + Orchestrator + Agent + Tool 分层重构业务链路，将模型推理任务与文档解析、数据存储、向量检索等确定性工具解耦。
-- 接入 Spring AI Alibaba 与通义千问模型，通过 System/User Prompt 分层设计、Prompt 版本管理和结构化 JSON 输出强校验，提升模型输出可控性。
+- 接入 Spring AI Alibaba 与通义千问模型，通过 System/User Prompt 分层设计、Prompt 版本管理、`BeanOutputConverter` 和 Jakarta Bean Validation 提升模型输出可控性。
 - 基于 Milvus 构建简历向量知识库，结合目标岗位 JD 检索相似简历片段，为岗位定制化面试题生成提供 RAG 上下文。
 - 基于 Spring AI `ChatClient` 统一模型调用入口，模型侧重试和退避交给 `spring.ai.retry` 配置，业务层保留显式降级、traceId 日志追踪和模型侧故障分层处理。
 - 设计 AI 调用审计表与 Prompt 效果评估看板，记录 operation、Prompt 版本、耗时、成功状态、降级状态和失败原因，支持问题回溯与 Prompt 迭代评估。

@@ -93,7 +93,7 @@ Agent 可调用的工具集中在 `ResumeAgentTools`，只暴露查询类能力�
 - 调用耗时日志
 - traceId 贯穿 HTTP 请求和模型调用日志
 - 无可用降级时将模型调用失败映射为 502 响应
-- 结构化输出强校验：字段、类型、范围、枚举和数组元素结构
+- 结构化输出治理：Spring AI `BeanOutputConverter` 负责 DTO 转换，Jakarta Bean Validation 负责必填、范围、枚举和级联校验
 - Prompt 版本记录
 - 调用审计落库
 - 最终失败后的显式降级结果

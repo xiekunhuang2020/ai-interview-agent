@@ -1,6 +1,10 @@
 package com.xkh.ai.interview.service.dto;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Pattern;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -20,36 +24,50 @@ public class ResumeScoreResult {
     /**
      * 总分
      */
+    @NotNull
+    @Min(0)
+    @Max(100)
     private Integer overallScore;
     
     /**
      * 评分详情
      */
+    @Valid
+    @NotNull
     private ScoreDetail scoreDetail;
     
     /**
      * 总结
      */
+    @NotNull
     private String summary;
     
     /**
      * 优势列表
      */
-    private List<String> strengths;
+    @NotNull
+    private List<@NotNull String> strengths;
     
     /**
      * 改进建议列表
      */
-    private List<Suggestion> suggestions;
+    @Valid
+    @NotNull
+    private List<@Valid Suggestion> suggestions;
 
     @Data
     @NoArgsConstructor
     @AllArgsConstructor
     public static class ScoreDetail {
+        @NotNull
         private Integer projectScore;
+        @NotNull
         private Integer skillMatchScore;
+        @NotNull
         private Integer contentScore;
+        @NotNull
         private Integer structureScore;
+        @NotNull
         private Integer expressionScore;
     }
 
@@ -57,9 +75,14 @@ public class ResumeScoreResult {
     @NoArgsConstructor
     @AllArgsConstructor
     public static class Suggestion {
+        @NotNull
         private String category;
+        @NotNull
+        @Pattern(regexp = "高|中|低")
         private String priority;
+        @NotNull
         private String issue;
+        @NotNull
         private String recommendation;
     }
 }
