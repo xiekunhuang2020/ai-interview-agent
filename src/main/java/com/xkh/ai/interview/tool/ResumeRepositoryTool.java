@@ -91,8 +91,7 @@ public class ResumeRepositoryTool {
     }
 
     public ResumeData findById(String resumeId) {
-        String cacheKey = RESUME_CACHE_PREFIX + resumeId;
-        ResumeData cached = (ResumeData) redisTemplate.opsForValue().get(cacheKey);
+        ResumeData cached = getCachedResumeData(resumeId);
         if (cached != null) {
             logger.debug("Resume cache hit, resumeId={}", resumeId);
             return cached;
@@ -109,7 +108,24 @@ public class ResumeRepositoryTool {
     }
 
     private void cacheResumeData(String resumeId, ResumeData data) {
-        redisTemplate.opsForValue().set(RESUME_CACHE_PREFIX + resumeId, data, CACHE_TTL);
+        try {
+            redisTemplate.opsForValue().set(cacheKey(resumeId), data, CACHE_TTL);
+        } catch (RuntimeException e) {
+            logger.warn("Resume cache write failed, resumeId={}, error={}", resumeId, e.getMessage());
+        }
+    }
+
+    private ResumeData getCachedResumeData(String resumeId) {
+        try {
+            return (ResumeData) redisTemplate.opsForValue().get(cacheKey(resumeId));
+        } catch (RuntimeException e) {
+            logger.warn("Resume cache read failed, resumeId={}, error={}", resumeId, e.getMessage());
+            return null;
+        }
+    }
+
+    private String cacheKey(String resumeId) {
+        return RESUME_CACHE_PREFIX + resumeId;
     }
 
     private ResumeData buildResumeData(ResumeInfo entity) {

@@ -177,6 +177,8 @@ Tool 负责确定性能力，方便后续迁移到函数调用或工具调用框
 - `ResumeRepositoryTool`：MySQL + Redis 读写
 - `ResumeVectorTool`：Milvus 向量写入和相似检索
 
+`ResumeRepositoryTool` 以 MySQL 为事实存储，Redis 只作为加速缓存；缓存读写失败只记录 warn，并回退到数据库主流程。
+
 `ResumeVectorTool` 通过 Spring AI `SearchRequest.topK` 控制检索数量，避免先取默认结果再由业务代码手动截断。
 
 ## 当前边界
