@@ -52,7 +52,7 @@ public class InterviewController {
      */
     @GetMapping("/upload")
     public String uploadPage() {
-        return "upload";
+        return "index";
     }
 
     /**
@@ -60,7 +60,7 @@ public class InterviewController {
      */
     @GetMapping("/audit/prompt-dashboard")
     public String promptDashboardPage() {
-        return "prompt-dashboard";
+        return "index";
     }
 
     /**
@@ -87,14 +87,7 @@ public class InterviewController {
      */
     @GetMapping("/analysis/{resumeId}")
     public String analysisPage(@PathVariable String resumeId, Model model) {
-        ResumeData resumeData = interviewAgentOrchestrator.getResumeById(resumeId);
-        if (resumeData == null) {
-            return "redirect:/upload";
-        }
-
-        model.addAttribute("resumeId", resumeId);
-        model.addAttribute("scoreResult", resumeData.getScoreResult());
-        return "analysis";
+        return "index";
     }
 
     /**
@@ -111,17 +104,30 @@ public class InterviewController {
     }
 
     /**
+     * 获取当前简历工作台数据
+     */
+    @GetMapping("/api/resume/{resumeId}")
+    @ResponseBody
+    public ResponseEntity<?> getResumeWorkspace(@PathVariable String resumeId) {
+        ResumeData resumeData = interviewAgentOrchestrator.getResumeById(resumeId);
+        if (resumeData == null) {
+            return ResponseEntity.notFound().build();
+        }
+
+        Map<String, Object> response = new LinkedHashMap<>();
+        response.put("resumeId", resumeData.getResumeId());
+        response.put("scoreResult", resumeData.getScoreResult());
+        response.put("questions", resumeData.getQuestions());
+        response.put("evaluation", resumeData.getEvaluation());
+        return ResponseEntity.ok(response);
+    }
+
+    /**
      * 模拟面试页面
      */
     @GetMapping("/interview/{resumeId}")
     public String interviewPage(@PathVariable String resumeId, Model model) {
-        ResumeData resumeData = interviewAgentOrchestrator.getResumeById(resumeId);
-        if (resumeData == null) {
-            return "redirect:/upload";
-        }
-
-        model.addAttribute("resumeId", resumeId);
-        return "interview";
+        return "index";
     }
 
     /**
@@ -192,15 +198,7 @@ public class InterviewController {
      */
     @GetMapping("/result/{resumeId}")
     public String resultPage(@PathVariable String resumeId, Model model) {
-        ResumeData resumeData = interviewAgentOrchestrator.getResumeById(resumeId);
-        if (resumeData == null) {
-            return "redirect:/upload";
-        }
-
-        model.addAttribute("resumeId", resumeId);
-        model.addAttribute("evaluation", resumeData.getEvaluation());
-        model.addAttribute("questions", resumeData.getQuestions());
-        return "result";
+        return "index";
     }
 
     // ==================== RAG 向量检索接口 ====================

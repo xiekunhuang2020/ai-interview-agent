@@ -1,194 +1,492 @@
-<!DOCTYPE html>
-<html xmlns:th="http://www.thymeleaf.org" lang="zh-CN">
+<!doctype html>
+<html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AI Interview Agent - 首页</title>
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
-        body {
-            font-family: 'Microsoft YaHei', 'PingFang SC', Arial, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            min-height: 100vh;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            padding: 20px;
-        }
-
-        .container {
-            background: white;
-            border-radius: 20px;
-            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
-            max-width: 800px;
-            width: 100%;
-            padding: 60px 40px;
-            text-align: center;
-        }
-
-        h1 {
-            color: #333;
-            font-size: 36px;
-            margin-bottom: 20px;
-            font-weight: 600;
-        }
-
-        .subtitle {
-            color: #666;
-            font-size: 18px;
-            margin-bottom: 40px;
-            line-height: 1.6;
-        }
-
-        .features {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 30px;
-            margin-bottom: 50px;
-        }
-
-        .feature-item {
-            padding: 30px 20px;
-            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
-            border-radius: 15px;
-            transition: transform 0.3s ease;
-        }
-
-        .feature-item:hover {
-            transform: translateY(-5px);
-        }
-
-        .feature-icon {
-            font-size: 48px;
-            margin-bottom: 15px;
-        }
-
-        .feature-title {
-            font-size: 18px;
-            color: #333;
-            margin-bottom: 10px;
-            font-weight: 600;
-        }
-
-        .feature-desc {
-            font-size: 14px;
-            color: #666;
-            line-height: 1.5;
-        }
-
-        .btn {
-            display: inline-block;
-            padding: 15px 50px;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            text-decoration: none;
-            border-radius: 50px;
-            font-size: 18px;
-            font-weight: 600;
-            transition: all 0.3s ease;
-            border: none;
-            cursor: pointer;
-            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
-        }
-
-        .btn-secondary {
-            margin-left: 12px;
-            background: white;
-            color: #667eea;
-            border: 2px solid #667eea;
-            box-shadow: none;
-        }
-
-        .btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 15px 30px rgba(102, 126, 234, 0.4);
-        }
-
-        .steps {
-            text-align: left;
-            margin-top: 40px;
-            padding: 30px;
-            background: #f8f9fa;
-            border-radius: 15px;
-        }
-
-        .step {
-            display: flex;
-            align-items: center;
-            margin-bottom: 20px;
-        }
-
-        .step-number {
-            width: 40px;
-            height: 40px;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-weight: bold;
-            font-size: 18px;
-            margin-right: 20px;
-            flex-shrink: 0;
-        }
-
-        .step-text {
-            color: #333;
-            font-size: 16px;
-        }
-    </style>
+    <title>AI Interview Agent</title>
+    <link rel="stylesheet" href="/app/app.css">
 </head>
 <body>
-    <div class="container">
-        <h1>AI Interview Agent</h1>
-        <p class="subtitle">AI 驱动的专业面试模拟平台<br>智能简历评分 + 个性化面试问题 + 深度答案评估</p>
-
-        <div class="features">
-            <div class="feature-item">
-                <div class="feature-icon">📄</div>
-                <div class="feature-title">智能简历评分</div>
-                <div class="feature-desc">多维度深度分析，提供专业改进建议</div>
-            </div>
-            <div class="feature-item">
-                <div class="feature-icon">🎤</div>
-                <div class="feature-title">模拟面试</div>
-                <div class="feature-desc">基于简历定制个性化面试问题</div>
-            </div>
-            <div class="feature-item">
-                <div class="feature-icon">📊</div>
-                <div class="feature-title">答案评估</div>
-                <div class="feature-desc">专业评分 + 详细反馈 + 参考答案</div>
+<div id="app" v-cloak>
+    <aside class="sidebar">
+        <div class="brand">
+            <div class="brand-mark">AI</div>
+            <div>
+                <div class="brand-name">Interview Agent</div>
+                <div class="brand-meta">Candidate Intelligence</div>
             </div>
         </div>
 
-        <a href="/upload" class="btn">开始面试准备</a>
-        <a href="/audit/prompt-dashboard" class="btn btn-secondary">Prompt 看板</a>
+        <nav class="nav-list" aria-label="主导航">
+            <button v-for="item in navItems"
+                    v-bind:key="item.id"
+                    class="nav-item"
+                    v-bind:class="{ active: activeView === item.id }"
+                    type="button"
+                    v-on:click="activate(item.id)">
+                <span class="nav-index">{{ item.index }}</span>
+                <span>{{ item.label }}</span>
+            </button>
+        </nav>
 
-        <div class="steps">
-            <h3 style="margin-bottom: 20px; color: #333;">使用流程</h3>
-            <div class="step">
-                <div class="step-number">1</div>
-                <div class="step-text">上传简历 - AI 智能评分并提供优化建议</div>
-            </div>
-            <div class="step">
-                <div class="step-number">2</div>
-                <div class="step-text">查看分析 - 详细了解简历优势与不足</div>
-            </div>
-            <div class="step">
-                <div class="step-number">3</div>
-                <div class="step-text">模拟面试 - 回答针对性面试问题</div>
-            </div>
-            <div class="step">
-                <div class="step-number">4</div>
-                <div class="step-text">获得评估 - 查看专业评分和参考答案</div>
-            </div>
+        <div class="side-status">
+            <div class="status-label">当前简历</div>
+            <div class="status-value">{{ resumeId || '未选择' }}</div>
         </div>
-    </div>
+    </aside>
+
+    <main class="main-shell">
+        <header class="topbar">
+            <div>
+                <p class="eyebrow">AI 面试增长工作台</p>
+                <h1>{{ currentTitle }}</h1>
+            </div>
+            <div class="top-actions">
+                <button class="ghost-button" type="button" v-on:click="loadWorkspace" v-bind:disabled="!resumeId || loading.workspace">
+                    刷新数据
+                </button>
+                <button class="primary-button" type="button" v-on:click="activate('workspace')">
+                    新增候选人
+                </button>
+            </div>
+        </header>
+
+        <div class="notice error" v-if="globalError">{{ globalError }}</div>
+        <div class="notice success" v-if="globalMessage">{{ globalMessage }}</div>
+
+        <section v-show="activeView === 'workspace'" class="workspace-grid">
+            <div class="panel upload-panel"
+                 v-bind:class="{ dragover: dragOver }"
+                 v-on:dragover.prevent="dragOver = true"
+                 v-on:dragleave.prevent="dragOver = false"
+                 v-on:drop.prevent="handleDrop">
+                <div class="panel-header">
+                    <div>
+                        <h2>候选人导入</h2>
+                        <p>PDF、DOC、DOCX、TXT</p>
+                    </div>
+                    <span class="pill">AI Analysis</span>
+                </div>
+
+                <label class="dropzone" for="resumeFile">
+                    <input id="resumeFile" type="file" accept=".pdf,.doc,.docx,.txt" v-on:change="handleFileChange">
+                    <span class="drop-title">{{ selectedFile ? selectedFile.name : '选择简历文件' }}</span>
+                    <span class="drop-meta">{{ selectedFile ? formatBytes(selectedFile.size) : '最大 10MB' }}</span>
+                </label>
+
+                <div class="inline-actions">
+                    <button class="primary-button" type="button" v-on:click="uploadResume" v-bind:disabled="!selectedFile || loading.upload">
+                        {{ loading.upload ? '分析中' : '上传并分析' }}
+                    </button>
+                    <button class="ghost-button" type="button" v-on:click="clearCandidate" v-bind:disabled="loading.upload">
+                        清空
+                    </button>
+                </div>
+            </div>
+
+            <div class="panel outcome-panel">
+                <div class="panel-header">
+                    <div>
+                        <h2>交付看板</h2>
+                        <p>面向求职客户的核心结果</p>
+                    </div>
+                </div>
+                <div class="kpi-grid">
+                    <div class="kpi">
+                        <span>简历评分</span>
+                        <strong>{{ scoreResult ? scoreResult.overallScore : '--' }}</strong>
+                    </div>
+                    <div class="kpi">
+                        <span>面试题</span>
+                        <strong>{{ questions.length || '--' }}</strong>
+                    </div>
+                    <div class="kpi">
+                        <span>评估分</span>
+                        <strong>{{ evaluation ? evaluation.overallScore : '--' }}</strong>
+                    </div>
+                </div>
+                <div class="timeline">
+                    <div class="timeline-item" v-bind:class="{ done: !!scoreResult }">简历诊断</div>
+                    <div class="timeline-item" v-bind:class="{ done: !!matchResult }">岗位匹配</div>
+                    <div class="timeline-item" v-bind:class="{ done: questions.length > 0 }">模拟面试</div>
+                    <div class="timeline-item" v-bind:class="{ done: !!evaluation }">复盘报告</div>
+                </div>
+            </div>
+        </section>
+
+        <section v-show="activeView === 'analysis'" class="content-grid">
+            <div class="panel score-panel">
+                <div class="score-ring" v-bind:style="scoreRingStyle">
+                    <strong>{{ scoreResult ? scoreResult.overallScore : '--' }}</strong>
+                    <span>Overall</span>
+                </div>
+                <div>
+                    <h2>简历诊断</h2>
+                    <p class="summary-text">{{ scoreResult ? scoreResult.summary : emptyText.analysis }}</p>
+                    <div class="inline-actions">
+                        <button class="primary-button" type="button" v-on:click="activate('match')" v-bind:disabled="!resumeId">
+                            做岗位匹配
+                        </button>
+                        <button class="ghost-button" type="button" v-on:click="generateQuestions('standard')" v-bind:disabled="!resumeId || loading.questions">
+                            生成面试题
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="panel">
+                <div class="panel-header">
+                    <div>
+                        <h2>能力拆解</h2>
+                        <p>加权分制</p>
+                    </div>
+                </div>
+                <div class="score-bars">
+                    <div class="score-row" v-for="item in scoreItems" v-bind:key="item.label">
+                        <span>{{ item.label }}</span>
+                        <div class="bar-track"><div class="bar-fill" v-bind:style="{ width: item.percent + '%' }"></div></div>
+                        <strong>{{ item.value }}</strong>
+                    </div>
+                </div>
+            </div>
+
+            <div class="panel list-panel">
+                <div class="panel-header">
+                    <div>
+                        <h2>优势</h2>
+                        <p>{{ strengthItems.length }} 项</p>
+                    </div>
+                </div>
+                <ul class="clean-list">
+                    <li v-for="item in strengthItems" v-bind:key="item">{{ item }}</li>
+                    <li v-if="!strengthItems.length" class="muted">暂无数据</li>
+                </ul>
+            </div>
+
+            <div class="panel list-panel">
+                <div class="panel-header">
+                    <div>
+                        <h2>优化项</h2>
+                        <p>{{ suggestionItems.length }} 项</p>
+                    </div>
+                </div>
+                <div class="suggestion-list">
+                    <article class="suggestion" v-for="item in suggestionItems" v-bind:key="item.category + item.issue">
+                        <div>
+                            <span class="priority" v-bind:class="priorityClass(item.priority)">{{ item.priority }}</span>
+                            <strong>{{ item.category }}</strong>
+                        </div>
+                        <p>{{ item.issue }}</p>
+                        <p class="muted">{{ item.recommendation }}</p>
+                    </article>
+                    <p v-if="!suggestionItems.length" class="muted">暂无数据</p>
+                </div>
+            </div>
+        </section>
+
+        <section v-show="activeView === 'match'" class="content-grid">
+            <div class="panel wide-panel">
+                <div class="panel-header">
+                    <div>
+                        <h2>岗位匹配</h2>
+                        <p>JD Match</p>
+                    </div>
+                    <button class="primary-button" type="button" v-on:click="matchJob" v-bind:disabled="!canUseResume || !jdText.trim() || loading.match">
+                        {{ loading.match ? '匹配中' : '开始匹配' }}
+                    </button>
+                </div>
+                <textarea class="jd-input" v-model="jdText" placeholder="粘贴目标岗位 JD"></textarea>
+            </div>
+
+            <div class="panel score-panel" v-if="matchResult">
+                <div class="score-ring" v-bind:style="matchRingStyle">
+                    <strong>{{ matchResult.overallScore }}</strong>
+                    <span>{{ matchResult.matchLevel }}</span>
+                </div>
+                <div>
+                    <h2>匹配结论</h2>
+                    <p class="summary-text">{{ matchResult.summary }}</p>
+                    <button class="primary-button" type="button" v-on:click="generateQuestions('rag')" v-bind:disabled="loading.questions">
+                        生成定向面试题
+                    </button>
+                </div>
+            </div>
+
+            <div class="panel" v-if="matchResult">
+                <div class="panel-header">
+                    <div>
+                        <h2>技能命中</h2>
+                        <p>{{ safeList(matchResult.matchedSkills).length }} 项</p>
+                    </div>
+                </div>
+                <div class="compact-table">
+                    <div class="table-row" v-for="skill in safeList(matchResult.matchedSkills)" v-bind:key="skill.skill">
+                        <span>{{ skill.skill }}</span>
+                        <strong>{{ skill.score }}</strong>
+                        <p>{{ skill.evidence }}</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="panel" v-if="matchResult">
+                <div class="panel-header">
+                    <div>
+                        <h2>补齐方向</h2>
+                        <p>{{ safeList(matchResult.missingSkills).length }} 项</p>
+                    </div>
+                </div>
+                <div class="suggestion-list">
+                    <article class="suggestion" v-for="gap in safeList(matchResult.missingSkills)" v-bind:key="gap.skill">
+                        <div>
+                            <span class="priority" v-bind:class="priorityClass(gap.importance)">{{ gap.importance }}</span>
+                            <strong>{{ gap.skill }}</strong>
+                        </div>
+                        <p>{{ gap.suggestion }}</p>
+                    </article>
+                </div>
+            </div>
+        </section>
+
+        <section v-show="activeView === 'interview'" class="interview-layout">
+            <div class="panel interview-tools">
+                <div class="panel-header">
+                    <div>
+                        <h2>模拟面试</h2>
+                        <p>{{ questions.length ? questions.length + ' 题' : '未生成' }}</p>
+                    </div>
+                </div>
+                <div class="segmented">
+                    <button type="button" v-bind:class="{ active: questionMode === 'standard' }" v-on:click="questionMode = 'standard'">简历题</button>
+                    <button type="button" v-bind:class="{ active: questionMode === 'rag' }" v-on:click="questionMode = 'rag'">JD 增强</button>
+                </div>
+                <label class="field-label" for="topK">相似样本 TopK</label>
+                <input id="topK" class="number-input" type="number" min="1" max="20" v-model.number="topK">
+                <button class="primary-button full" type="button" v-on:click="generateQuestions(questionMode)" v-bind:disabled="!canUseResume || loading.questions">
+                    {{ loading.questions ? '生成中' : '生成问题' }}
+                </button>
+                <button class="ghost-button full" type="button" v-on:click="submitAnswers" v-bind:disabled="!questions.length || loading.evaluation">
+                    {{ loading.evaluation ? '评估中' : '提交评估' }}
+                </button>
+            </div>
+
+            <div class="question-stack">
+                <article class="panel question-panel" v-for="(question, index) in questions" v-bind:key="index">
+                    <div class="question-meta">
+                        <span>{{ index + 1 }} / {{ questions.length }}</span>
+                        <span>{{ typeName(question.type) }}</span>
+                    </div>
+                    <h3>{{ question.question }}</h3>
+                    <textarea v-model="answers[index]" placeholder="输入回答"></textarea>
+                </article>
+                <div class="panel empty-panel" v-if="!questions.length">
+                    <h2>等待生成面试题</h2>
+                    <p>先完成简历诊断，或粘贴 JD 后生成定向问题。</p>
+                </div>
+            </div>
+        </section>
+
+        <section v-show="activeView === 'result'" class="content-grid">
+            <div class="panel score-panel">
+                <div class="score-ring" v-bind:style="evaluationRingStyle">
+                    <strong>{{ evaluation ? evaluation.overallScore : '--' }}</strong>
+                    <span>Interview</span>
+                </div>
+                <div>
+                    <h2>面试复盘</h2>
+                    <p class="summary-text">{{ evaluation ? evaluation.overallFeedback : emptyText.result }}</p>
+                </div>
+            </div>
+
+            <div class="panel" v-if="evaluation">
+                <div class="panel-header">
+                    <div>
+                        <h2>分类得分</h2>
+                        <p>{{ safeList(evaluation.categoryScores).length }} 组</p>
+                    </div>
+                </div>
+                <div class="score-bars">
+                    <div class="score-row" v-for="item in safeList(evaluation.categoryScores)" v-bind:key="item.category">
+                        <span>{{ item.category }}</span>
+                        <div class="bar-track"><div class="bar-fill" v-bind:style="{ width: clamp(item.score) + '%' }"></div></div>
+                        <strong>{{ item.score }}</strong>
+                    </div>
+                </div>
+            </div>
+
+            <div class="panel list-panel" v-if="evaluation">
+                <div class="panel-header">
+                    <div>
+                        <h2>优势表现</h2>
+                        <p>{{ safeList(evaluation.strengths).length }} 项</p>
+                    </div>
+                </div>
+                <ul class="clean-list">
+                    <li v-for="item in safeList(evaluation.strengths)" v-bind:key="item">{{ item }}</li>
+                </ul>
+            </div>
+
+            <div class="panel list-panel" v-if="evaluation">
+                <div class="panel-header">
+                    <div>
+                        <h2>提升建议</h2>
+                        <p>{{ safeList(evaluation.improvements).length }} 项</p>
+                    </div>
+                </div>
+                <ul class="clean-list">
+                    <li v-for="item in safeList(evaluation.improvements)" v-bind:key="item">{{ item }}</li>
+                </ul>
+            </div>
+
+            <div class="panel wide-panel" v-if="evaluation">
+                <div class="panel-header">
+                    <div>
+                        <h2>逐题反馈</h2>
+                        <p>{{ safeList(evaluation.questionDetails).length }} 题</p>
+                    </div>
+                </div>
+                <div class="feedback-list">
+                    <article class="feedback-item" v-for="item in safeList(evaluation.questionDetails)" v-bind:key="item.questionIndex">
+                        <div class="question-meta">
+                            <span>Q{{ Number(item.questionIndex) + 1 }}</span>
+                            <strong>{{ item.score }}</strong>
+                        </div>
+                        <h3>{{ item.question }}</h3>
+                        <p>{{ item.feedback }}</p>
+                    </article>
+                </div>
+            </div>
+        </section>
+
+        <section v-show="activeView === 'assistant'" class="assistant-layout">
+            <div class="panel chat-panel">
+                <div class="panel-header">
+                    <div>
+                        <h2>AI 面试顾问</h2>
+                        <p>{{ conversationId || '新会话' }}</p>
+                    </div>
+                    <button class="ghost-button" type="button" v-on:click="resetConversation">新会话</button>
+                </div>
+                <div class="message-list">
+                    <div class="message" v-for="message in chatMessages" v-bind:key="message.id" v-bind:class="message.role">
+                        <div class="message-role">{{ message.role === 'user' ? '客户' : 'Agent' }}</div>
+                        <p>{{ message.content }}</p>
+                    </div>
+                    <div class="empty-chat" v-if="!chatMessages.length">暂无对话</div>
+                </div>
+                <div class="chat-input">
+                    <textarea v-model="assistantMessage" placeholder="输入咨询内容"></textarea>
+                    <button class="primary-button" type="button" v-on:click="sendAssistantMessage" v-bind:disabled="!assistantMessage.trim() || loading.chat">
+                        {{ loading.chat ? '处理中' : '发送' }}
+                    </button>
+                </div>
+            </div>
+
+            <div class="panel">
+                <div class="panel-header">
+                    <div>
+                        <h2>上下文</h2>
+                        <p>Agent tool scope</p>
+                    </div>
+                </div>
+                <div class="context-list">
+                    <div><span>resumeId</span><strong>{{ resumeId || '--' }}</strong></div>
+                    <div><span>评分</span><strong>{{ scoreResult ? scoreResult.overallScore : '--' }}</strong></div>
+                    <div><span>面试题</span><strong>{{ questions.length || '--' }}</strong></div>
+                    <div><span>复盘</span><strong>{{ evaluation ? evaluation.overallScore : '--' }}</strong></div>
+                </div>
+            </div>
+        </section>
+
+        <section v-show="activeView === 'ops'" class="ops-layout">
+            <div class="panel wide-panel">
+                <div class="panel-header">
+                    <div>
+                        <h2>运营看板</h2>
+                        <p>Prompt 与 Agent 审计</p>
+                    </div>
+                    <button class="primary-button" type="button" v-on:click="refreshOps" v-bind:disabled="loading.ops">
+                        {{ loading.ops ? '刷新中' : '刷新' }}
+                    </button>
+                </div>
+                <div class="filter-grid">
+                    <label>
+                        Operation
+                        <input type="text" v-model="audit.operationName" placeholder="operationName">
+                    </label>
+                    <label>
+                        Prompt Version
+                        <input type="text" v-model="audit.promptVersion" placeholder="promptVersion">
+                    </label>
+                    <label>
+                        样本量
+                        <input type="number" min="1" max="5000" v-model.number="audit.limit">
+                    </label>
+                </div>
+            </div>
+
+            <div class="panel">
+                <div class="panel-header">
+                    <div>
+                        <h2>Prompt 指标</h2>
+                        <p>{{ audit.metrics.length }} 组</p>
+                    </div>
+                </div>
+                <div class="metric-table">
+                    <div class="metric-row head">
+                        <span>Operation</span><span>成功率</span><span>降级率</span><span>均耗时</span>
+                    </div>
+                    <div class="metric-row" v-for="item in audit.metrics" v-bind:key="item.operationName + item.promptVersion">
+                        <span>{{ item.operationName }}</span>
+                        <span>{{ round(item.successRate) }}%</span>
+                        <span>{{ round(item.fallbackRate) }}%</span>
+                        <span>{{ round(item.avgLatencyMs) }}ms</span>
+                    </div>
+                    <p class="muted empty-line" v-if="!audit.metrics.length">暂无指标数据</p>
+                </div>
+            </div>
+
+            <div class="panel">
+                <div class="panel-header">
+                    <div>
+                        <h2>失败原因</h2>
+                        <p>{{ audit.failures.length }} 类</p>
+                    </div>
+                </div>
+                <div class="failure-list">
+                    <article v-for="item in audit.failures" v-bind:key="item.reason">
+                        <strong>{{ item.reason }}</strong>
+                        <div class="bar-track"><div class="bar-fill danger" v-bind:style="{ width: clamp(item.percentage) + '%' }"></div></div>
+                        <span>{{ item.count }} 次 / {{ round(item.percentage) }}%</span>
+                    </article>
+                    <p class="muted empty-line" v-if="!audit.failures.length">暂无失败记录</p>
+                </div>
+            </div>
+
+            <div class="panel wide-panel">
+                <div class="panel-header">
+                    <div>
+                        <h2>最近模型调用</h2>
+                        <p>{{ audit.modelCalls.length }} 条</p>
+                    </div>
+                </div>
+                <div class="log-table">
+                    <div class="log-row head">
+                        <span>时间</span><span>Operation</span><span>状态</span><span>耗时</span><span>Trace</span>
+                    </div>
+                    <div class="log-row" v-for="item in audit.modelCalls" v-bind:key="item.id">
+                        <span>{{ shortTime(item.createTime) }}</span>
+                        <span>{{ item.operationName }}</span>
+                        <span v-bind:class="item.success === 1 ? 'ok-text' : 'bad-text'">{{ item.success === 1 ? '成功' : '失败' }}</span>
+                        <span>{{ item.latencyMs }}ms</span>
+                        <span class="mono">{{ item.traceId }}</span>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+</div>
+
+<script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
+<script src="/app/app.js"></script>
 </body>
 </html>
