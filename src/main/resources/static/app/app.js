@@ -321,15 +321,7 @@ function createInterviewApp() {
                 this.loading.chat = true;
                 this.globalError = '';
                 try {
-                    const response = await fetch('/api/agent/interview-assistant/stream', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            message: outbound,
-                            conversationId: this.conversationId || null
-                        })
-                    });
-                    await this.consumeAssistantStream(response, assistantMessage);
+                    await this.consumeAssistantEventSource(outbound, assistantMessage);
                 } catch (error) {
                     this.globalError = error.message;
                     if (!assistantMessage.content) {
@@ -345,6 +337,44 @@ function createInterviewApp() {
                 }
                 event.preventDefault();
                 this.sendAssistantMessage();
+            },
+            consumeAssistantEventSource(message, assistantMessage) {
+                return new Promise((resolve, reject) => {
+                    if (!window.EventSource) {
+                        reject(new Error('当前浏览器不支持流式对话。'));
+                        return;
+                    }
+
+                    const params = new URLSearchParams({ message });
+                    if (this.conversationId) {
+                        params.set('conversationId', this.conversationId);
+                    }
+                    const source = new EventSource(`/api/agent/interview-assistant/stream?${params.toString()}`);
+                    let completed = false;
+
+                    source.addEventListener('meta', (event) => {
+                        this.handleAssistantStreamPayload('meta', event.data, assistantMessage);
+                    });
+                    source.addEventListener('delta', (event) => {
+                        this.handleAssistantStreamPayload('delta', event.data, assistantMessage);
+                    });
+                    source.addEventListener('done', async () => {
+                        completed = true;
+                        source.close();
+                        await this.waitAssistantTypingDone();
+                        resolve();
+                    });
+                    source.addEventListener('error', (event) => {
+                        if (completed) {
+                            return;
+                        }
+                        source.close();
+                        const message = event.data
+                            ? (JSON.parse(event.data).message || '顾问回答失败。')
+                            : '流式连接中断，请重试。';
+                        reject(new Error(message));
+                    });
+                });
             },
             async consumeAssistantStream(response, assistantMessage) {
                 if (!response.ok) {
@@ -376,6 +406,18 @@ function createInterviewApp() {
                 this.consumeSseBuffer(buffer, assistantMessage, true);
                 await this.waitAssistantTypingDone();
             },
+            handleAssistantStreamPayload(eventName, rawData, assistantMessage) {
+                const payload = rawData ? JSON.parse(rawData) : {};
+                if (eventName === 'meta') {
+                    this.conversationId = payload.conversationId || this.conversationId;
+                    if (this.conversationId) {
+                        localStorage.setItem('interviewAgentConversationId', this.conversationId);
+                    }
+                    assistantMessage.turnId = payload.turnId || '';
+                } else if (eventName === 'delta') {
+                    this.enqueueAssistantDelta(assistantMessage, payload.content || '');
+                }
+            },
             consumeSseBuffer(buffer, assistantMessage, flush = false) {
                 const parts = buffer.split(/\r?\n\r?\n/);
                 const pending = flush ? '' : parts.pop();
@@ -399,16 +441,10 @@ function createInterviewApp() {
                     }
                 });
                 const rawData = dataLines.join('\n');
-                const payload = rawData ? JSON.parse(rawData) : {};
-                if (eventName === 'meta') {
-                    this.conversationId = payload.conversationId || this.conversationId;
-                    if (this.conversationId) {
-                        localStorage.setItem('interviewAgentConversationId', this.conversationId);
-                    }
-                    assistantMessage.turnId = payload.turnId || '';
-                } else if (eventName === 'delta') {
-                    this.enqueueAssistantDelta(assistantMessage, payload.content || '');
+                if (eventName === 'meta' || eventName === 'delta') {
+                    this.handleAssistantStreamPayload(eventName, rawData, assistantMessage);
                 } else if (eventName === 'error') {
+                    const payload = rawData ? JSON.parse(rawData) : {};
                     throw new Error(payload.message || '顾问回答失败。');
                 }
             },

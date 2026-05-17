@@ -315,6 +315,24 @@ public class InterviewController {
     }
 
     /**
+     * AI 求职顾问浏览器原生 EventSource 流式入口。
+     */
+    @GetMapping(value = "/api/agent/interview-assistant/stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+    @ResponseBody
+    public ResponseEntity<SseEmitter> streamWithInterviewAssistantByEventSource(
+            @RequestParam String message,
+            @RequestParam(required = false) String conversationId) {
+        AgentChatRequest request = new AgentChatRequest();
+        request.setMessage(message);
+        request.setConversationId(conversationId);
+        return ResponseEntity.ok()
+                .contentType(MediaType.TEXT_EVENT_STREAM)
+                .header("Cache-Control", "no-cache")
+                .header("X-Accel-Buffering", "no")
+                .body(interviewAssistantAgentService.stream(request));
+    }
+
+    /**
      * 查询 Agent 对话消息审计记录
      */
     @GetMapping("/api/audit/agent-messages")
