@@ -87,6 +87,8 @@ Agent 可调用的工具集中在 `ResumeAgentTools`，只暴露查询类能力�
 当前治理能力：
 
 - 基于 Spring AI Alibaba `ChatClient` 统一模型调用入口
+- DashScope 客户端由 `spring-ai-alibaba-starter-dashscope` 自动装配
+- HTTP connect/read timeout 使用 Spring Boot `spring.http.client.*` 和 `spring.http.reactiveclient.*` 标准配置
 - 模型侧重试和退避交给 Spring AI `spring.ai.retry` 自动配置
 - 调用耗时日志
 - traceId 贯穿 HTTP 请求和模型调用日志

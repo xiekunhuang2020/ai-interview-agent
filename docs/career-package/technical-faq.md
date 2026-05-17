@@ -20,11 +20,15 @@ Prompt 会持续迭代，如果不记录版本，很难判断一次调用失败�
 
 所有模型调用统一经过 Spring AI `ChatClient`。模型侧重试和退避使用 Spring AI Alibaba 注入到 `DashScopeChatModel` 的 `RetryTemplate`，通过 `spring.ai.retry` 配置管理。业务层 `AiModelInvoker` 不再手写 retry/backoff，只负责 Prompt 版本、调用审计和最终失败后的显式降级。如果当前 operation 有降级响应且开启了降级配置，会返回结构合法的降级 JSON，同时审计记录 `success=0`、`fallbackUsed=1`。如果没有可用降级，则接口返回模型网关错误。
 
-## 6. 为什么降级结果不算成功？
+## 6. 为什么不自己创建 DashScopeApi？
+
+项目早期为了设置 HTTP 超时手写过 `DashScopeApi` Bean。后续改造成由 `spring-ai-alibaba-starter-dashscope` 自动装配 DashScope 客户端，HTTP connect/read timeout 交给 Spring Boot 标准的 `spring.http.client.*` 和 `spring.http.reactiveclient.*` 配置。这样减少自定义装配代码，也避免绕开 starter 后续升级带来的默认能力。
+
+## 7. 为什么降级结果不算成功？
 
 因为降级只是保证业务链路不崩，不代表模型真实完成了任务。如果把降级算成成功，会污染 Prompt 效果评估。项目里审计会明确记录 `success=0` 和 `fallbackUsed=1`，这样看板能看到真实模型成功率和降级率。
 
-## 7. 怎么防止模型输出脏数据？
+## 8. 怎么防止模型输出脏数据？
 
 项目对模型 JSON 输出做强校验，包括：
 
@@ -38,19 +42,19 @@ Prompt 会持续迭代，如果不记录版本，很难判断一次调用失败�
 
 这样可以避免模型返回半正确 JSON 时污染数据库和页面。
 
-## 8. 为什么要用 MySQL + Redis？
+## 9. 为什么要用 MySQL + Redis？
 
 MySQL 用于持久化简历文本、评分结果、面试问题和评估报告。Redis 用于缓存热点面试会话，减少重复数据库读取，也方便后续扩展会话状态、限流或临时上下文。
 
-## 9. 为什么用 Milvus？
+## 10. 为什么用 Milvus？
 
 Milvus 用于简历向量检索。当前场景里，JD 可以作为查询语义，检索相似简历片段，为岗位定制化出题提供上下文。相比关键词检索，向量检索更适合“岗位要求”和“项目经历”之间的语义匹配。
 
-## 10. 这个项目最大的工程亮点是什么？
+## 11. 这个项目最大的工程亮点是什么？
 
 不是单纯接入大模型，而是补了 AI 应用落地常见的工程治理：Agent/Tool 分层、RAG、Prompt 版本、结构化输出强校验、框架级模型重试、显式降级、traceId、调用审计和 Prompt 效果看板。
 
-## 11. 如果面试官问“有没有真实线上数据”怎么回答？
+## 12. 如果面试官问“有没有真实线上数据”怎么回答？
 
 可以诚实说：
 
@@ -58,7 +62,7 @@ Milvus 用于简历向量检索。当前场景里，JD 可以作为查询语义�
 这是我的个人转型项目，目前重点是实现完整 AI Agent 工程链路和可展示能力，没有线上大规模用户数据。所以我不会虚构 QPS 或准确率指标。项目里做了 Prompt 版本审计和效果看板，是为了后续能用真实调用数据评估成功率、降级率和耗时。
 ```
 
-## 12. 后续还能怎么扩展？
+## 13. 后续还能怎么扩展？
 
 - 接入 Function Calling，把现有 Tool 暴露给模型动态调用。
 - 增加 Prompt A/B 版本对比。
