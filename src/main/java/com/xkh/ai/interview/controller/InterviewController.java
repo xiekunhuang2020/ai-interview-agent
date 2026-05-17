@@ -52,7 +52,7 @@ public class InterviewController {
      */
     @GetMapping("/upload")
     public String uploadPage() {
-        return "index";
+        return "upload";
     }
 
     /**
@@ -60,7 +60,7 @@ public class InterviewController {
      */
     @GetMapping("/audit/prompt-dashboard")
     public String promptDashboardPage() {
-        return "index";
+        return "prompt-dashboard";
     }
 
     /**
@@ -87,7 +87,8 @@ public class InterviewController {
      */
     @GetMapping("/analysis/{resumeId}")
     public String analysisPage(@PathVariable String resumeId, Model model) {
-        return "index";
+        model.addAttribute("resumeId", resumeId);
+        return "analysis";
     }
 
     /**
@@ -123,11 +124,21 @@ public class InterviewController {
     }
 
     /**
+     * 岗位匹配页面
+     */
+    @GetMapping("/match/{resumeId}")
+    public String matchPage(@PathVariable String resumeId, Model model) {
+        model.addAttribute("resumeId", resumeId);
+        return "match";
+    }
+
+    /**
      * 模拟面试页面
      */
     @GetMapping("/interview/{resumeId}")
     public String interviewPage(@PathVariable String resumeId, Model model) {
-        return "index";
+        model.addAttribute("resumeId", resumeId);
+        return "interview";
     }
 
     /**
@@ -198,7 +209,17 @@ public class InterviewController {
      */
     @GetMapping("/result/{resumeId}")
     public String resultPage(@PathVariable String resumeId, Model model) {
-        return "index";
+        model.addAttribute("resumeId", resumeId);
+        return "result";
+    }
+
+    /**
+     * AI 面试顾问页面
+     */
+    @GetMapping({"/assistant", "/assistant/{resumeId}"})
+    public String assistantPage(@PathVariable(required = false) String resumeId, Model model) {
+        model.addAttribute("resumeId", resumeId == null ? "" : resumeId);
+        return "assistant";
     }
 
     // ==================== RAG 向量检索接口 ====================

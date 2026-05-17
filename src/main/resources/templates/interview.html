@@ -1,357 +1,99 @@
-<!DOCTYPE html>
+<!doctype html>
 <html xmlns:th="http://www.thymeleaf.org" lang="zh-CN">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>模拟面试 - AI Interview Agent</title>
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
-        body {
-            font-family: 'Microsoft YaHei', 'PingFang SC', Arial, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            min-height: 100vh;
-            padding: 20px;
-        }
-
-        .container {
-            max-width: 900px;
-            margin: 0 auto;
-        }
-
-        .header {
-            background: white;
-            border-radius: 20px;
-            padding: 40px;
-            margin-bottom: 20px;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
-            text-align: center;
-        }
-
-        h1 {
-            color: #333;
-            font-size: 32px;
-            margin-bottom: 10px;
-        }
-
-        .subtitle {
-            color: #666;
-            font-size: 16px;
-            margin-top: 10px;
-        }
-
-        .card {
-            background: white;
-            border-radius: 15px;
-            padding: 30px;
-            margin-bottom: 20px;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
-        }
-
-        .question-card {
-            border-left: 5px solid #667eea;
-        }
-
-        .question-type {
-            display: inline-block;
-            padding: 5px 15px;
-            background: #667eea;
-            color: white;
-            border-radius: 20px;
-            font-size: 14px;
-            margin-bottom: 15px;
-        }
-
-        .question-text {
-            font-size: 18px;
-            color: #333;
-            line-height: 1.6;
-            margin-bottom: 20px;
-            font-weight: 500;
-        }
-
-        .answer-textarea {
-            width: 100%;
-            min-height: 150px;
-            padding: 15px;
-            border: 2px solid #e0e0e0;
-            border-radius: 10px;
-            font-size: 16px;
-            font-family: inherit;
-            resize: vertical;
-            transition: border-color 0.3s ease;
-        }
-
-        .answer-textarea:focus {
-            outline: none;
-            border-color: #667eea;
-        }
-
-        .btn-container {
-            text-align: center;
-            margin-top: 30px;
-        }
-
-        .btn {
-            display: inline-block;
-            padding: 15px 50px;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            text-decoration: none;
-            border-radius: 50px;
-            font-size: 18px;
-            font-weight: 600;
-            transition: all 0.3s ease;
-            border: none;
-            cursor: pointer;
-            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
-            margin: 0 10px;
-        }
-
-        .btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 15px 30px rgba(102, 126, 234, 0.4);
-        }
-
-        .btn-secondary {
-            background: linear-gradient(135deg, #6c757d 0%, #495057 100%);
-        }
-
-        .loading {
-            text-align: center;
-            padding: 60px;
-        }
-
-        .spinner {
-            border: 4px solid #f3f3f3;
-            border-top: 4px solid #667eea;
-            border-radius: 50%;
-            width: 60px;
-            height: 60px;
-            animation: spin 1s linear infinite;
-            margin: 0 auto 20px;
-        }
-
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-
-        .progress-info {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 20px;
-            padding: 15px;
-            background: #f8f9fa;
-            border-radius: 10px;
-        }
-
-        .progress-text {
-            font-size: 16px;
-            color: #666;
-        }
-
-        .question-counter {
-            font-weight: bold;
-            color: #667eea;
-        }
-
-        .tips {
-            background: #e8f4ff;
-            padding: 20px;
-            border-radius: 10px;
-            margin-bottom: 20px;
-            border-left: 4px solid #667eea;
-        }
-
-        .tips-title {
-            font-weight: bold;
-            color: #667eea;
-            margin-bottom: 10px;
-        }
-
-        .tips-list {
-            list-style: disc;
-            padding-left: 20px;
-            color: #555;
-        }
-
-        .tips-list li {
-            margin-bottom: 8px;
-        }
-    </style>
+    <link rel="stylesheet" href="/app/app.css">
 </head>
 <body>
-    <div class="container">
-        <div class="header">
-            <h1>🎤 模拟面试</h1>
-            <div class="subtitle">基于您的简历定制的专业面试问题</div>
-        </div>
-
-        <div class="tips">
-            <div class="tips-title">💡 面试小贴士</div>
-            <ul class="tips-list">
-                <li>回答问题时尽量采用 STAR 法则（情境、任务、行动、结果）</li>
-                <li>结合具体项目经验，突出技术亮点和解决问题的能力</li>
-                <li>表达清晰有条理，展现逻辑思维和技术深度</li>
-                <li>遇到不会的问题可以诚实说明，但可以尝试给出思路</li>
-            </ul>
-        </div>
-
-        <div id="questionsContainer">
-            <!-- 问题将通过 JavaScript 动态加载 -->
-            <div class="loading">
-                <div class="spinner"></div>
-                <div>正在生成面试问题...</div>
+<div id="app" data-page="interview" th:attr="data-resume-id=${resumeId}" v-cloak>
+    <aside class="sidebar">
+        <a class="brand" href="/">
+            <div class="brand-mark">AI</div>
+            <div>
+                <div class="brand-name">Interview Agent</div>
+                <div class="brand-meta">Candidate Intelligence</div>
             </div>
+        </a>
+
+        <nav class="nav-list" aria-label="主导航">
+            <a class="nav-item" href="/upload"><span class="nav-index">01</span><span>候选人导入</span></a>
+            <a class="nav-item" th:href="@{/analysis/{resumeId}(resumeId=${resumeId})}"><span class="nav-index">02</span><span>简历诊断</span></a>
+            <a class="nav-item" th:href="@{/match/{resumeId}(resumeId=${resumeId})}"><span class="nav-index">03</span><span>岗位匹配</span></a>
+            <a class="nav-item active" th:href="@{/interview/{resumeId}(resumeId=${resumeId})}"><span class="nav-index">04</span><span>模拟面试</span></a>
+            <a class="nav-item" th:href="@{/assistant/{resumeId}(resumeId=${resumeId})}"><span class="nav-index">05</span><span>AI 顾问</span></a>
+            <a class="nav-item" href="/audit/prompt-dashboard"><span class="nav-index">06</span><span>运营看板</span></a>
+        </nav>
+
+        <div class="side-status">
+            <div class="status-label">当前简历</div>
+            <div class="status-value" th:text="${resumeId}">resumeId</div>
         </div>
+    </aside>
 
-        <div class="btn-container" id="buttonContainer" style="display: none;">
-            <a href="/analysis/[[${resumeId}]]" class="btn btn-secondary">返回分析</a>
-            <button type="button" class="btn" onclick="submitAnswers()">提交答案</button>
-        </div>
-    </div>
+    <main class="main-shell">
+        <header class="topbar">
+            <div>
+                <p class="eyebrow">04 / 模拟面试</p>
+                <h1>围绕简历与岗位做一次结构化演练</h1>
+            </div>
+            <div class="top-actions">
+                <a class="ghost-button" th:href="@{/match/{resumeId}(resumeId=${resumeId})}">岗位匹配</a>
+                <a class="ghost-button" th:href="@{/analysis/{resumeId}(resumeId=${resumeId})}">简历诊断</a>
+                <button class="primary-button" type="button" v-on:click="submitAnswers" v-bind:disabled="!questions.length || loading.evaluation">
+                    {{ loading.evaluation ? '评估中...' : '提交评估' }}
+                </button>
+            </div>
+        </header>
 
-    <script>
-        const resumeId = window.location.pathname.split('/').pop();
-        let questions = [];
+        <div class="notice error" v-if="globalError">{{ globalError }}</div>
+        <div class="notice success" v-if="globalMessage">{{ globalMessage }}</div>
+        <div class="notice info" v-if="loading.workspace">正在加载已生成的问题...</div>
 
-        // 加载问题
-        async function loadQuestions() {
-            try {
-                const response = await fetch(`/api/interview/${resumeId}/questions`, {
-                    method: 'POST'
-                });
-
-                if (!response.ok) {
-                    throw new Error('加载问题失败');
-                }
-
-                const data = await response.json();
-                questions = data.questions || [];
-
-                renderQuestions();
-                document.getElementById('buttonContainer').style.display = 'block';
-            } catch (error) {
-                console.error('Load questions error:', error);
-                document.getElementById('questionsContainer').innerHTML = `
-                    <div class="card">
-                        <div style="text-align: center; color: #dc3545;">
-                            <p>⚠️ 加载问题失败：${error.message}</p>
-                            <button class="btn" onclick="location.reload()" style="margin-top: 20px;">重试</button>
-                        </div>
+        <section class="interview-layout">
+            <div class="panel interview-tools">
+                <div class="panel-header">
+                    <div>
+                        <h2>面试控制台</h2>
+                        <p>{{ questions.length ? questions.length + ' 题，已答 ' + answeredCount + ' 题' : '还没有问题' }}</p>
                     </div>
-                `;
-            }
-        }
+                </div>
+                <button class="primary-button full" type="button" v-on:click="generateStandardQuestions" v-bind:disabled="loading.questions">
+                    {{ loading.questions ? '生成中...' : '生成基础题' }}
+                </button>
+                <a class="ghost-button full" th:href="@{/match/{resumeId}(resumeId=${resumeId})}">生成 JD 增强题</a>
+                <div class="notice info compact-notice">
+                    JD 增强题建议先在岗位匹配页生成，避免客户不知道问题为什么这样问。
+                </div>
+            </div>
 
-        // 渲染问题
-        function renderQuestions() {
-            const container = document.getElementById('questionsContainer');
-            
-            if (questions.length === 0) {
-                container.innerHTML = '<div class="card"><p>暂无问题</p></div>';
-                return;
-            }
-
-            let html = '';
-            questions.forEach((q, index) => {
-                html += `
-                    <div class="card question-card">
-                        <div class="progress-info">
-                            <span class="question-counter">问题 ${index + 1} / ${questions.length}</span>
-                            <span class="question-type">${getTypeName(q.type)}</span>
-                        </div>
-                        <div class="question-text">${escapeHtml(q.question)}</div>
-                        <textarea 
-                            class="answer-textarea" 
-                            id="answer_${index}"
-                            placeholder="请输入您的回答...（建议结合具体项目经验，突出技术亮点和解决问题的过程）"
-                        ></textarea>
+            <div class="question-stack">
+                <article class="panel question-panel" v-for="(question, index) in questions" v-bind:key="index">
+                    <div class="question-meta">
+                        <span>问题 {{ index + 1 }} / {{ questions.length }}</span>
+                        <span>{{ typeName(question.type) }}</span>
                     </div>
-                `;
-            });
+                    <h3>{{ question.question }}</h3>
+                    <textarea v-model="answers[index]" placeholder="输入候选人的回答。建议用背景、动作、结果的结构描述。"></textarea>
+                </article>
 
-            container.innerHTML = html;
-        }
+                <div class="panel empty-panel" v-if="!loading.workspace && !questions.length">
+                    <h2>还没有面试问题</h2>
+                    <p>可以直接生成基础题，也可以先做岗位匹配，再生成更贴近目标 JD 的问题。</p>
+                    <div class="inline-actions">
+                        <button class="primary-button" type="button" v-on:click="generateStandardQuestions" v-bind:disabled="loading.questions">
+                            生成基础题
+                        </button>
+                        <a class="ghost-button" th:href="@{/match/{resumeId}(resumeId=${resumeId})}">去岗位匹配</a>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+</div>
 
-        // 获取类型名称
-        function getTypeName(type) {
-            const typeMap = {
-                'PROJECT': '项目经历',
-                'JAVA_BASIC': 'Java 基础',
-                'JAVA_COLLECTION': 'Java 集合',
-                'JAVA_CONCURRENT': 'Java 并发',
-                'MYSQL': '数据库',
-                'REDIS': '缓存',
-                'SPRING': 'Spring 框架',
-                'SPRING_BOOT': 'Spring Boot',
-                'AI': 'AI 应用'
-            };
-            return typeMap[type] || type;
-        }
-
-        // HTML 转义
-        function escapeHtml(text) {
-            const div = document.createElement('div');
-            div.textContent = text;
-            return div.innerHTML;
-        }
-
-        // 提交答案
-        async function submitAnswers() {
-            const answers = {};
-            let hasEmpty = false;
-
-            questions.forEach((q, index) => {
-                const answer = document.getElementById(`answer_${index}`).value.trim();
-                if (!answer) {
-                    hasEmpty = true;
-                }
-                answers[index] = answer;
-            });
-
-            if (hasEmpty) {
-                if (!confirm('还有问题未回答，确定要提交吗？')) {
-                    return;
-                }
-            }
-
-            // 禁用按钮防止重复提交
-            const submitBtn = document.querySelector('#buttonContainer .btn:last-child');
-            submitBtn.disabled = true;
-            submitBtn.textContent = '提交中...';
-
-            try {
-                const response = await fetch(`/api/interview/${resumeId}/submit`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify(answers)
-                });
-
-                if (!response.ok) {
-                    throw new Error('提交失败');
-                }
-
-                // 跳转到结果页面
-                window.location.href = `/result/${resumeId}`;
-            } catch (error) {
-                console.error('Submit error:', error);
-                alert('提交失败，请重试：' + error.message);
-                submitBtn.disabled = false;
-                submitBtn.textContent = '提交答案';
-            }
-        }
-
-        // 页面加载时获取问题
-        document.addEventListener('DOMContentLoaded', loadQuestions);
-    </script>
+<script src="/vendor/vue.global.prod.js"></script>
+<script src="/app/app.js"></script>
 </body>
 </html>

@@ -1,339 +1,131 @@
-<!DOCTYPE html>
+<!doctype html>
 <html xmlns:th="http://www.thymeleaf.org" lang="zh-CN">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>简历分析结果 - AI Interview Agent</title>
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
-        body {
-            font-family: 'Microsoft YaHei', 'PingFang SC', Arial, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            min-height: 100vh;
-            padding: 20px;
-        }
-
-        .container {
-            max-width: 1000px;
-            margin: 0 auto;
-        }
-
-        .header {
-            background: white;
-            border-radius: 20px;
-            padding: 40px;
-            margin-bottom: 20px;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
-            text-align: center;
-        }
-
-        h1 {
-            color: #333;
-            font-size: 32px;
-            margin-bottom: 10px;
-        }
-
-        .score-display {
-            display: inline-block;
-            width: 150px;
-            height: 150px;
-            border-radius: 50%;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 40px;
-            font-weight: bold;
-            margin: 30px auto;
-            box-shadow: 0 10px 30px rgba(102, 126, 234, 0.4);
-        }
-
-        .summary {
-            font-size: 18px;
-            color: #666;
-            margin-top: 20px;
-            line-height: 1.6;
-        }
-
-        .content-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-            gap: 20px;
-            margin-bottom: 20px;
-        }
-
-        .card {
-            background: white;
-            border-radius: 15px;
-            padding: 30px;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
-        }
-
-        .card-title {
-            font-size: 20px;
-            color: #333;
-            margin-bottom: 20px;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-
-        .score-item {
-            margin-bottom: 20px;
-        }
-
-        .score-label {
-            display: flex;
-            justify-content: space-between;
-            margin-bottom: 8px;
-            font-size: 16px;
-            color: #666;
-        }
-
-        .score-value {
-            font-weight: bold;
-            color: #667eea;
-        }
-
-        .progress-bar {
-            height: 10px;
-            background: #f0f0f0;
-            border-radius: 5px;
-            overflow: hidden;
-        }
-
-        .progress-fill {
-            height: 100%;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            transition: width 0.5s ease;
-        }
-
-        .strengths-list, .suggestions-list {
-            list-style: none;
-        }
-
-        .strengths-list li {
-            padding: 12px;
-            background: #e8f4ff;
-            border-radius: 8px;
-            margin-bottom: 10px;
-            border-left: 4px solid #667eea;
-            color: #333;
-        }
-
-        .suggestions-list li {
-            padding: 15px;
-            background: #fff3cd;
-            border-radius: 8px;
-            margin-bottom: 10px;
-            border-left: 4px solid #ffc107;
-        }
-
-        .suggestion-category {
-            font-weight: bold;
-            color: #856404;
-            margin-bottom: 5px;
-        }
-
-        .suggestion-issue {
-            color: #856404;
-            margin-bottom: 8px;
-        }
-
-        .suggestion-recommendation {
-            color: #333;
-            font-weight: 500;
-        }
-
-        .priority-badge {
-            display: inline-block;
-            padding: 3px 10px;
-            border-radius: 12px;
-            font-size: 12px;
-            font-weight: bold;
-            margin-left: 10px;
-        }
-
-        .priority-high {
-            background: #f8d7da;
-            color: #721c24;
-        }
-
-        .priority-medium {
-            background: #fff3cd;
-            color: #856404;
-        }
-
-        .priority-low {
-            background: #d4edda;
-            color: #155724;
-        }
-
-        .btn-container {
-            text-align: center;
-            margin-top: 30px;
-        }
-
-        .btn {
-            display: inline-block;
-            padding: 15px 50px;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            text-decoration: none;
-            border-radius: 50px;
-            font-size: 18px;
-            font-weight: 600;
-            transition: all 0.3s ease;
-            border: none;
-            cursor: pointer;
-            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
-            margin: 0 10px;
-        }
-
-        .btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 15px 30px rgba(102, 126, 234, 0.4);
-        }
-
-        .btn-secondary {
-            background: linear-gradient(135deg, #6c757d 0%, #495057 100%);
-        }
-
-        .loading {
-            text-align: center;
-            padding: 60px;
-        }
-
-        .spinner {
-            border: 4px solid #f3f3f3;
-            border-top: 4px solid #667eea;
-            border-radius: 50%;
-            width: 60px;
-            height: 60px;
-            animation: spin 1s linear infinite;
-            margin: 0 auto 20px;
-        }
-
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-    </style>
+    <title>简历诊断 - AI Interview Agent</title>
+    <link rel="stylesheet" href="/app/app.css">
 </head>
 <body>
-    <div class="container">
-        <div class="header" th:if="${scoreResult}">
-            <h1>📊 简历分析报告</h1>
-            <div class="score-display" th:text="${scoreResult.overallScore} + '/100'">85/100</div>
-            <div class="summary" th:text="${scoreResult.summary}">这是一份优秀的简历，展示了扎实的技术功底和丰富的项目经验。</div>
-        </div>
+<div id="app" data-page="analysis" th:attr="data-resume-id=${resumeId}" v-cloak>
+    <aside class="sidebar">
+        <a class="brand" href="/">
+            <div class="brand-mark">AI</div>
+            <div>
+                <div class="brand-name">Interview Agent</div>
+                <div class="brand-meta">Candidate Intelligence</div>
+            </div>
+        </a>
 
-        <div class="content-grid" th:if="${scoreResult}">
-            <!-- 评分详情 -->
-            <div class="card">
-                <h2 class="card-title">📈 评分详情</h2>
-                <div class="score-item">
-                    <div class="score-label">
-                        <span>项目经验</span>
-                        <span class="score-value" th:text="${scoreResult.scoreDetail.projectScore} + '/40'">35/40</span>
-                    </div>
-                    <div class="progress-bar">
-                        <div class="progress-fill" th:style="'width: ' + (${scoreResult.scoreDetail.projectScore} / 40 * 100) + '%'"></div>
-                    </div>
+        <nav class="nav-list" aria-label="主导航">
+            <a class="nav-item" href="/upload"><span class="nav-index">01</span><span>候选人导入</span></a>
+            <a class="nav-item active" th:href="@{/analysis/{resumeId}(resumeId=${resumeId})}"><span class="nav-index">02</span><span>简历诊断</span></a>
+            <a class="nav-item" th:href="@{/match/{resumeId}(resumeId=${resumeId})}"><span class="nav-index">03</span><span>岗位匹配</span></a>
+            <a class="nav-item" th:href="@{/interview/{resumeId}(resumeId=${resumeId})}"><span class="nav-index">04</span><span>模拟面试</span></a>
+            <a class="nav-item" th:href="@{/assistant/{resumeId}(resumeId=${resumeId})}"><span class="nav-index">05</span><span>AI 顾问</span></a>
+            <a class="nav-item" href="/audit/prompt-dashboard"><span class="nav-index">06</span><span>运营看板</span></a>
+        </nav>
+
+        <div class="side-status">
+            <div class="status-label">当前简历</div>
+            <div class="status-value" th:text="${resumeId}">resumeId</div>
+        </div>
+    </aside>
+
+    <main class="main-shell">
+        <header class="topbar">
+            <div>
+                <p class="eyebrow">02 / 简历诊断</p>
+                <h1>简历诊断报告</h1>
+            </div>
+            <div class="top-actions">
+                <a class="ghost-button" href="/upload">新增候选人</a>
+                <button class="ghost-button" type="button" v-on:click="loadWorkspace" v-bind:disabled="loading.workspace">
+                    {{ loading.workspace ? '刷新中...' : '刷新数据' }}
+                </button>
+                <a class="primary-button" th:href="@{/match/{resumeId}(resumeId=${resumeId})}">下一步：岗位匹配</a>
+            </div>
+        </header>
+
+        <div class="notice error" v-if="globalError">{{ globalError }}</div>
+        <div class="notice success" v-if="globalMessage">{{ globalMessage }}</div>
+        <div class="notice info" v-if="loading.workspace">正在加载简历诊断数据...</div>
+
+        <section class="content-grid" v-if="scoreResult">
+            <div class="panel score-panel">
+                <div class="score-ring" v-bind:style="scoreRingStyle">
+                    <strong>{{ scoreResult.overallScore }}</strong>
+                    <span>Overall</span>
                 </div>
-                <div class="score-item">
-                    <div class="score-label">
-                        <span>技能匹配度</span>
-                        <span class="score-value" th:text="${scoreResult.scoreDetail.skillMatchScore} + '/20'">18/20</span>
-                    </div>
-                    <div class="progress-bar">
-                        <div class="progress-fill" th:style="'width: ' + (${scoreResult.scoreDetail.skillMatchScore} / 20 * 100) + '%'"></div>
-                    </div>
-                </div>
-                <div class="score-item">
-                    <div class="score-label">
-                        <span>内容完整性</span>
-                        <span class="score-value" th:text="${scoreResult.scoreDetail.contentScore} + '/15'">13/15</span>
-                    </div>
-                    <div class="progress-bar">
-                        <div class="progress-fill" th:style="'width: ' + (${scoreResult.scoreDetail.contentScore} / 15 * 100) + '%'"></div>
-                    </div>
-                </div>
-                <div class="score-item">
-                    <div class="score-label">
-                        <span>结构清晰度</span>
-                        <span class="score-value" th:text="${scoreResult.scoreDetail.structureScore} + '/15'">12/15</span>
-                    </div>
-                    <div class="progress-bar">
-                        <div class="progress-fill" th:style="'width: ' + (${scoreResult.scoreDetail.structureScore} / 15 * 100) + '%'"></div>
-                    </div>
-                </div>
-                <div class="score-item">
-                    <div class="score-label">
-                        <span>表达专业性</span>
-                        <span class="score-value" th:text="${scoreResult.scoreDetail.expressionScore} + '/10'">9/10</span>
-                    </div>
-                    <div class="progress-bar">
-                        <div class="progress-fill" th:style="'width: ' + (${scoreResult.scoreDetail.expressionScore} / 10 * 100) + '%'"></div>
+                <div>
+                    <h2>诊断结论</h2>
+                    <p class="summary-text">{{ scoreResult.summary }}</p>
+                    <div class="inline-actions">
+                        <a class="primary-button" th:href="@{/match/{resumeId}(resumeId=${resumeId})}">做岗位匹配</a>
+                        <button class="ghost-button" type="button" v-on:click="generateStandardQuestions" v-bind:disabled="loading.questions">
+                            {{ loading.questions ? '生成中...' : '生成基础面试题' }}
+                        </button>
                     </div>
                 </div>
             </div>
 
-            <!-- 优势列表 -->
-            <div class="card" style="grid-column: 2 / -1;">
-                <h2 class="card-title">✨ 简历优势</h2>
-                <ul class="strengths-list">
-                    <li th:each="strength : ${scoreResult.strengths}" th:text="${strength}">技术栈全面，熟悉主流框架</li>
+            <div class="panel">
+                <div class="panel-header">
+                    <div>
+                        <h2>能力拆解</h2>
+                        <p>按 Prompt 评分权重展示</p>
+                    </div>
+                </div>
+                <div class="score-bars">
+                    <div class="score-row" v-for="item in scoreItems" v-bind:key="item.label">
+                        <span>{{ item.label }}</span>
+                        <div class="bar-track"><div class="bar-fill" v-bind:style="{ width: item.percent + '%' }"></div></div>
+                        <strong>{{ item.value }}</strong>
+                    </div>
+                </div>
+            </div>
+
+            <div class="panel list-panel">
+                <div class="panel-header">
+                    <div>
+                        <h2>可保留优势</h2>
+                        <p>{{ strengthItems.length }} 项</p>
+                    </div>
+                </div>
+                <ul class="clean-list">
+                    <li v-for="item in strengthItems" v-bind:key="item">{{ item }}</li>
                 </ul>
             </div>
 
-            <!-- 改进建议 -->
-            <div class="card" style="grid-column: 1 / -1;">
-                <h2 class="card-title">💡 改进建议</h2>
-                <ul class="suggestions-list">
-                    <li th:each="suggestion : ${scoreResult.suggestions}">
-                        <div class="suggestion-category">
-                            <span th:text="${suggestion.category}">内容优化</span>
-                            <span class="priority-badge" 
-                                  th:classappend="${suggestion.priority == '高'} ? 'priority-high' : (${suggestion.priority == '中'} ? 'priority-medium' : 'priority-low')"
-                                  th:text="${suggestion.priority}">高优先级</span>
+            <div class="panel list-panel">
+                <div class="panel-header">
+                    <div>
+                        <h2>优先优化项</h2>
+                        <p>{{ suggestionItems.length }} 项</p>
+                    </div>
+                </div>
+                <div class="suggestion-list">
+                    <article class="suggestion" v-for="item in suggestionItems" v-bind:key="item.category + item.issue">
+                        <div>
+                            <span class="priority" v-bind:class="priorityClass(item.priority)">{{ item.priority }}</span>
+                            <strong>{{ item.category }}</strong>
                         </div>
-                        <div class="suggestion-issue" th:text="'问题：' + ${suggestion.issue}">项目描述过于简单</div>
-                        <div class="suggestion-recommendation" th:text="'建议：' + ${suggestion.recommendation}">建议补充具体的技术实现细节和量化成果</div>
-                    </li>
-                </ul>
+                        <p>{{ item.issue }}</p>
+                        <p class="muted">{{ item.recommendation }}</p>
+                    </article>
+                </div>
             </div>
-        </div>
+        </section>
 
-        <div class="loading" th:unless="${scoreResult}">
-            <div class="spinner"></div>
-            <div>正在加载分析结果...</div>
-        </div>
+        <section class="panel empty-panel" v-if="!loading.workspace && !scoreResult">
+            <h2>没有找到简历诊断数据</h2>
+            <p>请重新上传简历，或检查当前 resumeId 是否正确。</p>
+            <a class="primary-button" href="/upload">重新上传</a>
+        </section>
+    </main>
+</div>
 
-        <div class="btn-container" th:if="${scoreResult}">
-            <a href="/upload" class="btn btn-secondary">重新上传</a>
-            <a th:href="@{/interview/{resumeId}(resumeId=${resumeId})}" class="btn">开始模拟面试 →</a>
-        </div>
-    </div>
-
-    <script>
-        // 动画效果
-        document.addEventListener('DOMContentLoaded', function() {
-            const progressBars = document.querySelectorAll('.progress-fill');
-            progressBars.forEach(bar => {
-                const width = bar.style.width;
-                bar.style.width = '0';
-                setTimeout(() => {
-                    bar.style.width = width;
-                }, 300);
-            });
-        });
-    </script>
+<script src="/vendor/vue.global.prod.js"></script>
+<script src="/app/app.js"></script>
 </body>
 </html>

@@ -1,0 +1,100 @@
+<!doctype html>
+<html xmlns:th="http://www.thymeleaf.org" lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI 顾问 - AI Interview Agent</title>
+    <link rel="stylesheet" href="/app/app.css">
+</head>
+<body>
+<div id="app" data-page="assistant" th:attr="data-resume-id=${resumeId}" v-cloak>
+    <aside class="sidebar">
+        <a class="brand" href="/">
+            <div class="brand-mark">AI</div>
+            <div>
+                <div class="brand-name">Interview Agent</div>
+                <div class="brand-meta">Candidate Intelligence</div>
+            </div>
+        </a>
+
+        <nav class="nav-list" aria-label="主导航">
+            <a class="nav-item" href="/upload"><span class="nav-index">01</span><span>候选人导入</span></a>
+            <a class="nav-item" th:if="${resumeId != ''}" th:href="@{/analysis/{resumeId}(resumeId=${resumeId})}"><span class="nav-index">02</span><span>简历诊断</span></a>
+            <a class="nav-item" th:if="${resumeId != ''}" th:href="@{/match/{resumeId}(resumeId=${resumeId})}"><span class="nav-index">03</span><span>岗位匹配</span></a>
+            <a class="nav-item" th:if="${resumeId != ''}" th:href="@{/interview/{resumeId}(resumeId=${resumeId})}"><span class="nav-index">04</span><span>模拟面试</span></a>
+            <a class="nav-item active" th:href="${resumeId == '' ? '/assistant' : '/assistant/' + resumeId}"><span class="nav-index">05</span><span>AI 顾问</span></a>
+            <a class="nav-item" href="/audit/prompt-dashboard"><span class="nav-index">06</span><span>运营看板</span></a>
+        </nav>
+
+        <div class="side-status">
+            <div class="status-label">当前简历</div>
+            <div class="status-value" th:text="${resumeId == '' ? '未选择' : resumeId}">resumeId</div>
+        </div>
+    </aside>
+
+    <main class="main-shell">
+        <header class="topbar">
+            <div>
+                <p class="eyebrow">05 / AI 顾问</p>
+                <h1>让 Agent 基于简历上下文回答客户问题</h1>
+            </div>
+            <div class="top-actions">
+                <a class="ghost-button" href="/upload">新增候选人</a>
+                <button class="ghost-button" type="button" v-on:click="resetConversation">新会话</button>
+            </div>
+        </header>
+
+        <div class="notice error" v-if="globalError">{{ globalError }}</div>
+
+        <section class="assistant-layout">
+            <div class="panel chat-panel">
+                <div class="panel-header">
+                    <div>
+                        <h2>顾问对话</h2>
+                        <p>{{ conversationId || '新会话' }}</p>
+                    </div>
+                </div>
+
+                <div class="message-list">
+                    <div class="message" v-for="message in chatMessages" v-bind:key="message.id" v-bind:class="message.role">
+                        <div class="message-role">{{ message.role === 'user' ? '客户' : 'Agent' }}</div>
+                        <p>{{ message.content }}</p>
+                    </div>
+                    <div class="empty-chat" v-if="!chatMessages.length">
+                        可以问：“这份简历最应该先改哪里？”、“按目标 JD 应该重点准备哪些问题？”
+                    </div>
+                </div>
+
+                <div class="chat-input">
+                    <textarea v-model="assistantMessage" placeholder="输入客户问题"></textarea>
+                    <button class="primary-button" type="button" v-on:click="sendAssistantMessage" v-bind:disabled="!assistantMessage.trim() || loading.chat">
+                        {{ loading.chat ? '处理中...' : '发送' }}
+                    </button>
+                </div>
+            </div>
+
+            <div class="panel">
+                <div class="panel-header">
+                    <div>
+                        <h2>上下文</h2>
+                        <p>Agent 会优先读取当前简历画像、问题和相似简历工具。</p>
+                    </div>
+                </div>
+                <div class="context-list">
+                    <div><span>resumeId</span><strong>{{ resumeId || '--' }}</strong></div>
+                    <div><span>简历评分</span><strong>{{ scoreResult ? scoreResult.overallScore : '--' }}</strong></div>
+                    <div><span>面试题</span><strong>{{ questions.length || '--' }}</strong></div>
+                    <div><span>复盘评分</span><strong>{{ evaluation ? evaluation.overallScore : '--' }}</strong></div>
+                </div>
+                <div class="notice info compact-notice" v-if="!resumeId">
+                    当前没有绑定简历，Agent 只能进行通用咨询。建议从某份简历页面进入顾问。
+                </div>
+            </div>
+        </section>
+    </main>
+</div>
+
+<script src="/vendor/vue.global.prod.js"></script>
+<script src="/app/app.js"></script>
+</body>
+</html>

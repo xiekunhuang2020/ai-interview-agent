@@ -21,6 +21,7 @@
 html {
     min-height: 100%;
     background: var(--bg);
+    overflow-x: hidden;
 }
 
 body {
@@ -29,6 +30,7 @@ body {
     font-family: "Inter", "PingFang SC", "Microsoft YaHei", Arial, sans-serif;
     color: var(--text);
     background: var(--bg);
+    overflow-x: hidden;
 }
 
 button,
@@ -68,6 +70,8 @@ button {
     align-items: center;
     gap: 12px;
     min-height: 48px;
+    color: inherit;
+    text-decoration: none;
 }
 
 .brand-mark {
@@ -111,12 +115,18 @@ button {
     cursor: pointer;
     color: #cbd7d3;
     background: transparent;
+    border: 0;
+    text-decoration: none;
 }
 
 .nav-item:hover,
 .nav-item.active {
     background: #1f2d35;
     color: #ffffff;
+}
+
+.disabled-link {
+    opacity: 0.55;
 }
 
 .nav-index {
@@ -171,6 +181,10 @@ button {
     margin-bottom: 20px;
 }
 
+.topbar > * {
+    min-width: 0;
+}
+
 .eyebrow {
     margin: 0 0 6px;
     color: var(--brand);
@@ -183,6 +197,7 @@ h2,
 h3,
 p {
     letter-spacing: 0;
+    overflow-wrap: anywhere;
 }
 
 h1 {
@@ -224,6 +239,10 @@ p {
     cursor: pointer;
     font-weight: 800;
     white-space: nowrap;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    text-decoration: none;
 }
 
 .primary-button {
@@ -271,6 +290,17 @@ p {
     background: #f1fbf6;
 }
 
+.notice.info {
+    border-color: #c9dfef;
+    color: #244b68;
+    background: #f2f8fc;
+}
+
+.compact-notice {
+    margin: 12px 0 0;
+    font-size: 13px;
+}
+
 .workspace-grid,
 .content-grid,
 .ops-layout {
@@ -294,6 +324,7 @@ p {
     padding: 18px;
     box-shadow: var(--shadow);
     min-width: 0;
+    max-width: 100%;
 }
 
 .wide-panel {
@@ -330,6 +361,10 @@ p {
     min-height: 360px;
 }
 
+.hero-panel {
+    min-height: 360px;
+}
+
 .upload-panel.dragover {
     border-color: var(--brand);
     background: #f8fcfa;
@@ -346,6 +381,7 @@ p {
     gap: 8px;
     cursor: pointer;
     margin-bottom: 16px;
+    text-align: center;
 }
 
 .dropzone input {
@@ -455,6 +491,7 @@ p {
 .summary-text {
     margin: 10px 0 16px;
     color: #33413b;
+    overflow-wrap: anywhere;
 }
 
 .score-bars {
@@ -515,6 +552,7 @@ p {
     border-radius: 8px;
     padding: 10px 12px;
     background: var(--surface-soft);
+    overflow-wrap: anywhere;
 }
 
 .muted {
@@ -534,6 +572,7 @@ p {
     border-radius: 8px;
     padding: 14px;
     background: var(--surface-soft);
+    overflow-wrap: anywhere;
 }
 
 .suggestion div {
@@ -602,6 +641,7 @@ p {
     gap: 8px;
     border-bottom: 1px solid var(--line);
     padding: 12px 0;
+    min-width: 0;
 }
 
 .table-row p {
@@ -720,6 +760,7 @@ p {
     border-radius: 8px;
     padding: 12px 14px;
     background: var(--surface-soft);
+    overflow-wrap: anywhere;
 }
 
 .message.user {
@@ -947,5 +988,17 @@ p {
 
     .message {
         max-width: 100%;
+    }
+
+    .primary-button,
+    .ghost-button {
+        width: 100%;
+        white-space: normal;
+        text-align: center;
+    }
+
+    .score-row {
+        grid-template-columns: 76px minmax(0, 1fr) 36px;
+        gap: 8px;
     }
 }

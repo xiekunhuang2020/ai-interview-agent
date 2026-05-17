@@ -1,490 +1,143 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Prompt 效果评估看板</title>
-    <style>
-        * {
-            box-sizing: border-box;
-        }
-
-        body {
-            margin: 0;
-            font-family: "Microsoft YaHei", "PingFang SC", Arial, sans-serif;
-            background: #f5f7fb;
-            color: #202939;
-        }
-
-        .shell {
-            max-width: 1280px;
-            margin: 0 auto;
-            padding: 24px;
-        }
-
-        .topbar {
-            display: flex;
-            justify-content: space-between;
-            align-items: flex-start;
-            gap: 16px;
-            margin-bottom: 20px;
-        }
-
-        h1 {
-            margin: 0 0 6px;
-            font-size: 26px;
-            font-weight: 700;
-            letter-spacing: 0;
-        }
-
-        .subtitle {
-            color: #64748b;
-            font-size: 14px;
-        }
-
-        .actions {
-            display: flex;
-            gap: 8px;
-            flex-wrap: wrap;
-            justify-content: flex-end;
-        }
-
-        .btn {
-            border: 1px solid #cbd5e1;
-            background: #ffffff;
-            color: #1f2937;
-            border-radius: 6px;
-            padding: 9px 14px;
-            cursor: pointer;
-            font-weight: 600;
-        }
-
-        .btn.primary {
-            border-color: #2563eb;
-            background: #2563eb;
-            color: #ffffff;
-        }
-
-        .filters {
-            display: grid;
-            grid-template-columns: minmax(180px, 1fr) minmax(180px, 1fr) 120px auto;
-            gap: 12px;
-            align-items: end;
-            background: #ffffff;
-            border: 1px solid #e2e8f0;
-            border-radius: 8px;
-            padding: 16px;
-            margin-bottom: 16px;
-        }
-
-        label {
-            display: block;
-            font-size: 12px;
-            color: #64748b;
-            margin-bottom: 6px;
-            font-weight: 700;
-        }
-
-        input {
-            width: 100%;
-            border: 1px solid #cbd5e1;
-            border-radius: 6px;
-            padding: 10px 12px;
-            font-size: 14px;
-            background: #ffffff;
-        }
-
-        .summary-grid {
-            display: grid;
-            grid-template-columns: repeat(5, minmax(150px, 1fr));
-            gap: 12px;
-            margin-bottom: 16px;
-        }
-
-        .metric {
-            background: #ffffff;
-            border: 1px solid #e2e8f0;
-            border-radius: 8px;
-            padding: 16px;
-            min-height: 92px;
-        }
-
-        .metric-label {
-            color: #64748b;
-            font-size: 12px;
-            font-weight: 700;
-            margin-bottom: 8px;
-        }
-
-        .metric-value {
-            font-size: 24px;
-            font-weight: 800;
-            color: #0f172a;
-            word-break: break-word;
-        }
-
-        .metric-note {
-            margin-top: 5px;
-            color: #64748b;
-            font-size: 12px;
-        }
-
-        .grid {
-            display: grid;
-            grid-template-columns: 1.35fr 0.9fr;
-            gap: 16px;
-        }
-
-        .panel {
-            background: #ffffff;
-            border: 1px solid #e2e8f0;
-            border-radius: 8px;
-            overflow: hidden;
-        }
-
-        .panel-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            gap: 12px;
-            padding: 14px 16px;
-            border-bottom: 1px solid #e2e8f0;
-            background: #f8fafc;
-        }
-
-        .panel-title {
-            font-size: 16px;
-            font-weight: 800;
-        }
-
-        .panel-meta {
-            color: #64748b;
-            font-size: 12px;
-        }
-
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            table-layout: fixed;
-        }
-
-        th, td {
-            padding: 12px 14px;
-            text-align: left;
-            border-bottom: 1px solid #e2e8f0;
-            vertical-align: top;
-            font-size: 13px;
-        }
-
-        th {
-            color: #475569;
-            background: #ffffff;
-            font-size: 12px;
-            font-weight: 800;
-        }
-
-        tbody tr:hover {
-            background: #f8fafc;
-        }
-
-        .mono {
-            font-family: Consolas, "Courier New", monospace;
-            font-size: 12px;
-            word-break: break-all;
-        }
-
-        .status {
-            display: inline-flex;
-            align-items: center;
-            min-width: 54px;
-            justify-content: center;
-            border-radius: 999px;
-            padding: 4px 8px;
-            font-size: 12px;
-            font-weight: 800;
-        }
-
-        .good {
-            background: #dcfce7;
-            color: #166534;
-        }
-
-        .warn {
-            background: #fef3c7;
-            color: #92400e;
-        }
-
-        .bad {
-            background: #fee2e2;
-            color: #991b1b;
-        }
-
-        .empty {
-            padding: 28px 16px;
-            color: #64748b;
-            text-align: center;
-        }
-
-        .bar-track {
-            height: 8px;
-            background: #e2e8f0;
-            border-radius: 999px;
-            overflow: hidden;
-            margin-top: 8px;
-        }
-
-        .bar-fill {
-            height: 100%;
-            background: #2563eb;
-            width: 0;
-        }
-
-        @media (max-width: 980px) {
-            .filters,
-            .summary-grid,
-            .grid {
-                grid-template-columns: 1fr;
-            }
-
-            .topbar {
-                flex-direction: column;
-            }
-
-            .actions {
-                justify-content: flex-start;
-            }
-        }
-    </style>
+    <title>运营看板 - AI Interview Agent</title>
+    <link rel="stylesheet" href="/app/app.css">
 </head>
 <body>
-<main class="shell">
-    <section class="topbar">
-        <div>
-            <h1>Prompt 效果评估看板</h1>
-            <div class="subtitle">按 operation 和 Prompt 版本观察模型调用稳定性、降级率、耗时和失败原因。</div>
-        </div>
-        <div class="actions">
-            <a class="btn" href="/">首页</a>
-            <button class="btn primary" type="button" onclick="loadDashboard()">刷新</button>
-        </div>
-    </section>
-
-    <section class="filters">
-        <div>
-            <label for="operationName">Operation</label>
-            <input id="operationName" placeholder="如 jd-match，可留空">
-        </div>
-        <div>
-            <label for="promptVersion">Prompt Version</label>
-            <input id="promptVersion" placeholder="如 jd-match-v2026-05-17-01，可留空">
-        </div>
-        <div>
-            <label for="limit">样本量</label>
-            <input id="limit" type="number" min="1" max="5000" value="1000">
-        </div>
-        <button class="btn primary" type="button" onclick="loadDashboard()">应用筛选</button>
-    </section>
-
-    <section class="summary-grid">
-        <div class="metric">
-            <div class="metric-label">总调用</div>
-            <div class="metric-value" id="totalCalls">0</div>
-            <div class="metric-note">当前筛选样本</div>
-        </div>
-        <div class="metric">
-            <div class="metric-label">成功率</div>
-            <div class="metric-value" id="successRate">0%</div>
-            <div class="metric-note">success / total</div>
-        </div>
-        <div class="metric">
-            <div class="metric-label">降级率</div>
-            <div class="metric-value" id="fallbackRate">0%</div>
-            <div class="metric-note">fallback / total</div>
-        </div>
-        <div class="metric">
-            <div class="metric-label">平均耗时</div>
-            <div class="metric-value" id="avgLatency">0ms</div>
-            <div class="metric-note">按审计记录聚合</div>
-        </div>
-        <div class="metric">
-            <div class="metric-label">外层尝试</div>
-            <div class="metric-value" id="avgAttempts">0</div>
-            <div class="metric-note">兼容旧审计</div>
-        </div>
-    </section>
-
-    <section class="grid">
-        <div class="panel">
-            <div class="panel-header">
-                <div class="panel-title">Prompt 版本指标</div>
-                <div class="panel-meta" id="metricsMeta">-</div>
+<div id="app" data-page="ops" v-cloak>
+    <aside class="sidebar">
+        <a class="brand" href="/">
+            <div class="brand-mark">AI</div>
+            <div>
+                <div class="brand-name">Interview Agent</div>
+                <div class="brand-meta">Candidate Intelligence</div>
             </div>
-            <div id="metricsTable"></div>
-        </div>
+        </a>
 
-        <div class="panel">
-            <div class="panel-header">
-                <div class="panel-title">失败原因分布</div>
-                <div class="panel-meta" id="failureMeta">-</div>
+        <nav class="nav-list" aria-label="主导航">
+            <a class="nav-item" href="/upload"><span class="nav-index">01</span><span>候选人导入</span></a>
+            <a class="nav-item disabled-link" href="/upload"><span class="nav-index">02</span><span>简历诊断</span></a>
+            <a class="nav-item disabled-link" href="/upload"><span class="nav-index">03</span><span>岗位匹配</span></a>
+            <a class="nav-item disabled-link" href="/upload"><span class="nav-index">04</span><span>模拟面试</span></a>
+            <a class="nav-item" href="/assistant"><span class="nav-index">05</span><span>AI 顾问</span></a>
+            <a class="nav-item active" href="/audit/prompt-dashboard"><span class="nav-index">06</span><span>运营看板</span></a>
+        </nav>
+
+        <div class="side-status">
+            <div class="status-label">当前简历</div>
+            <div class="status-value">运营视图</div>
+        </div>
+    </aside>
+
+    <main class="main-shell">
+        <header class="topbar">
+            <div>
+                <p class="eyebrow">06 / 运营看板</p>
+                <h1>模型调用与 Agent 审计</h1>
             </div>
-            <div id="failureTable"></div>
-        </div>
-    </section>
-</main>
+            <div class="top-actions">
+                <a class="ghost-button" href="/">首页</a>
+                <button class="primary-button" type="button" v-on:click="refreshOps" v-bind:disabled="loading.ops">
+                    {{ loading.ops ? '刷新中...' : '刷新' }}
+                </button>
+            </div>
+        </header>
 
-<script>
-    async function loadDashboard() {
-        const operationName = document.getElementById('operationName').value.trim();
-        const promptVersion = document.getElementById('promptVersion').value.trim();
-        const limit = clampLimit(document.getElementById('limit').value);
+        <div class="notice error" v-if="globalError">{{ globalError }}</div>
 
-        const params = new URLSearchParams({ limit: String(limit) });
-        if (operationName) {
-            params.set('operationName', operationName);
-        }
-        if (promptVersion) {
-            params.set('promptVersion', promptVersion);
-        }
+        <section class="ops-layout">
+            <div class="panel wide-panel">
+                <div class="panel-header">
+                    <div>
+                        <h2>筛选条件</h2>
+                        <p>用于排查 Prompt 版本效果、模型失败原因和响应耗时。</p>
+                    </div>
+                </div>
+                <div class="filter-grid">
+                    <label>
+                        Operation
+                        <input type="text" v-model="audit.operationName" placeholder="如 resume-analysis">
+                    </label>
+                    <label>
+                        Prompt Version
+                        <input type="text" v-model="audit.promptVersion" placeholder="可留空">
+                    </label>
+                    <label>
+                        样本量
+                        <input type="number" min="1" max="5000" v-model.number="audit.limit">
+                    </label>
+                </div>
+            </div>
 
-        const [metrics, failures] = await Promise.all([
-            fetchJson(`/api/audit/prompt-metrics?${params.toString()}`),
-            fetchJson(`/api/audit/failure-reasons?${params.toString()}`)
-        ]);
+            <div class="panel">
+                <div class="panel-header"><div><h2>Prompt 指标</h2><p>{{ audit.metrics.length }} 组</p></div></div>
+                <div class="metric-table">
+                    <div class="metric-row head">
+                        <span>Operation</span><span>成功率</span><span>降级率</span><span>均耗时</span>
+                    </div>
+                    <div class="metric-row" v-for="item in audit.metrics" v-bind:key="item.operationName + item.promptVersion">
+                        <span>{{ item.operationName }}</span>
+                        <span>{{ round(item.successRate) }}%</span>
+                        <span>{{ round(item.fallbackRate) }}%</span>
+                        <span>{{ round(item.avgLatencyMs) }}ms</span>
+                    </div>
+                    <p class="muted empty-line" v-if="!audit.metrics.length">暂无指标数据</p>
+                </div>
+            </div>
 
-        renderSummary(metrics);
-        renderMetrics(metrics);
-        renderFailures(failures);
-    }
+            <div class="panel">
+                <div class="panel-header"><div><h2>失败原因</h2><p>{{ audit.failures.length }} 类</p></div></div>
+                <div class="failure-list">
+                    <article v-for="item in audit.failures" v-bind:key="item.reason">
+                        <strong>{{ item.reason }}</strong>
+                        <div class="bar-track"><div class="bar-fill danger" v-bind:style="{ width: clamp(item.percentage) + '%' }"></div></div>
+                        <span>{{ item.count }} 次 / {{ round(item.percentage) }}%</span>
+                    </article>
+                    <p class="muted empty-line" v-if="!audit.failures.length">暂无失败记录</p>
+                </div>
+            </div>
 
-    async function fetchJson(url) {
-        const response = await fetch(url);
-        if (!response.ok) {
-            throw new Error(`请求失败：${response.status}`);
-        }
-        return response.json();
-    }
+            <div class="panel wide-panel">
+                <div class="panel-header"><div><h2>最近模型调用</h2><p>{{ audit.modelCalls.length }} 条</p></div></div>
+                <div class="log-table">
+                    <div class="log-row head">
+                        <span>时间</span><span>Operation</span><span>状态</span><span>耗时</span><span>Trace</span>
+                    </div>
+                    <div class="log-row" v-for="item in audit.modelCalls" v-bind:key="item.id">
+                        <span>{{ shortTime(item.createTime) }}</span>
+                        <span>{{ item.operationName }}</span>
+                        <span v-bind:class="item.success === 1 ? 'ok-text' : 'bad-text'">{{ item.success === 1 ? '成功' : '失败' }}</span>
+                        <span>{{ item.latencyMs }}ms</span>
+                        <span class="mono">{{ item.traceId }}</span>
+                    </div>
+                    <p class="muted empty-line" v-if="!audit.modelCalls.length">暂无模型调用记录</p>
+                </div>
+            </div>
 
-    function renderSummary(metrics) {
-        const total = sum(metrics, 'totalCalls');
-        const success = sum(metrics, 'successCalls');
-        const fallback = sum(metrics, 'fallbackCalls');
-        const latencyWeighted = metrics.reduce((acc, item) => acc + (Number(item.avgLatencyMs || 0) * Number(item.totalCalls || 0)), 0);
-        const attemptsWeighted = metrics.reduce((acc, item) => acc + (Number(item.avgAttemptCount || 0) * Number(item.totalCalls || 0)), 0);
+            <div class="panel wide-panel">
+                <div class="panel-header"><div><h2>最近 Agent 消息</h2><p>{{ audit.agentMessages.length }} 条</p></div></div>
+                <div class="log-table">
+                    <div class="log-row head">
+                        <span>时间</span><span>Agent</span><span>角色</span><span>状态</span><span>内容</span>
+                    </div>
+                    <div class="log-row" v-for="item in audit.agentMessages" v-bind:key="item.id">
+                        <span>{{ shortTime(item.createTime) }}</span>
+                        <span>{{ item.agentName }}</span>
+                        <span>{{ item.role }}</span>
+                        <span v-bind:class="item.success === 1 ? 'ok-text' : 'bad-text'">{{ item.success === 1 ? '成功' : '失败' }}</span>
+                        <span class="mono">{{ item.messageContent || item.errorMessage || '--' }}</span>
+                    </div>
+                    <p class="muted empty-line" v-if="!audit.agentMessages.length">暂无 Agent 消息记录</p>
+                </div>
+            </div>
+        </section>
+    </main>
+</div>
 
-        document.getElementById('totalCalls').textContent = total;
-        document.getElementById('successRate').textContent = `${percent(success, total)}%`;
-        document.getElementById('fallbackRate').textContent = `${percent(fallback, total)}%`;
-        document.getElementById('avgLatency').textContent = `${round(total === 0 ? 0 : latencyWeighted / total)}ms`;
-        document.getElementById('avgAttempts').textContent = round(total === 0 ? 0 : attemptsWeighted / total);
-    }
-
-    function renderMetrics(metrics) {
-        document.getElementById('metricsMeta').textContent = `${metrics.length} 组`;
-        if (!metrics.length) {
-            document.getElementById('metricsTable').innerHTML = '<div class="empty">暂无指标数据</div>';
-            return;
-        }
-
-        const rows = metrics.map(item => `
-            <tr>
-                <td class="mono">${escapeHtml(item.operationName || '')}</td>
-                <td class="mono">${escapeHtml(item.promptVersion || '')}</td>
-                <td>${item.totalCalls || 0}</td>
-                <td>${rateBadge(item.successRate)}</td>
-                <td>${rateBadge(item.fallbackRate, true)}</td>
-                <td>${round(item.avgLatencyMs || 0)}ms</td>
-                <td>${round(item.avgAttemptCount || 0)}</td>
-            </tr>
-        `).join('');
-
-        document.getElementById('metricsTable').innerHTML = `
-            <table>
-                <thead>
-                <tr>
-                    <th style="width: 20%;">Operation</th>
-                    <th style="width: 26%;">Prompt Version</th>
-                    <th style="width: 10%;">调用</th>
-                    <th style="width: 12%;">成功率</th>
-                    <th style="width: 12%;">降级率</th>
-                    <th style="width: 10%;">均耗时</th>
-                    <th style="width: 10%;">外层尝试</th>
-                </tr>
-                </thead>
-                <tbody>${rows}</tbody>
-            </table>
-        `;
-    }
-
-    function renderFailures(failures) {
-        document.getElementById('failureMeta').textContent = `${failures.length} 类`;
-        if (!failures.length) {
-            document.getElementById('failureTable').innerHTML = '<div class="empty">暂无失败记录</div>';
-            return;
-        }
-
-        const rows = failures.map(item => `
-            <tr>
-                <td>
-                    <div class="mono">${escapeHtml(item.reason || 'unknown')}</div>
-                    <div class="bar-track"><div class="bar-fill" style="width: ${Math.min(Number(item.percentage || 0), 100)}%;"></div></div>
-                </td>
-                <td style="width: 80px;">${item.count || 0}</td>
-                <td style="width: 90px;">${round(item.percentage || 0)}%</td>
-            </tr>
-        `).join('');
-
-        document.getElementById('failureTable').innerHTML = `
-            <table>
-                <thead>
-                <tr>
-                    <th>原因</th>
-                    <th style="width: 80px;">次数</th>
-                    <th style="width: 90px;">占比</th>
-                </tr>
-                </thead>
-                <tbody>${rows}</tbody>
-            </table>
-        `;
-    }
-
-    function rateBadge(value, reverse = false) {
-        const numeric = Number(value || 0);
-        let cls = 'warn';
-        if (reverse) {
-            cls = numeric <= 5 ? 'good' : (numeric <= 20 ? 'warn' : 'bad');
-        } else {
-            cls = numeric >= 95 ? 'good' : (numeric >= 80 ? 'warn' : 'bad');
-        }
-        return `<span class="status ${cls}">${round(numeric)}%</span>`;
-    }
-
-    function sum(items, field) {
-        return items.reduce((acc, item) => acc + Number(item[field] || 0), 0);
-    }
-
-    function percent(numerator, denominator) {
-        if (!denominator) {
-            return 0;
-        }
-        return round(numerator * 100 / denominator);
-    }
-
-    function round(value) {
-        return Math.round(Number(value || 0) * 100) / 100;
-    }
-
-    function clampLimit(value) {
-        const parsed = Number(value || 1000);
-        return Math.max(1, Math.min(parsed, 5000));
-    }
-
-    function escapeHtml(text) {
-        const div = document.createElement('div');
-        div.textContent = text;
-        return div.innerHTML;
-    }
-
-    document.addEventListener('DOMContentLoaded', loadDashboard);
-</script>
+<script src="/vendor/vue.global.prod.js"></script>
+<script src="/app/app.js"></script>
 </body>
 </html>
