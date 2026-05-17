@@ -3,6 +3,8 @@ package com.xkh.ai.interview.tool;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.xkh.ai.interview.entity.ResumeInfo;
 import com.xkh.ai.interview.mapper.ResumeInfoMapper;
+import com.xkh.ai.interview.service.dto.InterviewEvaluation;
+import com.xkh.ai.interview.service.dto.InterviewQuestions;
 import com.xkh.ai.interview.service.dto.ResumeData;
 import com.xkh.ai.interview.service.dto.ResumeScoreResult;
 import org.junit.jupiter.api.Test;
@@ -11,11 +13,14 @@ import org.springframework.data.redis.core.ValueOperations;
 
 import java.lang.reflect.Proxy;
 import java.util.List;
+import java.util.NoSuchElementException;
 import java.util.concurrent.atomic.AtomicReference;
 
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class ResumeRepositoryToolTests {
@@ -76,6 +81,68 @@ class ResumeRepositoryToolTests {
         assertTrue(data.getScoreResult().getSuggestions().isEmpty());
     }
 
+    @Test
+    void saveQuestionsFailsWhenResumeDoesNotExist() {
+        ResumeInfoMapper mapper = mapperReturning(null, new AtomicReference<>(), new AtomicReference<>());
+        RedisTemplate<String, Object> redisTemplate = new StubRedisTemplate(valueOperations(false, false));
+        ResumeRepositoryTool repositoryTool = new ResumeRepositoryTool(mapper, redisTemplate, new ObjectMapper());
+
+        NoSuchElementException exception = assertThrows(NoSuchElementException.class,
+                () -> repositoryTool.saveQuestions("missing-resume", emptyQuestions()));
+
+        assertEquals("简历不存在：missing-resume", exception.getMessage());
+    }
+
+    @Test
+    void saveEvaluationFailsWhenResumeDoesNotExist() {
+        ResumeInfoMapper mapper = mapperReturning(null, new AtomicReference<>(), new AtomicReference<>());
+        RedisTemplate<String, Object> redisTemplate = new StubRedisTemplate(valueOperations(false, false));
+        ResumeRepositoryTool repositoryTool = new ResumeRepositoryTool(mapper, redisTemplate, new ObjectMapper());
+
+        NoSuchElementException exception = assertThrows(NoSuchElementException.class,
+                () -> repositoryTool.saveEvaluation("missing-resume", emptyEvaluation()));
+
+        assertEquals("简历不存在：missing-resume", exception.getMessage());
+    }
+
+    @Test
+    void saveQuestionsUpdatesOnlyQuestionsJsonField() {
+        ResumeInfo entity = new ResumeInfo();
+        entity.setResumeId("resume-001");
+        entity.setResumeText("Java backend resume");
+        AtomicReference<ResumeInfo> updated = new AtomicReference<>();
+        ResumeInfoMapper mapper = mapperReturning(
+                entity, new AtomicReference<>(), new AtomicReference<>(), updated);
+        RedisTemplate<String, Object> redisTemplate = new StubRedisTemplate(valueOperations(false, false));
+        ResumeRepositoryTool repositoryTool = new ResumeRepositoryTool(mapper, redisTemplate, new ObjectMapper());
+
+        repositoryTool.saveQuestions("resume-001", emptyQuestions());
+
+        assertNotNull(updated.get());
+        assertNotNull(updated.get().getQuestionsJson());
+        assertNull(updated.get().getEvaluationJson());
+        assertNull(updated.get().getResumeText());
+    }
+
+    @Test
+    void saveEvaluationUpdatesOnlyEvaluationJsonField() {
+        ResumeInfo entity = new ResumeInfo();
+        entity.setResumeId("resume-001");
+        entity.setResumeText("Java backend resume");
+        AtomicReference<ResumeInfo> updated = new AtomicReference<>();
+        ResumeInfoMapper mapper = mapperReturning(
+                entity, new AtomicReference<>(), new AtomicReference<>(), updated);
+        RedisTemplate<String, Object> redisTemplate = new StubRedisTemplate(valueOperations(false, false));
+        ResumeRepositoryTool repositoryTool = new ResumeRepositoryTool(mapper, redisTemplate, new ObjectMapper());
+
+        repositoryTool.saveEvaluation("resume-001", emptyEvaluation());
+
+        assertNotNull(updated.get());
+        assertNotNull(updated.get().getEvaluationJson());
+        assertNull(updated.get().getQuestionsJson());
+        assertNull(updated.get().getResumeText());
+    }
+
     private ResumeScoreResult scoreResult() {
         return ResumeScoreResult.builder()
                 .overallScore(80)
@@ -86,9 +153,36 @@ class ResumeRepositoryToolTests {
                 .build();
     }
 
+    private InterviewQuestions emptyQuestions() {
+        return InterviewQuestions.builder()
+                .questions(List.of())
+                .build();
+    }
+
+    private InterviewEvaluation emptyEvaluation() {
+        return InterviewEvaluation.builder()
+                .sessionId("session-001")
+                .totalQuestions(0)
+                .overallScore(0)
+                .categoryScores(List.of())
+                .questionDetails(List.of())
+                .overallFeedback("empty")
+                .strengths(List.of())
+                .improvements(List.of())
+                .referenceAnswers(List.of())
+                .build();
+    }
+
     private ResumeInfoMapper mapperReturning(ResumeInfo selectedEntity,
                                              AtomicReference<Object> selectedId,
                                              AtomicReference<ResumeInfo> inserted) {
+        return mapperReturning(selectedEntity, selectedId, inserted, new AtomicReference<>());
+    }
+
+    private ResumeInfoMapper mapperReturning(ResumeInfo selectedEntity,
+                                             AtomicReference<Object> selectedId,
+                                             AtomicReference<ResumeInfo> inserted,
+                                             AtomicReference<ResumeInfo> updated) {
         return (ResumeInfoMapper) Proxy.newProxyInstance(
                 ResumeInfoMapper.class.getClassLoader(),
                 new Class<?>[]{ResumeInfoMapper.class},
@@ -100,6 +194,13 @@ class ResumeRepositoryToolTests {
                     if ("insert".equals(method.getName())) {
                         inserted.set((ResumeInfo) args[0]);
                         return 1;
+                    }
+                    if ("update".equals(method.getName())) {
+                        updated.set((ResumeInfo) args[0]);
+                        return 1;
+                    }
+                    if ("updateById".equals(method.getName())) {
+                        throw new AssertionError("saveQuestions/saveEvaluation should not update the full entity");
                     }
                     return defaultValue(method.getReturnType());
                 });

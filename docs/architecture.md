@@ -177,7 +177,7 @@ Tool 负责确定性能力，方便后续迁移到函数调用或工具调用框
 - `ResumeRepositoryTool`：MySQL + Redis 读写
 - `ResumeVectorTool`：Milvus 向量写入和相似检索
 
-`ResumeRepositoryTool` 以 MySQL 为事实存储，Redis 只作为加速缓存；缓存读写失败只记录 warn，并回退到数据库主流程。评分结果继续沿用现有拆分 JSON 字段，读取时兼容历史空列表字段为空列表，避免为低收益的表结构合并引入迁移成本。
+`ResumeRepositoryTool` 以 MySQL 为事实存储，Redis 只作为加速缓存；缓存读写失败只记录 warn，并回退到数据库主流程。评分结果继续沿用现有拆分 JSON 字段，读取时兼容历史空列表字段为空列表，避免为低收益的表结构合并引入迁移成本。保存面试问题或评估结果时，只更新对应 JSON 字段；如果目标简历不存在，会显式抛出不存在异常，不做静默跳过。
 
 `ResumeVectorTool` 通过 Spring AI `SearchRequest.topK` 控制检索数量，避免先取默认结果再由业务代码手动截断。
 

@@ -1,5 +1,6 @@
 package com.xkh.ai.interview.tool;
 
+import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JavaType;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -18,6 +19,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Duration;
 import java.util.List;
+import java.util.NoSuchElementException;
 
 @Component
 public class ResumeRepositoryTool {
@@ -62,12 +64,10 @@ public class ResumeRepositoryTool {
     @Transactional
     public void saveQuestions(String resumeId, InterviewQuestions questions) {
         try {
-            ResumeInfo entity = resumeInfoMapper.selectById(resumeId);
-            if (entity == null) {
-                return;
-            }
-            entity.setQuestionsJson(objectMapper.writeValueAsString(questions));
-            resumeInfoMapper.updateById(entity);
+            ResumeInfo entity = requireResumeInfo(resumeId);
+            String questionsJson = objectMapper.writeValueAsString(questions);
+            updateQuestionsJson(resumeId, questionsJson);
+            entity.setQuestionsJson(questionsJson);
             cacheResumeData(resumeId, buildResumeData(entity));
             logger.info("Interview questions saved, resumeId={}", resumeId);
         } catch (JsonProcessingException e) {
@@ -78,12 +78,10 @@ public class ResumeRepositoryTool {
     @Transactional
     public void saveEvaluation(String resumeId, InterviewEvaluation evaluation) {
         try {
-            ResumeInfo entity = resumeInfoMapper.selectById(resumeId);
-            if (entity == null) {
-                return;
-            }
-            entity.setEvaluationJson(objectMapper.writeValueAsString(evaluation));
-            resumeInfoMapper.updateById(entity);
+            ResumeInfo entity = requireResumeInfo(resumeId);
+            String evaluationJson = objectMapper.writeValueAsString(evaluation);
+            updateEvaluationJson(resumeId, evaluationJson);
+            entity.setEvaluationJson(evaluationJson);
             cacheResumeData(resumeId, buildResumeData(entity));
             logger.info("Interview evaluation saved, resumeId={}", resumeId);
         } catch (JsonProcessingException e) {
@@ -106,6 +104,34 @@ public class ResumeRepositoryTool {
         ResumeData data = buildResumeData(entity);
         cacheResumeData(resumeId, data);
         return data;
+    }
+
+    private ResumeInfo requireResumeInfo(String resumeId) {
+        ResumeInfo entity = resumeInfoMapper.selectById(resumeId);
+        if (entity == null) {
+            throw new NoSuchElementException("简历不存在：" + resumeId);
+        }
+        return entity;
+    }
+
+    private void updateQuestionsJson(String resumeId, String questionsJson) {
+        ResumeInfo updateEntity = new ResumeInfo();
+        updateEntity.setQuestionsJson(questionsJson);
+        updateResumeById(resumeId, updateEntity);
+    }
+
+    private void updateEvaluationJson(String resumeId, String evaluationJson) {
+        ResumeInfo updateEntity = new ResumeInfo();
+        updateEntity.setEvaluationJson(evaluationJson);
+        updateResumeById(resumeId, updateEntity);
+    }
+
+    private void updateResumeById(String resumeId, ResumeInfo updateEntity) {
+        int updated = resumeInfoMapper.update(updateEntity, new LambdaUpdateWrapper<ResumeInfo>()
+                .eq(ResumeInfo::getResumeId, resumeId));
+        if (updated == 0) {
+            throw new NoSuchElementException("简历不存在：" + resumeId);
+        }
     }
 
     private void cacheResumeData(String resumeId, ResumeData data) {
