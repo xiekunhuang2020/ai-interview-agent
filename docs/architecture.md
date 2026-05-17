@@ -150,7 +150,7 @@ AI_AGENT_AUDIT_LOG_MESSAGE_CONTENT=true
 AI_AGENT_AUDIT_MAX_MESSAGE_CONTENT_LENGTH=4000
 ```
 
-生产环境如果担心简历、JD 等敏感信息进入审计表，可以关闭 `AI_AGENT_AUDIT_LOG_MESSAGE_CONTENT`，只保留会话、轮次、耗时和错误状态。
+生产环境如果担心简历、JD 等敏感信息进入审计表，可以关闭 `AI_AGENT_AUDIT_LOG_MESSAGE_CONTENT`，只保留会话、轮次、耗时和错误状态。消息正文默认按 `AI_AGENT_AUDIT_MAX_MESSAGE_CONTENT_LENGTH` 裁剪，错误原因按 1024 字符裁剪；被裁剪内容会保留原始长度标记，便于排查时识别审计记录不是完整内容。
 
 ### Fallback
 

@@ -13,6 +13,7 @@ import java.util.concurrent.atomic.AtomicReference;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class AgentConversationAuditRecorderTests {
 
@@ -61,6 +62,7 @@ class AgentConversationAuditRecorderTests {
         assertEquals(320L, message.getLatencyMs());
         assertNull(message.getMessageContent());
         assertEquals(1024, message.getErrorMessage().length());
+        assertTrue(message.getErrorMessage().contains("...[truncated, originalLength=1100]"));
     }
 
     @Test
@@ -71,6 +73,19 @@ class AgentConversationAuditRecorderTests {
         contentHiddenRecorder.recordUserMessage("conversation-001", "turn-001", "interview_agent", "敏感简历内容");
 
         assertNull(capturedMessage().getMessageContent());
+    }
+
+    @Test
+    void truncatesLongMessageContentWithMarker() {
+        AgentConversationAuditRecorder shortContentRecorder =
+                new AgentConversationAuditRecorder(capturingMapper(captured), true, true, 80);
+
+        shortContentRecorder.recordAssistantMessage(
+                "conversation-001", "turn-001", "interview_agent", "a".repeat(120), true, 120L, null);
+
+        AgentConversationMessage message = capturedMessage();
+        assertEquals(80, message.getMessageContent().length());
+        assertTrue(message.getMessageContent().contains("...[truncated, originalLength=120]"));
     }
 
     private AgentConversationMessage capturedMessage() {

@@ -17,6 +17,7 @@ public class AgentConversationAuditRecorder {
 
     private static final Logger logger = LoggerFactory.getLogger(AgentConversationAuditRecorder.class);
     private static final int MAX_ERROR_MESSAGE_LENGTH = 1024;
+    private static final String TRUNCATED_MARKER_TEMPLATE = "\n...[truncated, originalLength=%d]";
 
     private final AgentConversationMessageMapper agentConversationMessageMapper;
     private final boolean enabled;
@@ -74,7 +75,7 @@ public class AgentConversationAuditRecorder {
             message.setMessageContent(normalizeMessageContent(messageContent));
             message.setSuccess(success ? 1 : 0);
             message.setLatencyMs(Math.max(0L, latencyMs));
-            message.setErrorMessage(truncate(errorMessage));
+            message.setErrorMessage(truncateWithMarker(errorMessage, MAX_ERROR_MESSAGE_LENGTH));
             agentConversationMessageMapper.insert(message);
         } catch (Exception e) {
             logger.warn("Failed to record agent conversation audit, conversationId={}, turnId={}, role={}, error={}",
@@ -82,20 +83,25 @@ public class AgentConversationAuditRecorder {
         }
     }
 
-    private String truncate(String errorMessage) {
-        if (errorMessage == null || errorMessage.length() <= MAX_ERROR_MESSAGE_LENGTH) {
-            return errorMessage;
-        }
-        return errorMessage.substring(0, MAX_ERROR_MESSAGE_LENGTH);
-    }
-
     private String normalizeMessageContent(String messageContent) {
         if (!logMessageContent || messageContent == null || maxMessageContentLength == 0) {
             return null;
         }
-        if (messageContent.length() <= maxMessageContentLength) {
-            return messageContent;
+        return truncateWithMarker(messageContent, maxMessageContentLength);
+    }
+
+    private String truncateWithMarker(String value, int maxLength) {
+        if (value == null || value.length() <= maxLength) {
+            return value;
         }
-        return messageContent.substring(0, maxMessageContentLength);
+        if (maxLength <= 0) {
+            return null;
+        }
+
+        String marker = TRUNCATED_MARKER_TEMPLATE.formatted(value.length());
+        if (marker.length() >= maxLength) {
+            return value.substring(0, maxLength);
+        }
+        return value.substring(0, maxLength - marker.length()) + marker;
     }
 }
