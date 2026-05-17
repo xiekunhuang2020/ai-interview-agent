@@ -12,6 +12,7 @@ import org.springframework.ai.tool.ToolCallbackProvider;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class AgentRuntimeConfigTests {
 
@@ -21,6 +22,15 @@ class AgentRuntimeConfigTests {
         ReactAgent agent = config.interviewAssistantReactAgent(new StubChatModel(), ToolCallbackProvider.from());
 
         assertEquals("interview_assistant_agent", agent.name());
+    }
+
+    @Test
+    void instructionSeparatesCandidateFactsFromSimilarResumeContext() {
+        String instruction = AgentRuntimeConfig.INTERVIEW_ASSISTANT_INSTRUCTION;
+
+        assertTrue(instruction.contains("get_resume_profile 和 get_resume_interview_questions 返回的是当前候选人的真实数据"));
+        assertTrue(instruction.contains("search_similar_resumes 返回的是相似简历参考片段"));
+        assertTrue(instruction.contains("不得把相似简历片段写成当前候选人的项目经历、技能证据或评价依据"));
     }
 
     private static class StubChatModel implements ChatModel {
