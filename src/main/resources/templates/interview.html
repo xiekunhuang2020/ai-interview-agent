@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>模拟面试 - AI Interview Agent</title>
+    <title>模拟面试 - AI 求职顾问</title>
     <link rel="stylesheet" href="/app/app.css">
 </head>
 <body>
@@ -40,9 +40,9 @@
                 <button class="primary-button full" type="button" v-on:click="generateStandardQuestions" v-bind:disabled="loading.questions">
                     {{ loading.questions ? '生成中...' : '生成基础题' }}
                 </button>
-                <a class="ghost-button full" th:href="@{/match/{resumeId}(resumeId=${resumeId})}">生成 JD 增强题</a>
+                <a class="ghost-button full" th:href="@{/match/{resumeId}(resumeId=${resumeId})}">生成岗位增强题</a>
                 <div class="notice info compact-notice">
-                    JD 增强题建议先在岗位匹配页生成，避免客户不知道问题为什么这样问。
+                    岗位增强题建议先在岗位匹配页生成，避免客户不知道问题为什么这样问。
                 </div>
             </div>
 
@@ -58,7 +58,7 @@
 
                 <div class="panel empty-panel" v-if="!loading.workspace && !questions.length">
                     <h2>还没有面试问题</h2>
-                    <p>可以直接生成基础题，也可以先做岗位匹配，再生成更贴近目标 JD 的问题。</p>
+                    <p>可以直接生成基础题，也可以先做岗位匹配，再生成更贴近目标岗位的问题。</p>
                     <div class="inline-actions">
                         <button class="primary-button" type="button" v-on:click="generateStandardQuestions" v-bind:disabled="loading.questions">
                             生成基础题

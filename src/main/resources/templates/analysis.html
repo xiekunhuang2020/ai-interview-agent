@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>简历诊断 - AI Interview Agent</title>
+    <title>简历诊断 - AI 求职顾问</title>
     <link rel="stylesheet" href="/app/app.css">
 </head>
 <body>
@@ -33,7 +33,7 @@
             <div class="panel score-panel">
                 <div class="score-ring" v-bind:style="scoreRingStyle">
                     <strong>{{ scoreResult.overallScore }}</strong>
-                    <span>Overall</span>
+                    <span>总分</span>
                 </div>
                 <div>
                     <h2>诊断结论</h2>
@@ -51,7 +51,7 @@
                 <div class="panel-header">
                     <div>
                         <h2>能力拆解</h2>
-                        <p>按 Prompt 评分权重展示</p>
+                        <p>按提示词评分权重展示</p>
                     </div>
                 </div>
                 <div class="score-bars">

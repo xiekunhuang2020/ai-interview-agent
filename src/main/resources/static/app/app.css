@@ -35,6 +35,7 @@ body {
 
 button,
 input,
+select,
 textarea {
     font: inherit;
 }
@@ -152,6 +153,26 @@ button {
     border: 1px solid rgba(255, 255, 255, 0.12);
     border-radius: 8px;
     background: rgba(255, 255, 255, 0.05);
+}
+
+.side-author {
+    margin-top: auto;
+    display: grid;
+    gap: 4px;
+    color: #dce7e4;
+}
+
+.side-author span {
+    color: #91a29b;
+    font-size: 12px;
+}
+
+.side-author strong {
+    font-size: 14px;
+}
+
+.side-author + .side-status {
+    margin-top: 0;
 }
 
 .status-label {
@@ -648,6 +669,7 @@ p {
 .question-panel textarea:focus,
 .chat-input textarea:focus,
 .filter-grid input:focus,
+.filter-grid select:focus,
 .number-input:focus {
     border-color: var(--brand);
     box-shadow: 0 0 0 3px rgba(23, 107, 91, 0.12);
@@ -864,7 +886,8 @@ p {
     font-weight: 800;
 }
 
-.filter-grid input {
+.filter-grid input,
+.filter-grid select {
     min-height: 40px;
     border: 1px solid var(--line);
     border-radius: 8px;
@@ -872,6 +895,7 @@ p {
     outline: none;
     color: var(--text);
     font-weight: 400;
+    background: #ffffff;
 }
 
 .metric-row,
@@ -952,6 +976,11 @@ p {
 
     .side-status {
         display: none;
+    }
+
+    .side-author {
+        margin-top: 0;
+        padding: 0 8px;
     }
 
     .main-shell {

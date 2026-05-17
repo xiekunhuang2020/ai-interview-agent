@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>岗位匹配 - AI Interview Agent</title>
+    <title>岗位匹配 - AI 求职顾问</title>
     <link rel="stylesheet" href="/app/app.css">
 </head>
 <body>
@@ -29,7 +29,7 @@
             <div class="panel wide-panel">
                 <div class="panel-header">
                     <div>
-                        <h2>目标岗位 JD</h2>
+                        <h2>目标岗位说明</h2>
                         <p>匹配结果会保存在浏览器本地，便于刷新页面后继续演示。</p>
                     </div>
                     <div class="inline-actions">
@@ -39,7 +39,7 @@
                         </button>
                     </div>
                 </div>
-                <textarea class="jd-input" v-model="jdText" placeholder="粘贴客户想投递的岗位 JD。建议包含职责、要求、技术栈和加分项。"></textarea>
+                <textarea class="jd-input" v-model="jdText" placeholder="粘贴客户想投递的岗位说明。建议包含职责、要求、技术栈和加分项。"></textarea>
             </div>
 
             <div class="panel score-panel" v-if="matchResult">
@@ -108,8 +108,8 @@
             </div>
 
             <div class="panel empty-panel" v-if="!matchResult">
-                <h2>等待 JD 匹配</h2>
-                <p>粘贴岗位 JD 后，系统会输出匹配度、技能差距、风险提示和面试追问重点。</p>
+                <h2>等待岗位匹配</h2>
+                <p>粘贴岗位说明后，系统会输出匹配度、技能差距、风险提示和面试追问重点。</p>
             </div>
         </section>
     </main>

@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>候选人导入 - AI Interview Agent</title>
+    <title>候选人导入 - AI 求职顾问</title>
     <link rel="stylesheet" href="/app/app.css">
 </head>
 <body>
@@ -25,7 +25,7 @@
         <div class="notice info product-scope">
             <strong>当前版本面向程序员和技术岗求职者。</strong>
             <span>适用：Java 后端、前端、测试、AI 应用开发。</span>
-            <span>上传后根据目标 JD 输出匹配分、缺口和追问方向。</span>
+            <span>上传后根据目标岗位说明输出匹配分、缺口和追问方向。</span>
         </div>
 
         <div class="notice error" v-if="globalError">{{ globalError }}</div>
@@ -46,7 +46,7 @@
                         <h2>候选人简历</h2>
                         <p>支持 PDF、DOC、DOCX、TXT，最大 10MB。</p>
                     </div>
-                    <span class="pill">AI Analysis</span>
+                    <span class="pill">智能分析</span>
                 </div>
 
                 <label class="dropzone" for="resumeFile">
@@ -72,12 +72,12 @@
             <div class="panel upload-panel">
                 <div class="panel-header">
                     <div>
-                        <h2>目标岗位 JD</h2>
+                        <h2>目标岗位说明</h2>
                         <p>AI 会以这份岗位要求为参照，判断候选人是否适合投递。</p>
                     </div>
                     <button class="ghost-button" type="button" v-on:click="fillSampleJd" v-bind:disabled="loading.upload">填入示例</button>
                 </div>
-                <textarea class="jd-input upload-jd-input" v-model="jdText" placeholder="粘贴目标岗位 JD。建议包含岗位职责、必备技能、加分项和业务方向。"></textarea>
+                <textarea class="jd-input upload-jd-input" v-model="jdText" placeholder="粘贴目标岗位说明。建议包含岗位职责、必备技能、加分项和业务方向。"></textarea>
                 <p class="field-help">匹配结果会包含总分、命中技能、缺失能力、投递风险和后续面试追问重点。</p>
             </div>
 
@@ -90,9 +90,9 @@
                 </div>
                 <div class="timeline">
                     <div class="timeline-item done">结构化评分：总分与五个能力维度</div>
-                    <div class="timeline-item done">岗位匹配：结合目标 JD 输出匹配分和风险点</div>
+                    <div class="timeline-item done">岗位匹配：结合目标岗位说明输出匹配分和风险点</div>
                     <div class="timeline-item done">可执行建议：按优先级输出修改方向</div>
-                    <div class="timeline-item done">向量入库：用于相似简历和 JD 增强问题</div>
+                    <div class="timeline-item done">向量入库：用于相似简历和岗位增强问题</div>
                     <div class="timeline-item done">后续闭环：岗位匹配、模拟面试、复盘评估</div>
                 </div>
             </div>

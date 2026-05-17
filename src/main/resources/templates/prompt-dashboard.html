@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>运营看板 - AI Interview Agent</title>
+    <title>运营看板 - AI 求职顾问</title>
     <link rel="stylesheet" href="/app/app.css">
 </head>
 <body>
@@ -14,7 +14,7 @@
         <header class="topbar">
             <div>
                 <p class="eyebrow">06 / 运营看板</p>
-                <h1>模型调用与 Agent 审计</h1>
+                <h1>模型调用与智能体审计</h1>
             </div>
             <div class="top-actions">
                 <a class="ghost-button" href="/">首页</a>
@@ -31,16 +31,23 @@
                 <div class="panel-header">
                     <div>
                         <h2>筛选条件</h2>
-                        <p>用于排查 Prompt 版本效果、模型失败原因和响应耗时。</p>
+                        <p>用于排查提示词版本效果、模型失败原因和响应耗时。</p>
                     </div>
                 </div>
                 <div class="filter-grid">
                     <label>
-                        Operation
-                        <input type="text" v-model="audit.operationName" placeholder="如 resume-analysis">
+                        调用场景
+                        <select v-model="audit.operationName">
+                            <option value="">全部场景</option>
+                            <option value="resume-analysis">简历诊断</option>
+                            <option value="jd-match">岗位匹配</option>
+                            <option value="interview-question-generation">面试题生成</option>
+                            <option value="rag-interview-question-generation">岗位定向出题</option>
+                            <option value="answer-evaluation">回答评估</option>
+                        </select>
                     </label>
                     <label>
-                        Prompt Version
+                        提示词版本
                         <input type="text" v-model="audit.promptVersion" placeholder="可留空">
                     </label>
                     <label>
@@ -51,16 +58,16 @@
             </div>
 
             <div class="panel">
-                <div class="panel-header"><div><h2>Prompt 指标</h2><p>{{ audit.metrics.length }} 组</p></div></div>
+                <div class="panel-header"><div><h2>提示词指标</h2><p>{{ audit.metrics.length }} 组</p></div></div>
                 <div class="metric-table">
                     <div class="metric-row head">
-                        <span>Operation</span><span>成功率</span><span>降级率</span><span>均耗时</span>
+                        <span>调用场景</span><span>成功率</span><span>降级率</span><span>均耗时</span>
                     </div>
                     <div class="metric-row" v-for="item in audit.metrics" v-bind:key="item.operationName + item.promptVersion">
-                        <span>{{ item.operationName }}</span>
+                        <span>{{ operationNameText(item.operationName) }}</span>
                         <span>{{ round(item.successRate) }}%</span>
                         <span>{{ round(item.fallbackRate) }}%</span>
-                        <span>{{ round(item.avgLatencyMs) }}ms</span>
+                        <span>{{ formatLatency(item.avgLatencyMs) }}</span>
                     </div>
                     <p class="muted empty-line" v-if="!audit.metrics.length">暂无指标数据</p>
                 </div>
@@ -82,13 +89,13 @@
                 <div class="panel-header"><div><h2>最近模型调用</h2><p>{{ audit.modelCalls.length }} 条</p></div></div>
                 <div class="log-table">
                     <div class="log-row head">
-                        <span>时间</span><span>Operation</span><span>状态</span><span>耗时</span><span>Trace</span>
+                        <span>时间</span><span>调用场景</span><span>状态</span><span>耗时</span><span>追踪编号</span>
                     </div>
                     <div class="log-row" v-for="item in audit.modelCalls" v-bind:key="item.id">
                         <span>{{ shortTime(item.createTime) }}</span>
-                        <span>{{ item.operationName }}</span>
+                        <span>{{ operationNameText(item.operationName) }}</span>
                         <span v-bind:class="item.success === 1 ? 'ok-text' : 'bad-text'">{{ item.success === 1 ? '成功' : '失败' }}</span>
-                        <span>{{ item.latencyMs }}ms</span>
+                        <span>{{ formatLatency(item.latencyMs) }}</span>
                         <span class="mono">{{ item.traceId }}</span>
                     </div>
                     <p class="muted empty-line" v-if="!audit.modelCalls.length">暂无模型调用记录</p>
@@ -96,19 +103,19 @@
             </div>
 
             <div class="panel wide-panel">
-                <div class="panel-header"><div><h2>最近 Agent 消息</h2><p>{{ audit.agentMessages.length }} 条</p></div></div>
+                <div class="panel-header"><div><h2>最近智能体消息</h2><p>{{ audit.agentMessages.length }} 条</p></div></div>
                 <div class="log-table">
                     <div class="log-row head">
-                        <span>时间</span><span>Agent</span><span>角色</span><span>状态</span><span>内容</span>
+                        <span>时间</span><span>智能体</span><span>角色</span><span>状态</span><span>内容</span>
                     </div>
                     <div class="log-row" v-for="item in audit.agentMessages" v-bind:key="item.id">
                         <span>{{ shortTime(item.createTime) }}</span>
-                        <span>{{ item.agentName }}</span>
-                        <span>{{ item.role }}</span>
+                        <span>{{ agentNameText(item.agentName) }}</span>
+                        <span>{{ roleText(item.role) }}</span>
                         <span v-bind:class="item.success === 1 ? 'ok-text' : 'bad-text'">{{ item.success === 1 ? '成功' : '失败' }}</span>
                         <span class="mono">{{ item.messageContent || item.errorMessage || '--' }}</span>
                     </div>
-                    <p class="muted empty-line" v-if="!audit.agentMessages.length">暂无 Agent 消息记录</p>
+                    <p class="muted empty-line" v-if="!audit.agentMessages.length">暂无智能体消息记录</p>
                 </div>
             </div>
         </section>

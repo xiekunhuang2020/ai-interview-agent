@@ -135,7 +135,7 @@ function createInterviewApp() {
                 }
                 const targetJd = this.jdText.trim();
                 if (!targetJd) {
-                    this.globalError = '请先填写目标岗位 JD，AI 需要根据岗位要求判断简历是否匹配。';
+                    this.globalError = '请先填写目标岗位说明，系统需要根据岗位要求判断简历是否匹配。';
                     return;
                 }
                 if (this.selectedFile.size > 10 * 1024 * 1024) {
@@ -157,7 +157,7 @@ function createInterviewApp() {
                     uploadedResumeId = payload.resumeId;
                     this.resumeId = uploadedResumeId;
                     this.scoreResult = payload.scoreResult || null;
-                    this.uploadStage = '正在调用 JD 匹配 Agent...';
+                    this.uploadStage = '正在调用岗位匹配智能体...';
                     this.matchResult = await this.matchJobByResumeId(uploadedResumeId, targetJd);
                     this.jdText = targetJd;
                     this.persistMatch();
@@ -191,11 +191,11 @@ function createInterviewApp() {
                 }
             },
             fillSampleJd() {
-                this.jdText = `岗位：Java AI Agent 应用开发工程师
+                this.jdText = `岗位：Java 智能应用开发工程师
 职责：
-1. 基于 Spring Boot、Spring AI、RAG 和工具调用开发企业级 AI Agent 应用；
+1. 基于 Spring Boot、Spring AI、检索增强生成和工具调用开发企业级智能体应用；
 2. 负责简历解析、向量检索、面试问答、评估报告等业务链路；
-3. 建设模型调用审计、Prompt 版本管理、稳定性监控和降级策略。
+3. 建设模型调用审计、提示词版本管理、稳定性监控和降级策略。
 要求：
 1. 熟悉 Java 21、Spring Boot、MyBatis-Plus、MySQL、Redis；
 2. 有 LangChain、Spring AI、Milvus 或向量数据库经验；
@@ -203,7 +203,7 @@ function createInterviewApp() {
             },
             async matchJob() {
                 if (!this.resumeId || !this.jdText.trim()) {
-                    this.globalError = '请先填写目标岗位 JD。';
+                    this.globalError = '请先填写目标岗位说明。';
                     return;
                 }
                 this.loading.match = true;
@@ -238,7 +238,7 @@ function createInterviewApp() {
                     return;
                 }
                 if (mode === 'rag' && !this.jdText.trim()) {
-                    this.globalError = '请先填写目标岗位 JD，再生成定向面试题。';
+                    this.globalError = '请先填写目标岗位说明，再生成定向面试题。';
                     return;
                 }
                 this.loading.questions = true;
@@ -396,6 +396,38 @@ function createInterviewApp() {
             },
             round(value) {
                 return Math.round(Number(value || 0) * 100) / 100;
+            },
+            formatLatency(value) {
+                if (value === null || value === undefined || value === '') {
+                    return '--';
+                }
+                return `${this.round(value)} 毫秒`;
+            },
+            operationNameText(operationName) {
+                const map = {
+                    'resume-analysis': '简历诊断',
+                    'jd-match': '岗位匹配',
+                    'interview-question-generation': '面试题生成',
+                    'rag-interview-question-generation': '岗位定向出题',
+                    'answer-evaluation': '回答评估'
+                };
+                return map[operationName] || '其他调用';
+            },
+            agentNameText(agentName) {
+                const map = {
+                    'interview-assistant': '面试顾问',
+                    'InterviewAssistantAgentService': '面试顾问'
+                };
+                return map[agentName] || '智能体';
+            },
+            roleText(role) {
+                const map = {
+                    user: '用户',
+                    assistant: '助手',
+                    system: '系统',
+                    tool: '工具'
+                };
+                return map[role] || '其他';
             },
             priorityClass(priority) {
                 if (priority === '高') {
