@@ -9,12 +9,14 @@ import com.xkh.ai.interview.support.AiStructuredOutputException;
 import com.xkh.ai.interview.support.AgentConversationAuditQueryService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.http.MediaType;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
+import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import java.io.IOException;
 import java.util.*;
@@ -297,6 +299,19 @@ public class InterviewController {
         } catch (Exception e) {
             return serverError("Agent 对话失败", e, "Agent 对话失败：" + e.getMessage());
         }
+    }
+
+    /**
+     * AI 求职顾问流式对话入口。
+     */
+    @PostMapping(value = "/api/agent/interview-assistant/stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+    @ResponseBody
+    public ResponseEntity<SseEmitter> streamWithInterviewAssistant(@RequestBody AgentChatRequest request) {
+        return ResponseEntity.ok()
+                .contentType(MediaType.TEXT_EVENT_STREAM)
+                .header("Cache-Control", "no-cache")
+                .header("X-Accel-Buffering", "no")
+                .body(interviewAssistantAgentService.stream(request));
     }
 
     /**

@@ -1,6 +1,7 @@
 package com.xkh.ai.interview;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.xkh.ai.interview.service.dto.InterviewQuestions;
 import com.xkh.ai.interview.service.dto.JobDescriptionMatchResult;
 import com.xkh.ai.interview.service.dto.ResumeScoreResult;
 import com.xkh.ai.interview.support.AiJsonResponseParser;
@@ -164,21 +165,28 @@ class AiJsonResponseParserTests {
     }
 
     @Test
-    void rejectsInterviewQuestionWithIllegalType() {
+    void normalizesInterviewQuestionWithUnsupportedType() throws Exception {
         String response = """
                 {
                   "questions": [
                     {
                       "question": "请介绍你的项目。",
-                      "type": "GO",
+                      "type": "SYSTEM_DESIGN",
                       "category": "项目经历"
+                    },
+                    {
+                      "question": "你如何做 SQL 调优？",
+                      "type": "DATABASE",
+                      "category": "数据库"
                     }
                   ]
                 }
                 """;
 
-        assertThrows(AiStructuredOutputException.class,
-                () -> parser.parseInterviewQuestions(response));
+        InterviewQuestions result = parser.parseInterviewQuestions(response);
+
+        assertEquals("PROJECT", result.getQuestions().get(0).getType());
+        assertEquals("MYSQL", result.getQuestions().get(1).getType());
     }
 
     @Test

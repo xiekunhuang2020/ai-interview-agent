@@ -16,6 +16,9 @@ import org.springframework.ai.converter.BeanOutputConverter;
 import org.springframework.stereotype.Component;
 
 import java.util.Comparator;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -23,6 +26,44 @@ import java.util.stream.Collectors;
 public class AiJsonResponseParser {
 
     private static final Logger logger = LoggerFactory.getLogger(AiJsonResponseParser.class);
+    private static final Set<String> ALLOWED_QUESTION_TYPES = Set.of(
+            "PROJECT",
+            "JAVA_BASIC",
+            "JAVA_COLLECTION",
+            "JAVA_CONCURRENT",
+            "MYSQL",
+            "REDIS",
+            "SPRING",
+            "SPRING_BOOT",
+            "AI"
+    );
+    private static final Map<String, String> QUESTION_TYPE_ALIASES = Map.ofEntries(
+            Map.entry("JAVA", "JAVA_BASIC"),
+            Map.entry("JAVA_CORE", "JAVA_BASIC"),
+            Map.entry("JVM", "JAVA_BASIC"),
+            Map.entry("COLLECTION", "JAVA_COLLECTION"),
+            Map.entry("COLLECTIONS", "JAVA_COLLECTION"),
+            Map.entry("CONCURRENT", "JAVA_CONCURRENT"),
+            Map.entry("THREAD", "JAVA_CONCURRENT"),
+            Map.entry("THREADING", "JAVA_CONCURRENT"),
+            Map.entry("DATABASE", "MYSQL"),
+            Map.entry("DB", "MYSQL"),
+            Map.entry("SQL", "MYSQL"),
+            Map.entry("CACHE", "REDIS"),
+            Map.entry("SPRINGBOOT", "SPRING_BOOT"),
+            Map.entry("SPRING_BOOT", "SPRING_BOOT"),
+            Map.entry("SPRING AI", "AI"),
+            Map.entry("SPRING_AI", "AI"),
+            Map.entry("RAG", "AI"),
+            Map.entry("AI_AGENT", "AI"),
+            Map.entry("AGENT", "AI"),
+            Map.entry("SYSTEM_DESIGN", "PROJECT"),
+            Map.entry("ARCHITECTURE", "PROJECT"),
+            Map.entry("DESIGN", "PROJECT"),
+            Map.entry("项目", "PROJECT"),
+            Map.entry("项目经历", "PROJECT"),
+            Map.entry("系统设计", "PROJECT")
+    );
 
     private final Validator validator;
     private final BeanOutputConverter<ResumeScoreResult> resumeScoreConverter;
@@ -50,6 +91,7 @@ public class AiJsonResponseParser {
 
     public InterviewQuestions parseInterviewQuestions(String json) throws JsonProcessingException {
         InterviewQuestions result = convertWithSpringAi(json, interviewQuestionsConverter, "interview-questions");
+        normalizeInterviewQuestionTypes(result);
         validateBean(result, "interview-questions");
         return result;
     }
@@ -106,6 +148,40 @@ public class AiJsonResponseParser {
                 scoreDetail.getStructureScore(), 0, 15));
         scoreDetail.setExpressionScore(clampScore("resume-score", "scoreDetail", "expressionScore",
                 scoreDetail.getExpressionScore(), 0, 10));
+    }
+
+    private void normalizeInterviewQuestionTypes(InterviewQuestions result) {
+        if (result == null || result.getQuestions() == null) {
+            return;
+        }
+
+        List<InterviewQuestions.Question> questions = result.getQuestions();
+        for (int index = 0; index < questions.size(); index++) {
+            InterviewQuestions.Question question = questions.get(index);
+            if (question == null) {
+                continue;
+            }
+            String originalType = question.getType();
+            String normalizedType = normalizeQuestionType(originalType);
+            if (!normalizedType.equals(originalType)) {
+                logger.warn("AI question type normalized, schema=interview-questions, path=questions[{}].type, value={}, normalized={}",
+                        index, originalType, normalizedType);
+                question.setType(normalizedType);
+            }
+        }
+    }
+
+    private String normalizeQuestionType(String type) {
+        if (type == null || type.isBlank()) {
+            return "PROJECT";
+        }
+
+        String normalized = type.trim().toUpperCase(Locale.ROOT).replace('-', '_');
+        if (ALLOWED_QUESTION_TYPES.contains(normalized)) {
+            return normalized;
+        }
+
+        return QUESTION_TYPE_ALIASES.getOrDefault(normalized, "PROJECT");
     }
 
     private int clampScore(String schemaName,

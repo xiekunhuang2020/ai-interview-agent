@@ -32,6 +32,10 @@ function createInterviewApp() {
                 assistantMessage: '',
                 conversationId: '',
                 chatMessages: [],
+                assistantTypingQueue: '',
+                assistantTypingTarget: null,
+                assistantTypingTimer: null,
+                assistantInputComposing: false,
                 audit: {
                     operationName: '',
                     promptVersion: '',
@@ -291,10 +295,14 @@ function createInterviewApp() {
                 }
             },
             async sendAssistantMessage() {
+                if (this.loading.chat) {
+                    return;
+                }
                 const content = this.assistantMessage.trim();
                 if (!content) {
                     return;
                 }
+                this.stopAssistantTyping(true);
                 const outbound = this.resumeId && !content.includes(this.resumeId)
                     ? `resumeId=${this.resumeId}\n${content}`
                     : content;
@@ -303,11 +311,17 @@ function createInterviewApp() {
                     role: 'user',
                     content
                 });
+                const assistantMessage = {
+                    id: `a-${Date.now()}`,
+                    role: 'assistant',
+                    content: ''
+                };
+                this.chatMessages.push(assistantMessage);
                 this.assistantMessage = '';
                 this.loading.chat = true;
                 this.globalError = '';
                 try {
-                    const payload = await fetchJson('/api/agent/interview-assistant/chat', {
+                    const response = await fetch('/api/agent/interview-assistant/stream', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({
@@ -315,22 +329,146 @@ function createInterviewApp() {
                             conversationId: this.conversationId || null
                         })
                     });
-                    this.conversationId = payload.conversationId || this.conversationId;
-                    if (this.conversationId) {
-                        localStorage.setItem('interviewAgentConversationId', this.conversationId);
-                    }
-                    this.chatMessages.push({
-                        id: payload.turnId || `a-${Date.now()}`,
-                        role: 'assistant',
-                        content: payload.answer || ''
-                    });
+                    await this.consumeAssistantStream(response, assistantMessage);
                 } catch (error) {
                     this.globalError = error.message;
+                    if (!assistantMessage.content) {
+                        this.chatMessages = this.chatMessages.filter((message) => message.id !== assistantMessage.id);
+                    }
                 } finally {
                     this.loading.chat = false;
                 }
             },
+            submitAssistantMessageByEnter(event) {
+                if (this.assistantInputComposing || event.isComposing) {
+                    return;
+                }
+                event.preventDefault();
+                this.sendAssistantMessage();
+            },
+            async consumeAssistantStream(response, assistantMessage) {
+                if (!response.ok) {
+                    const text = await response.text();
+                    let payload = null;
+                    try {
+                        payload = text ? JSON.parse(text) : null;
+                    } catch (error) {
+                        payload = null;
+                    }
+                    throw new Error((payload && payload.error) || text || `请求失败：${response.status}`);
+                }
+                if (!response.body) {
+                    throw new Error('当前浏览器不支持流式响应。');
+                }
+
+                const reader = response.body.getReader();
+                const decoder = new TextDecoder('utf-8');
+                let buffer = '';
+                while (true) {
+                    const { value, done } = await reader.read();
+                    if (done) {
+                        break;
+                    }
+                    buffer += decoder.decode(value, { stream: true });
+                    buffer = this.consumeSseBuffer(buffer, assistantMessage);
+                }
+                buffer += decoder.decode();
+                this.consumeSseBuffer(buffer, assistantMessage, true);
+                await this.waitAssistantTypingDone();
+            },
+            consumeSseBuffer(buffer, assistantMessage, flush = false) {
+                const parts = buffer.split(/\r?\n\r?\n/);
+                const pending = flush ? '' : parts.pop();
+                parts.forEach((part) => this.handleAssistantStreamEvent(part, assistantMessage));
+                if (flush && parts.length === 0 && buffer.trim()) {
+                    this.handleAssistantStreamEvent(buffer, assistantMessage);
+                }
+                return pending || '';
+            },
+            handleAssistantStreamEvent(rawEvent, assistantMessage) {
+                if (!rawEvent.trim()) {
+                    return;
+                }
+                let eventName = 'message';
+                const dataLines = [];
+                rawEvent.split(/\r?\n/).forEach((line) => {
+                    if (line.startsWith('event:')) {
+                        eventName = line.slice(6).trim();
+                    } else if (line.startsWith('data:')) {
+                        dataLines.push(line.slice(5).trimStart());
+                    }
+                });
+                const rawData = dataLines.join('\n');
+                const payload = rawData ? JSON.parse(rawData) : {};
+                if (eventName === 'meta') {
+                    this.conversationId = payload.conversationId || this.conversationId;
+                    if (this.conversationId) {
+                        localStorage.setItem('interviewAgentConversationId', this.conversationId);
+                    }
+                    assistantMessage.turnId = payload.turnId || '';
+                } else if (eventName === 'delta') {
+                    this.enqueueAssistantDelta(assistantMessage, payload.content || '');
+                } else if (eventName === 'error') {
+                    throw new Error(payload.message || '顾问回答失败。');
+                }
+            },
+            enqueueAssistantDelta(assistantMessage, content) {
+                if (!content) {
+                    return;
+                }
+                this.assistantTypingTarget = assistantMessage;
+                this.assistantTypingQueue += content;
+                this.startAssistantTyping();
+            },
+            startAssistantTyping() {
+                if (this.assistantTypingTimer) {
+                    return;
+                }
+                this.assistantTypingTimer = window.setInterval(() => {
+                    if (!this.assistantTypingTarget || !this.assistantTypingQueue) {
+                        this.stopAssistantTyping(false);
+                        return;
+                    }
+                    const batchSize = this.assistantTypingQueue.length > 80 ? 4 : 2;
+                    const chunk = this.assistantTypingQueue.slice(0, batchSize);
+                    this.assistantTypingQueue = this.assistantTypingQueue.slice(batchSize);
+                    this.assistantTypingTarget.content += chunk;
+                    this.scrollChatToBottom();
+                }, 24);
+            },
+            stopAssistantTyping(flush) {
+                if (flush && this.assistantTypingTarget && this.assistantTypingQueue) {
+                    this.assistantTypingTarget.content += this.assistantTypingQueue;
+                }
+                this.assistantTypingQueue = '';
+                this.assistantTypingTarget = null;
+                if (this.assistantTypingTimer) {
+                    window.clearInterval(this.assistantTypingTimer);
+                    this.assistantTypingTimer = null;
+                }
+            },
+            waitAssistantTypingDone() {
+                return new Promise((resolve) => {
+                    const check = () => {
+                        if (!this.assistantTypingQueue && !this.assistantTypingTimer) {
+                            resolve();
+                            return;
+                        }
+                        window.setTimeout(check, 30);
+                    };
+                    check();
+                });
+            },
+            scrollChatToBottom() {
+                this.$nextTick(() => {
+                    const messageList = this.$refs.messageList;
+                    if (messageList) {
+                        messageList.scrollTop = messageList.scrollHeight;
+                    }
+                });
+            },
             resetConversation() {
+                this.stopAssistantTyping(false);
                 this.conversationId = '';
                 this.chatMessages = [];
                 localStorage.removeItem('interviewAgentConversationId');
@@ -425,7 +563,11 @@ function createInterviewApp() {
                     user: '用户',
                     assistant: '助手',
                     system: '系统',
-                    tool: '工具'
+                    tool: '工具',
+                    USER: '用户',
+                    ASSISTANT: '助手',
+                    SYSTEM: '系统',
+                    TOOL: '工具'
                 };
                 return map[role] || '其他';
             },

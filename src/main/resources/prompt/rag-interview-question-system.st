@@ -23,11 +23,13 @@ type 字段只能使用以下枚举值：
 - SPRING_BOOT
 - AI
 
+如果问题属于系统设计、架构设计、技术选型或故障排查，但没有更细的枚举可用，type 必须填 PROJECT，不允许输出 SYSTEM_DESIGN、ARCHITECTURE、DATABASE 等新类型。
+
 # Constraints
 - 严禁生成与候选人简历和 JD 都无关的问题。
 - 不要出编码题。
 - 每道问题必须是完整问句。
-- 题目数量控制在 8-12 道。
+- 题目数量控制在 8-10 道。
 - 输出必须是纯 JSON，不要包含 Markdown 代码块。
 
 # Output Format

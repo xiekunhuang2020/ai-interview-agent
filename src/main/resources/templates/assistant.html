@@ -33,7 +33,7 @@
                     </div>
                 </div>
 
-                <div class="message-list">
+                <div class="message-list" ref="messageList">
                     <div class="message" v-for="message in chatMessages" v-bind:key="message.id" v-bind:class="message.role">
                         <div class="message-role">{{ message.role === 'user' ? '客户' : '顾问' }}</div>
                         <p>{{ message.content }}</p>
@@ -44,7 +44,11 @@
                 </div>
 
                 <div class="chat-input">
-                    <textarea v-model="assistantMessage" placeholder="输入客户问题"></textarea>
+                    <textarea v-model="assistantMessage"
+                              placeholder="输入客户问题，按 Enter 发送，Shift + Enter 换行"
+                              v-on:compositionstart="assistantInputComposing = true"
+                              v-on:compositionend="assistantInputComposing = false"
+                              v-on:keydown.enter.exact="submitAssistantMessageByEnter"></textarea>
                     <button class="primary-button" type="button" v-on:click="sendAssistantMessage" v-bind:disabled="!assistantMessage.trim() || loading.chat">
                         {{ loading.chat ? '处理中...' : '发送' }}
                     </button>

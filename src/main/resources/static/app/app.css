@@ -827,6 +827,10 @@ p {
     margin-bottom: 6px;
 }
 
+.message p {
+    white-space: pre-wrap;
+}
+
 .empty-chat {
     min-height: 260px;
     display: grid;
