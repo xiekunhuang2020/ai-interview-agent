@@ -6,7 +6,7 @@
 
 ```text
 feat(agent): introduce orchestrator, agents and tools
-feat(rag): add JD matching and RAG-enhanced question generation
+feat(rag): add job matching and RAG-based tailored questions
 feat(model): use ChatClient with Spring AI retry and business fallback
 feat(audit): add prompt versioning, model call logs and agent conversation audit
 feat(dashboard): add prompt metrics dashboard
@@ -40,7 +40,7 @@ rag-interview-question-system.st
 samples/java-ai-agent-jd.txt
 ```
 
-说明重点：支持 JD 匹配和 RAG 增强出题。
+说明重点：支持岗位匹配和岗位定制出题。
 
 ### feat(model)
 

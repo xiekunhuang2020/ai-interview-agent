@@ -4,7 +4,7 @@
 
 - README 能在 1 分钟内说明项目定位、技术栈和亮点。
 - `docs/architecture.md` 能讲清 Controller + Orchestrator + Agent + Tool。
-- `docs/api-examples.md` 覆盖上传简历、出题、评估、JD 匹配、RAG 出题、审计和看板接口。
+- `docs/api-examples.md` 覆盖上传简历、基础出题、岗位匹配、根据岗位生成面试题、评估、审计和看板接口。
 - `.env.example` 不包含真实 API Key 或密码。
 - `samples/` 中有展示用简历和 JD。
 - `docker-compose.yml` 覆盖 MySQL、Redis、Milvus 依赖。
@@ -33,8 +33,8 @@ mvn spring-boot:run
 1. 打开 http://localhost:8080
 2. 上传 samples/java-backend-resume.txt
 3. 查看简历分析报告
-4. 调用 /api/jd/{resumeId}/match 查看 JD 匹配
-5. 调用 /api/interview/{resumeId}/rag-questions 生成岗位定制题
+4. 调用 /api/jd/{resumeId}/match 查看岗位匹配
+5. 调用 /api/interview/{resumeId}/rag-questions 根据岗位生成面试题
 6. 提交答案并查看评估报告
 7. 打开 /audit/prompt-dashboard 查看 Prompt 效果看板
 ```

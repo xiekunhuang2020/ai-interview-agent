@@ -52,7 +52,7 @@
                     <p class="summary-text">{{ matchResult.summary }}</p>
                     <div class="inline-actions">
                         <button class="primary-button" type="button" v-on:click="generateRagQuestions" v-bind:disabled="loading.questions">
-                            {{ loading.questions ? '生成中...' : '生成定向面试题' }}
+                            {{ loading.questions ? '生成中...' : '根据岗位生成面试题' }}
                         </button>
                         <a class="ghost-button" th:href="@{/assistant/{resumeId}(resumeId=${resumeId})}">问 AI 顾问</a>
                     </div>

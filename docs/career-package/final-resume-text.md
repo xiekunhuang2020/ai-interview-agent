@@ -26,17 +26,17 @@
 
 ```text
 项目描述：
-基于 Spring Boot、Spring AI Alibaba、DashScope、Milvus、Redis、MySQL 构建的岗位定制化 AI 面试训练系统，支持简历解析、能力画像、JD 匹配、RAG 增强出题、回答评估、模型调用治理和 Prompt 效果观测。
+基于 Spring Boot、Spring AI Alibaba、DashScope、Milvus、Redis、MySQL 构建的岗位定制化 AI 面试训练系统，支持简历解析、能力画像、岗位匹配、岗位定制出题、回答评估、模型调用治理和 Prompt 效果观测。
 
 技术栈：
-Java 21、Spring Boot 3、Spring AI Alibaba、DashScope、Milvus、Redis、MySQL、MyBatis-Plus、Apache Tika、Thymeleaf、Docker Compose
+Java 21、Spring Boot 3、Spring AI Alibaba、DashScope、Milvus、Redis、MySQL、MyBatis-Plus、Apache Tika、Thymeleaf、Vue 3、Docker Compose
 
 项目职责：
-- 设计并实现“简历解析 -> 能力画像 -> JD 匹配 -> RAG 增强出题 -> 回答评估 -> 面试报告生成”的 Agent 工作流，覆盖求职者面试训练完整链路。
+- 设计并实现“简历解析 -> 能力画像 -> 岗位匹配 -> 岗位定制出题 -> 回答评估 -> 面试报告生成”的 Agent 工作流，覆盖求职者面试训练完整链路。
 - 基于 Controller + Orchestrator + Agent + Tool 分层重构业务架构，将模型推理任务与文档解析、数据存储、缓存和向量检索等确定性能力解耦。
 - 接入 Spring AI Alibaba 与通义千问模型，通过 System/User Prompt 分层设计、Prompt 版本管理、`BeanOutputConverter` 和 Jakarta Bean Validation 提升模型输出可控性。
 - 基于 Apache Tika 支持 PDF、DOC、DOCX、TXT 简历解析，并将简历文本写入 MySQL、Redis 和 Milvus，支撑持久化、热点会话缓存和向量检索。
-- 构建基于 Milvus 的简历向量知识库，结合目标岗位 JD 检索相似简历片段，为岗位定制化面试题生成提供 RAG 上下文。
+- 构建基于 Milvus 的简历向量知识库，结合目标岗位说明检索相似简历片段，为岗位定制化面试题生成提供 RAG 上下文。
 - 基于 Spring AI `ChatClient` 统一模型调用入口，模型侧重试和退避交给 `spring.ai.retry` 配置，业务层保留显式降级、traceId 日志追踪和模型侧故障分层处理。
 - 强化 AI 结构化输出治理，基于严格 DTO 转换和 Jakarta Bean Validation 覆盖必填字段、数值范围、枚举值、数组元素结构和未知字段检测，避免异常模型输出污染业务数据。
 - 设计 AI 调用审计表与 Prompt 效果评估看板，记录 operation、Prompt 版本、耗时、成功状态、降级状态和失败原因，支持问题回溯与 Prompt 迭代评估。

@@ -2,13 +2,13 @@
 
 ## 30 秒版本
 
-这个项目是我为了系统化学习 AI Agent 应用开发做的一个自研项目，场景是 AI 面试训练。它不是简单的 ChatBot，而是把面试训练拆成简历解析、能力画像、JD 匹配、RAG 增强出题、答案评估和报告生成几个阶段。工程上我用了 Spring Boot、Spring AI Alibaba、通义千问、Milvus、Redis 和 MySQL，并且补了模型调用治理，比如框架级重试、业务降级、traceId、Prompt 版本管理、调用审计和 Prompt 效果看板。
+这个项目是我为了系统化学习 AI Agent 应用开发做的一个自研项目，场景是 AI 面试训练。它不是简单的 ChatBot，而是把面试训练拆成简历解析、能力画像、岗位匹配、岗位定制出题、答案评估和报告生成几个阶段。工程上我用了 Spring Boot、Spring AI Alibaba、通义千问、Milvus、Redis 和 MySQL，并且补了模型调用治理，比如框架级重试、业务降级、traceId、Prompt 版本管理、调用审计和 Prompt 效果看板。
 
 ## 2 分钟版本
 
 这个项目的定位是“岗位定制化 AI 面试 Agent 平台”。用户上传简历后，系统会先通过 Apache Tika 解析 PDF、DOC、DOCX 或 TXT 文件，然后由 `ResumeAnalysisAgent` 生成简历评分和优化建议，并把简历文本持久化到 MySQL、缓存到 Redis，同时写入 Milvus 向量库。
 
-在面试训练阶段，系统有两种出题模式。第一种是普通的个性化出题，直接根据候选人简历生成问题。第二种是 RAG 增强出题，用户输入目标岗位 JD 后，系统会用 JD 去 Milvus 检索相似简历片段，再由 `RagInterviewQuestionAgent` 结合候选人简历、岗位 JD 和检索上下文生成岗位定制题。候选人提交答案后，`AnswerEvaluationAgent` 会输出逐题评分、分类得分、优势、不足和参考答案。
+在面试训练阶段，系统有两种出题模式。第一种是基础面试题，直接根据候选人简历生成问题。第二种是岗位定制面试题，用户输入目标岗位说明后，系统会用岗位说明去 Milvus 检索相似简历片段，再由 `RagInterviewQuestionAgent` 结合候选人简历、岗位说明和检索上下文生成更贴近投递岗位的问题。候选人提交答案后，`AnswerEvaluationAgent` 会输出逐题评分、分类得分、优势、不足和参考答案。
 
 架构上我没有把所有逻辑堆在 Service 里，而是拆成 Controller、Orchestrator、Agent 和 Tool。Controller 只处理 HTTP，`InterviewAgentOrchestrator` 负责编排流程，Agent 处理需要模型推理的任务，Tool 处理文档解析、存储、缓存和向量检索等确定性能力。
 
@@ -29,7 +29,7 @@ Controller
 
 ```text
 我把系统拆成两类能力：需要模型推理的 Agent，和结果确定的 Tool。
-比如简历评分、JD 匹配、RAG 出题和答案评估属于 Agent；
+比如简历评分、岗位匹配、岗位定制出题和答案评估属于 Agent；
 文档解析、数据库读写、缓存读写和向量检索属于 Tool。
 Orchestrator 负责编排这些 Agent 和 Tool，避免 Controller 直接堆业务逻辑，也方便后续替换模型、扩展工具或增加新的面试流程。
 ```

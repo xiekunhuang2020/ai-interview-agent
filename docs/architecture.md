@@ -1,4 +1,4 @@
-# AI Interview Agent 架构说明
+# AI 求职顾问架构说明
 
 ## 目标定位
 
@@ -8,7 +8,7 @@
 
 ```mermaid
 flowchart TD
-    U["User / Browser"] --> C["InterviewController"]
+    U["用户 / 浏览器"] --> C["InterviewController"]
     C --> O["InterviewAgentOrchestrator"]
 
     O --> T1["ResumeParseTool"]
@@ -66,7 +66,7 @@ Agent 负责需要模型推理的任务，目前包含：
 - `InterviewQuestionAgent`：基于简历生成个性化面试题
 - `AnswerEvaluationAgent`：结合简历和回答生成面试评估报告
 - `JobDescriptionMatchAgent`：分析候选人简历与目标 JD 的匹配度
-- `RagInterviewQuestionAgent`：结合 JD、候选人简历和向量检索上下文生成岗位定制题
+- `RagInterviewQuestionAgent`：结合目标岗位说明、候选人简历和向量检索上下文生成岗位定制面试题
 
 ### ReAct Agent Runtime
 
@@ -100,7 +100,7 @@ Agent 可调用的工具集中在 `ResumeAgentTools`，只暴露查询类能力�
 
 `AiModelInvoker` 只保留业务层必须关心的审计、Prompt 版本和 fallback，不再手写 retry/backoff/线程池调度，避免和框架模型层能力重复。
 
-### Prompt Version
+### Prompt 版本
 
 `PromptVersionRegistry` 从 `application.yml` 读取 operation 到 Prompt 版本的映射，例如：
 
@@ -111,7 +111,7 @@ jd-match -> jd-match-v2026-05-17-01
 
 这样每次模型调用都能回溯到具体 Prompt 版本，方便比较不同版本的稳定性和效果。
 
-### Call Audit
+### 调用审计
 
 `ai_model_call_log` 记录模型调用审计信息：
 
@@ -152,7 +152,7 @@ AI_AGENT_AUDIT_MAX_MESSAGE_CONTENT_LENGTH=4000
 
 生产环境如果担心简历、JD 等敏感信息进入审计表，可以关闭 `AI_AGENT_AUDIT_LOG_MESSAGE_CONTENT`，只保留会话、轮次、耗时和错误状态。消息正文默认按 `AI_AGENT_AUDIT_MAX_MESSAGE_CONTENT_LENGTH` 裁剪，错误原因按 1024 字符裁剪；被裁剪内容会保留原始长度标记，便于排查时识别审计记录不是完整内容。
 
-### Fallback
+### 降级策略
 
 `AiModelFallbackResponseFactory` 为每个 operation 提供结构合法的降级 JSON。模型最终失败时，如果 `AI_MODEL_FALLBACK_ENABLED=true`，调用器会返回降级结果，并在审计中记录：
 
@@ -163,13 +163,13 @@ fallbackUsed = 1
 
 这表示“真实模型调用失败，但业务使用了降级响应继续执行”。
 
-### Prompt Metrics
+### Prompt 指标
 
 `/api/audit/prompt-metrics` 基于最近的模型调用审计记录，按 operation 和 Prompt 版本聚合 totalCalls、successRate、fallbackRate、avgLatencyMs 和 maxLatencyMs。`avgAttemptCount` 保留用于兼容早期外层重试审计。
 
 `/audit/prompt-dashboard` 提供一个轻量看板页面，用于查看 Prompt 版本指标和失败原因分布。
 
-### Tool
+### 工具
 
 Tool 负责确定性能力，方便后续迁移到函数调用或工具调用框架：
 
@@ -185,13 +185,13 @@ Tool 负责确定性能力，方便后续迁移到函数调用或工具调用框
 
 当前版本采用确定性 Orchestrator 编排 Agent，不做完全自主规划。这样更适合业务系统落地：链路可控、错误边界清楚、易于测试和排查。
 
-## RAG 增强出题流程
+## 岗位定制面试题生成流程
 
 ```text
-输入岗位 JD
-  -> ResumeVectorTool 使用 JD 检索相似简历片段
+输入目标岗位说明
+  -> ResumeVectorTool 使用岗位说明检索相似简历片段
   -> RagInterviewQuestionAgent 组合候选人简历、JD、检索上下文
-  -> 生成岗位定制化问题
+  -> 生成岗位定制化面试问题
   -> ResumeRepositoryTool 保存问题到当前会话
 ```
 

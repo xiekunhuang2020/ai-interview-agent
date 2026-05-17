@@ -40,9 +40,9 @@
                 <button class="primary-button full" type="button" v-on:click="generateStandardQuestions" v-bind:disabled="loading.questions">
                     {{ loading.questions ? '生成中...' : '生成基础题' }}
                 </button>
-                <a class="ghost-button full" th:href="@{/match/{resumeId}(resumeId=${resumeId})}">生成岗位增强题</a>
+                <a class="ghost-button full" th:href="@{/match/{resumeId}(resumeId=${resumeId})}">根据岗位生成面试题</a>
                 <div class="notice info compact-notice">
-                    岗位增强题建议先在岗位匹配页生成，避免客户不知道问题为什么这样问。
+                    先完成岗位匹配，再生成更贴近目标岗位的问题。
                 </div>
             </div>
 

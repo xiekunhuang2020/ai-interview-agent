@@ -216,7 +216,7 @@ function createInterviewApp() {
                 try {
                     this.matchResult = await this.matchJobByResumeId(this.resumeId, this.jdText.trim());
                     this.persistMatch();
-                    this.globalMessage = '岗位匹配完成，可以继续生成定向面试题。';
+                    this.globalMessage = '岗位匹配完成，可以继续根据岗位生成面试题。';
                 } catch (error) {
                     this.globalError = error.message;
                 } finally {
@@ -242,7 +242,7 @@ function createInterviewApp() {
                     return;
                 }
                 if (mode === 'rag' && !this.jdText.trim()) {
-                    this.globalError = '请先填写目标岗位说明，再生成定向面试题。';
+                    this.globalError = '请先填写目标岗位说明，再根据岗位生成面试题。';
                     return;
                 }
                 this.loading.questions = true;
@@ -582,7 +582,7 @@ function createInterviewApp() {
                     'resume-analysis': '简历诊断',
                     'jd-match': '岗位匹配',
                     'interview-question-generation': '面试题生成',
-                    'rag-interview-question-generation': '岗位定向出题',
+                    'rag-interview-question-generation': '岗位定制出题',
                     'answer-evaluation': '回答评估'
                 };
                 return map[operationName] || '其他调用';
