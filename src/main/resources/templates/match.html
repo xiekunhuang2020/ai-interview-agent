@@ -8,29 +8,7 @@
 </head>
 <body>
 <div id="app" data-page="match" th:attr="data-resume-id=${resumeId}" v-cloak>
-    <aside class="sidebar">
-        <a class="brand" href="/">
-            <div class="brand-mark">AI</div>
-            <div>
-                <div class="brand-name">Interview Agent</div>
-                <div class="brand-meta">Candidate Intelligence</div>
-            </div>
-        </a>
-
-        <nav class="nav-list" aria-label="主导航">
-            <a class="nav-item" href="/upload"><span class="nav-index">01</span><span>候选人导入</span></a>
-            <a class="nav-item" th:href="@{/analysis/{resumeId}(resumeId=${resumeId})}"><span class="nav-index">02</span><span>简历诊断</span></a>
-            <a class="nav-item active" th:href="@{/match/{resumeId}(resumeId=${resumeId})}"><span class="nav-index">03</span><span>岗位匹配</span></a>
-            <a class="nav-item" th:href="@{/interview/{resumeId}(resumeId=${resumeId})}"><span class="nav-index">04</span><span>模拟面试</span></a>
-            <a class="nav-item" th:href="@{/assistant/{resumeId}(resumeId=${resumeId})}"><span class="nav-index">05</span><span>AI 顾问</span></a>
-            <a class="nav-item" href="/audit/prompt-dashboard"><span class="nav-index">06</span><span>运营看板</span></a>
-        </nav>
-
-        <div class="side-status">
-            <div class="status-label">当前简历</div>
-            <div class="status-value" th:text="${resumeId}">resumeId</div>
-        </div>
-    </aside>
+    <th:block th:replace="~{fragments/layout :: sidebar('match', ${resumeId})}"></th:block>
 
     <main class="main-shell">
         <header class="topbar">
@@ -137,7 +115,6 @@
     </main>
 </div>
 
-<script src="/vendor/vue.global.prod.js"></script>
-<script src="/app/app.js"></script>
+<th:block th:replace="~{fragments/layout :: scripts}"></th:block>
 </body>
 </html>

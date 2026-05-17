@@ -29,7 +29,6 @@ function createInterviewApp() {
                 jdText: '',
                 matchResult: null,
                 topK: 5,
-                questionMode: 'standard',
                 assistantMessage: '',
                 conversationId: '',
                 chatMessages: [],
@@ -58,9 +57,6 @@ function createInterviewApp() {
         computed: {
             canUseResume() {
                 return Boolean(this.resumeId);
-            },
-            hasWorkspaceData() {
-                return Boolean(this.scoreResult || this.questions.length || this.evaluation);
             },
             scoreItems() {
                 const detail = this.scoreResult && this.scoreResult.scoreDetail;
