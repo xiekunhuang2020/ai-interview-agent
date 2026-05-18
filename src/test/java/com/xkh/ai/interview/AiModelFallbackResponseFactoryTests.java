@@ -1,8 +1,8 @@
 package com.xkh.ai.interview;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.xkh.ai.interview.support.AiJsonResponseParser;
-import com.xkh.ai.interview.support.AiModelFallbackResponseFactory;
+import com.xkh.ai.interview.service.llm.AiJsonResponseParser;
+import com.xkh.ai.interview.service.llm.AiModelFallbackResponseFactory;
 import jakarta.validation.Validation;
 import jakarta.validation.Validator;
 import org.junit.jupiter.api.Test;

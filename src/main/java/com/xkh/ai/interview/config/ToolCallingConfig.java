@@ -1,6 +1,6 @@
 package com.xkh.ai.interview.config;
 
-import com.xkh.ai.interview.tool.ResumeAgentTools;
+import com.xkh.ai.interview.service.tool.ResumeAgentTools;
 import org.springframework.ai.tool.ToolCallbackProvider;
 import org.springframework.ai.tool.method.MethodToolCallbackProvider;
 import org.springframework.context.annotation.Bean;

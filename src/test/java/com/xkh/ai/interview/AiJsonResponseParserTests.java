@@ -1,11 +1,11 @@
 package com.xkh.ai.interview;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.xkh.ai.interview.service.dto.InterviewQuestions;
-import com.xkh.ai.interview.service.dto.JobDescriptionMatchResult;
-import com.xkh.ai.interview.service.dto.ResumeScoreResult;
-import com.xkh.ai.interview.support.AiJsonResponseParser;
-import com.xkh.ai.interview.support.AiStructuredOutputException;
+import com.xkh.ai.interview.dto.InterviewQuestions;
+import com.xkh.ai.interview.dto.JobDescriptionMatchResult;
+import com.xkh.ai.interview.dto.ResumeScoreResult;
+import com.xkh.ai.interview.service.llm.AiJsonResponseParser;
+import com.xkh.ai.interview.service.llm.AiStructuredOutputException;
 import jakarta.validation.Validation;
 import jakarta.validation.Validator;
 import org.junit.jupiter.api.Test;

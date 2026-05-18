@@ -1,6 +1,6 @@
 package com.xkh.ai.interview;
 
-import com.xkh.ai.interview.support.PromptVersionRegistry;
+import com.xkh.ai.interview.service.llm.PromptVersionRegistry;
 import org.junit.jupiter.api.Test;
 
 import java.util.Map;
