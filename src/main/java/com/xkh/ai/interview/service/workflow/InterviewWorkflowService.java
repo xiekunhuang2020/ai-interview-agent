@@ -37,6 +37,9 @@ public class InterviewWorkflowService {
     private final JobDescriptionMatchAgent jobDescriptionMatchAgent;
     private final RagInterviewQuestionAgent ragInterviewQuestionAgent;
 
+    /**
+     * 注入简历解析、存储、向量化和各类 AI Agent，组成完整面试工作流。
+     */
     public InterviewWorkflowService(ResumeParseTool resumeParseTool,
                                     ResumeRepositoryTool resumeRepositoryTool,
                                     ResumeVectorTool resumeVectorTool,
@@ -55,6 +58,9 @@ public class InterviewWorkflowService {
         this.ragInterviewQuestionAgent = ragInterviewQuestionAgent;
     }
 
+    /**
+     * 上传简历后完成解析、AI 评分、数据库保存和向量库写入。
+     */
     public ResumeUploadResult analyzeUploadedResume(MultipartFile file) throws IOException {
         validateResumeFile(file);
 
@@ -72,10 +78,16 @@ public class InterviewWorkflowService {
         return new ResumeUploadResult(resumeId, scoreResult);
     }
 
+    /**
+     * 根据简历 ID 查询简历工作台所需的完整数据。
+     */
     public ResumeData getResumeById(String resumeId) {
         return resumeRepositoryTool.findById(resumeId);
     }
 
+    /**
+     * 基于简历内容生成普通面试题，并保存到当前简历记录。
+     */
     public InterviewQuestions generateInterviewQuestions(String resumeId) {
         ResumeData resumeData = requireResume(resumeId);
         InterviewQuestions questions = interviewQuestionAgent.generate(resumeData.getResumeText());
@@ -83,6 +95,9 @@ public class InterviewWorkflowService {
         return questions;
     }
 
+    /**
+     * 根据候选人答案进行 AI 复盘评分，并保存本次面试评估结果。
+     */
     public InterviewEvaluation evaluateAnswers(String resumeId, Map<Integer, String> answers) {
         ResumeData resumeData = requireResume(resumeId);
         if (resumeData.getQuestions() == null || resumeData.getQuestions().getQuestions() == null
@@ -99,11 +114,17 @@ public class InterviewWorkflowService {
         return evaluation;
     }
 
+    /**
+     * 将已存在的简历补写到向量库，用于历史数据补录或重建索引。
+     */
     public void vectorizeResume(String resumeId) {
         ResumeData resumeData = requireResume(resumeId);
         resumeVectorTool.addResume(resumeId, "", resumeData.getResumeText());
     }
 
+    /**
+     * 按关键词或 JD 文本检索相似简历，返回给 RAG 调试和检索接口使用。
+     */
     public List<ResumeSearchResult> searchResumes(String queryText, int topK) {
         if (StringUtils.isBlank(queryText)) {
             throw new IllegalArgumentException("query参数不能为空");
@@ -113,6 +134,9 @@ public class InterviewWorkflowService {
                 .toList();
     }
 
+    /**
+     * 分析指定简历与目标岗位 JD 的匹配度，输出优势、缺口和建议。
+     */
     public JobDescriptionMatchResult matchJobDescription(String resumeId, String jobDescription) {
         if (StringUtils.isBlank(jobDescription)) {
             throw new IllegalArgumentException("jobDescription不能为空");
@@ -122,6 +146,9 @@ public class InterviewWorkflowService {
         return jobDescriptionMatchAgent.match(resumeData.getResumeText(), jobDescription);
     }
 
+    /**
+     * 结合目标岗位 JD 和相似简历召回结果，生成岗位增强面试题。
+     */
     public InterviewQuestions generateRagInterviewQuestions(String resumeId, String jobDescription, int topK) {
         if (StringUtils.isBlank(jobDescription)) {
             throw new IllegalArgumentException("jobDescription不能为空");
@@ -138,6 +165,9 @@ public class InterviewWorkflowService {
         return questions;
     }
 
+    /**
+     * 查询简历并统一处理不存在的情况，避免各流程重复判空。
+     */
     private ResumeData requireResume(String resumeId) {
         ResumeData resumeData = resumeRepositoryTool.findById(resumeId);
         if (resumeData == null) {
@@ -146,6 +176,9 @@ public class InterviewWorkflowService {
         return resumeData;
     }
 
+    /**
+     * 校验上传文件是否为空，以及格式是否属于支持的简历类型。
+     */
     private void validateResumeFile(MultipartFile file) {
         if (file.isEmpty()) {
             throw new IllegalArgumentException("文件不能为空");
@@ -155,10 +188,16 @@ public class InterviewWorkflowService {
         }
     }
 
+    /**
+     * 规范向量检索数量，限制在 1 到 20 之间。
+     */
     private int normalizeTopK(int topK) {
         return Math.max(1, Math.min(topK, 20));
     }
 
+    /**
+     * 将向量库返回的文档转换成前端接口需要的相似简历结果。
+     */
     private ResumeSearchResult toSearchResult(Document doc) {
         Object resumeId = doc.getMetadata().get("resumeId");
         Object fileName = doc.getMetadata().get("fileName");
