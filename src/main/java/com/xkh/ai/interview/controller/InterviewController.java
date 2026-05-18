@@ -1,7 +1,7 @@
 package com.xkh.ai.interview.controller;
 
 import com.xkh.ai.interview.service.agent.InterviewAssistantAgentService;
-import com.xkh.ai.interview.service.orchestrator.InterviewAgentOrchestrator;
+import com.xkh.ai.interview.service.workflow.InterviewWorkflowService;
 import com.xkh.ai.interview.dto.*;
 import com.xkh.ai.interview.service.llm.AiModelCallException;
 import com.xkh.ai.interview.service.audit.AiModelCallAuditQueryService;
@@ -26,16 +26,16 @@ public class InterviewController {
 
     private static final Logger logger = LoggerFactory.getLogger(InterviewController.class);
 
-    private final InterviewAgentOrchestrator interviewAgentOrchestrator;
+    private final InterviewWorkflowService interviewWorkflowService;
     private final AiModelCallAuditQueryService auditQueryService;
     private final InterviewAssistantAgentService interviewAssistantAgentService;
     private final AgentConversationAuditQueryService agentConversationAuditQueryService;
 
-    public InterviewController(InterviewAgentOrchestrator interviewAgentOrchestrator,
+    public InterviewController(InterviewWorkflowService interviewWorkflowService,
                                AiModelCallAuditQueryService auditQueryService,
                                InterviewAssistantAgentService interviewAssistantAgentService,
                                AgentConversationAuditQueryService agentConversationAuditQueryService) {
-        this.interviewAgentOrchestrator = interviewAgentOrchestrator;
+        this.interviewWorkflowService = interviewWorkflowService;
         this.auditQueryService = auditQueryService;
         this.interviewAssistantAgentService = interviewAssistantAgentService;
         this.agentConversationAuditQueryService = agentConversationAuditQueryService;
@@ -72,7 +72,7 @@ public class InterviewController {
     @ResponseBody
     public ResponseEntity<?> uploadResume(@RequestParam("file") MultipartFile file) {
         try {
-            return ResponseEntity.ok(interviewAgentOrchestrator.analyzeUploadedResume(file));
+            return ResponseEntity.ok(interviewWorkflowService.analyzeUploadedResume(file));
         } catch (IllegalArgumentException e) {
             return badRequest(e);
         } catch (AiModelCallException | AiStructuredOutputException e) {
@@ -99,7 +99,7 @@ public class InterviewController {
     @GetMapping("/api/resume/{resumeId}/analysis")
     @ResponseBody
     public ResponseEntity<?> getResumeAnalysis(@PathVariable String resumeId) {
-        ResumeData resumeData = interviewAgentOrchestrator.getResumeById(resumeId);
+        ResumeData resumeData = interviewWorkflowService.getResumeById(resumeId);
         if (resumeData == null) {
             return ResponseEntity.notFound().build();
         }
@@ -112,7 +112,7 @@ public class InterviewController {
     @GetMapping("/api/resume/{resumeId}")
     @ResponseBody
     public ResponseEntity<?> getResumeWorkspace(@PathVariable String resumeId) {
-        ResumeData resumeData = interviewAgentOrchestrator.getResumeById(resumeId);
+        ResumeData resumeData = interviewWorkflowService.getResumeById(resumeId);
         if (resumeData == null) {
             return ResponseEntity.notFound().build();
         }
@@ -150,7 +150,7 @@ public class InterviewController {
     @ResponseBody
     public ResponseEntity<?> generateQuestions(@PathVariable String resumeId) {
         try {
-            return ResponseEntity.ok(interviewAgentOrchestrator.generateInterviewQuestions(resumeId));
+            return ResponseEntity.ok(interviewWorkflowService.generateInterviewQuestions(resumeId));
         } catch (NoSuchElementException e) {
             return ResponseEntity.notFound().build();
         } catch (AiModelCallException | AiStructuredOutputException e) {
@@ -169,7 +169,7 @@ public class InterviewController {
             @PathVariable String resumeId,
             @RequestBody JobDescriptionRequest request) {
         try {
-            return ResponseEntity.ok(interviewAgentOrchestrator.generateRagInterviewQuestions(
+            return ResponseEntity.ok(interviewWorkflowService.generateRagInterviewQuestions(
                     resumeId,
                     request.getJobDescription(),
                     parseTopK(request.getTopK())
@@ -194,7 +194,7 @@ public class InterviewController {
             @PathVariable String resumeId,
             @RequestBody Map<Integer, String> answers) {
         try {
-            return ResponseEntity.ok(interviewAgentOrchestrator.evaluateAnswers(resumeId, answers));
+            return ResponseEntity.ok(interviewWorkflowService.evaluateAnswers(resumeId, answers));
         } catch (NoSuchElementException e) {
             return ResponseEntity.notFound().build();
         } catch (IllegalStateException e) {
@@ -233,7 +233,7 @@ public class InterviewController {
     @ResponseBody
     public ResponseEntity<?> vectorizeResume(@PathVariable String resumeId) {
         try {
-            interviewAgentOrchestrator.vectorizeResume(resumeId);
+            interviewWorkflowService.vectorizeResume(resumeId);
             return ResponseEntity.ok(Map.of("success", true, "resumeId", resumeId));
         } catch (NoSuchElementException e) {
             return ResponseEntity.notFound().build();
@@ -253,7 +253,7 @@ public class InterviewController {
             int topK = parseTopK(request.get("topK"));
             return ResponseEntity.ok(Map.of(
                     "query", queryText,
-                    "results", interviewAgentOrchestrator.searchResumes(queryText, topK)
+                    "results", interviewWorkflowService.searchResumes(queryText, topK)
             ));
         } catch (IllegalArgumentException e) {
             return badRequest(e);
@@ -271,7 +271,7 @@ public class InterviewController {
             @PathVariable String resumeId,
             @RequestBody JobDescriptionRequest request) {
         try {
-            return ResponseEntity.ok(interviewAgentOrchestrator.matchJobDescription(
+            return ResponseEntity.ok(interviewWorkflowService.matchJobDescription(
                     resumeId,
                     request.getJobDescription()
             ));

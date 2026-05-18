@@ -1,4 +1,4 @@
-package com.xkh.ai.interview.service.orchestrator;
+package com.xkh.ai.interview.service.workflow;
 
 import com.xkh.ai.interview.service.agent.AnswerEvaluationAgent;
 import com.xkh.ai.interview.service.agent.InterviewQuestionAgent;
@@ -26,7 +26,7 @@ import java.util.NoSuchElementException;
 import java.util.UUID;
 
 @Service
-public class InterviewAgentOrchestrator {
+public class InterviewWorkflowService {
 
     private final ResumeParseTool resumeParseTool;
     private final ResumeRepositoryTool resumeRepositoryTool;
@@ -37,14 +37,14 @@ public class InterviewAgentOrchestrator {
     private final JobDescriptionMatchAgent jobDescriptionMatchAgent;
     private final RagInterviewQuestionAgent ragInterviewQuestionAgent;
 
-    public InterviewAgentOrchestrator(ResumeParseTool resumeParseTool,
-                                      ResumeRepositoryTool resumeRepositoryTool,
-                                      ResumeVectorTool resumeVectorTool,
-                                      ResumeAnalysisAgent resumeAnalysisAgent,
-                                      InterviewQuestionAgent interviewQuestionAgent,
-                                      AnswerEvaluationAgent answerEvaluationAgent,
-                                      JobDescriptionMatchAgent jobDescriptionMatchAgent,
-                                      RagInterviewQuestionAgent ragInterviewQuestionAgent) {
+    public InterviewWorkflowService(ResumeParseTool resumeParseTool,
+                                    ResumeRepositoryTool resumeRepositoryTool,
+                                    ResumeVectorTool resumeVectorTool,
+                                    ResumeAnalysisAgent resumeAnalysisAgent,
+                                    InterviewQuestionAgent interviewQuestionAgent,
+                                    AnswerEvaluationAgent answerEvaluationAgent,
+                                    JobDescriptionMatchAgent jobDescriptionMatchAgent,
+                                    RagInterviewQuestionAgent ragInterviewQuestionAgent) {
         this.resumeParseTool = resumeParseTool;
         this.resumeRepositoryTool = resumeRepositoryTool;
         this.resumeVectorTool = resumeVectorTool;
