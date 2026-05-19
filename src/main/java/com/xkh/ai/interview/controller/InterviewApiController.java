@@ -1,40 +1,53 @@
 package com.xkh.ai.interview.controller;
 
+import com.xkh.ai.interview.dto.AgentChatRequest;
+import com.xkh.ai.interview.dto.JobDescriptionRequest;
+import com.xkh.ai.interview.dto.ResumeData;
 import com.xkh.ai.interview.service.agent.InterviewAssistantAgentService;
-import com.xkh.ai.interview.service.workflow.InterviewWorkflowService;
-import com.xkh.ai.interview.dto.*;
-import com.xkh.ai.interview.service.llm.AiModelCallException;
-import com.xkh.ai.interview.service.audit.AiModelCallAuditQueryService;
-import com.xkh.ai.interview.service.llm.AiStructuredOutputException;
 import com.xkh.ai.interview.service.audit.AgentConversationAuditQueryService;
+import com.xkh.ai.interview.service.audit.AiModelCallAuditQueryService;
+import com.xkh.ai.interview.service.llm.AiModelCallException;
+import com.xkh.ai.interview.service.llm.AiStructuredOutputException;
+import com.xkh.ai.interview.service.workflow.InterviewWorkflowService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.http.MediaType;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
-import org.springframework.stereotype.Controller;
-import org.springframework.ui.Model;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import java.io.IOException;
-import java.util.*;
+import java.util.LinkedHashMap;
+import java.util.Map;
+import java.util.NoSuchElementException;
 
-@Controller
-public class InterviewController {
+/**
+ * 负责处理前端 AJAX/SSE 调用，只返回 JSON 或流式响应。
+ */
+@RestController
+public class InterviewApiController {
 
-    private static final Logger logger = LoggerFactory.getLogger(InterviewController.class);
+    private static final Logger logger = LoggerFactory.getLogger(InterviewApiController.class);
 
     private final InterviewWorkflowService interviewWorkflowService;
     private final AiModelCallAuditQueryService auditQueryService;
     private final InterviewAssistantAgentService interviewAssistantAgentService;
     private final AgentConversationAuditQueryService agentConversationAuditQueryService;
 
-    public InterviewController(InterviewWorkflowService interviewWorkflowService,
-                               AiModelCallAuditQueryService auditQueryService,
-                               InterviewAssistantAgentService interviewAssistantAgentService,
-                               AgentConversationAuditQueryService agentConversationAuditQueryService) {
+    /**
+     * 注入简历工作流、AI 顾问和审计查询服务。
+     */
+    public InterviewApiController(InterviewWorkflowService interviewWorkflowService,
+                                  AiModelCallAuditQueryService auditQueryService,
+                                  InterviewAssistantAgentService interviewAssistantAgentService,
+                                  AgentConversationAuditQueryService agentConversationAuditQueryService) {
         this.interviewWorkflowService = interviewWorkflowService;
         this.auditQueryService = auditQueryService;
         this.interviewAssistantAgentService = interviewAssistantAgentService;
@@ -42,34 +55,9 @@ public class InterviewController {
     }
 
     /**
-     * 首页
-     */
-    @GetMapping("/")
-    public String index() {
-        return "index";
-    }
-
-    /**
-     * 上传简历页面
-     */
-    @GetMapping("/upload")
-    public String uploadPage() {
-        return "upload";
-    }
-
-    /**
-     * Prompt 效果评估看板
-     */
-    @GetMapping("/audit/prompt-dashboard")
-    public String promptDashboardPage() {
-        return "prompt-dashboard";
-    }
-
-    /**
-     * 上传简历文件并评分
+     * 上传简历文件，完成解析、AI 评分、保存和向量化。
      */
     @PostMapping("/api/resume/upload")
-    @ResponseBody
     public ResponseEntity<?> uploadResume(@RequestParam("file") MultipartFile file) {
         try {
             return ResponseEntity.ok(interviewWorkflowService.analyzeUploadedResume(file));
@@ -85,19 +73,9 @@ public class InterviewController {
     }
 
     /**
-     * 简历分析结果页面
-     */
-    @GetMapping("/analysis/{resumeId}")
-    public String analysisPage(@PathVariable String resumeId, Model model) {
-        model.addAttribute("resumeId", resumeId);
-        return "analysis";
-    }
-
-    /**
-     * 获取当前简历工作台数据
+     * 查询当前简历工作台数据，包括评分、面试题和评估结果。
      */
     @GetMapping("/api/resume/{resumeId}")
-    @ResponseBody
     public ResponseEntity<?> getResumeWorkspace(@PathVariable String resumeId) {
         ResumeData resumeData = interviewWorkflowService.getResumeById(resumeId);
         if (resumeData == null) {
@@ -113,28 +91,9 @@ public class InterviewController {
     }
 
     /**
-     * 岗位匹配页面
-     */
-    @GetMapping("/match/{resumeId}")
-    public String matchPage(@PathVariable String resumeId, Model model) {
-        model.addAttribute("resumeId", resumeId);
-        return "match";
-    }
-
-    /**
-     * 模拟面试页面
-     */
-    @GetMapping("/interview/{resumeId}")
-    public String interviewPage(@PathVariable String resumeId, Model model) {
-        model.addAttribute("resumeId", resumeId);
-        return "interview";
-    }
-
-    /**
-     * 生成面试问题
+     * 基于简历内容生成通用面试题。
      */
     @PostMapping("/api/interview/{resumeId}/questions")
-    @ResponseBody
     public ResponseEntity<?> generateQuestions(@PathVariable String resumeId) {
         try {
             return ResponseEntity.ok(interviewWorkflowService.generateInterviewQuestions(resumeId));
@@ -148,10 +107,9 @@ public class InterviewController {
     }
 
     /**
-     * 基于目标岗位 JD 生成 RAG 增强面试问题
+     * 结合目标 JD 和 RAG 检索上下文生成岗位增强面试题。
      */
     @PostMapping("/api/interview/{resumeId}/rag-questions")
-    @ResponseBody
     public ResponseEntity<?> generateRagQuestions(
             @PathVariable String resumeId,
             @RequestBody JobDescriptionRequest request) {
@@ -173,10 +131,9 @@ public class InterviewController {
     }
 
     /**
-     * 提交答案并评估
+     * 提交候选人答案，并调用 AI 生成面试复盘评估。
      */
     @PostMapping("/api/interview/{resumeId}/submit")
-    @ResponseBody
     public ResponseEntity<?> submitAnswers(
             @PathVariable String resumeId,
             @RequestBody Map<Integer, String> answers) {
@@ -194,28 +151,9 @@ public class InterviewController {
     }
 
     /**
-     * 查看评估结果页面
-     */
-    @GetMapping("/result/{resumeId}")
-    public String resultPage(@PathVariable String resumeId, Model model) {
-        model.addAttribute("resumeId", resumeId);
-        return "result";
-    }
-
-    /**
-     * AI 面试顾问页面
-     */
-    @GetMapping({"/assistant", "/assistant/{resumeId}"})
-    public String assistantPage(@PathVariable(required = false) String resumeId, Model model) {
-        model.addAttribute("resumeId", resumeId == null ? "" : resumeId);
-        return "assistant";
-    }
-
-    /**
-     * 分析候选人简历与目标岗位 JD 的匹配度
+     * 分析候选人简历与目标岗位 JD 的匹配度。
      */
     @PostMapping("/api/jd/{resumeId}/match")
-    @ResponseBody
     public ResponseEntity<?> matchJobDescription(
             @PathVariable String resumeId,
             @RequestBody JobDescriptionRequest request) {
@@ -236,10 +174,9 @@ public class InterviewController {
     }
 
     /**
-     * AI 求职顾问浏览器原生 EventSource 流式入口。
+     * AI 求职顾问 EventSource 流式对话入口。
      */
     @GetMapping(value = "/api/agent/interview-assistant/stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
-    @ResponseBody
     public ResponseEntity<SseEmitter> streamWithInterviewAssistantByEventSource(
             @RequestParam String message,
             @RequestParam(required = false) String conversationId) {
@@ -254,10 +191,9 @@ public class InterviewController {
     }
 
     /**
-     * 查询 Agent 对话消息审计记录
+     * 查询 Agent 对话消息审计记录。
      */
     @GetMapping("/api/audit/agent-messages")
-    @ResponseBody
     public ResponseEntity<?> listAgentConversationMessages(
             @RequestParam(required = false) String conversationId,
             @RequestParam(required = false) String traceId,
@@ -266,10 +202,9 @@ public class InterviewController {
     }
 
     /**
-     * 查询最近的 AI 模型调用审计记录
+     * 查询最近的 AI 模型调用审计记录。
      */
     @GetMapping("/api/audit/model-calls")
-    @ResponseBody
     public ResponseEntity<?> listModelCallAudits(
             @RequestParam(required = false) String traceId,
             @RequestParam(required = false) String operationName,
@@ -278,10 +213,9 @@ public class InterviewController {
     }
 
     /**
-     * 查询 Prompt 版本维度的模型调用指标
+     * 查询 Prompt 版本维度的模型调用指标。
      */
     @GetMapping("/api/audit/prompt-metrics")
-    @ResponseBody
     public ResponseEntity<?> listPromptMetrics(
             @RequestParam(required = false) String operationName,
             @RequestParam(required = false) String promptVersion,
@@ -290,10 +224,9 @@ public class InterviewController {
     }
 
     /**
-     * 查询 Prompt 版本维度的失败原因分布
+     * 查询 Prompt 版本维度的失败原因分布。
      */
     @GetMapping("/api/audit/failure-reasons")
-    @ResponseBody
     public ResponseEntity<?> listFailureReasons(
             @RequestParam(required = false) String operationName,
             @RequestParam(required = false) String promptVersion,
