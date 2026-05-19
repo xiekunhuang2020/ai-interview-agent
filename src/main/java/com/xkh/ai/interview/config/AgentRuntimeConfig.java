@@ -10,6 +10,9 @@ import org.springframework.context.annotation.Configuration;
 @Configuration
 public class AgentRuntimeConfig {
 
+    /**
+     * AI 求职顾问的系统指令，定义 Agent 的角色、工具使用边界和回答风格。
+     */
     public static final String INTERVIEW_ASSISTANT_INSTRUCTION = """
             你是一个 AI 求职顾问，负责围绕候选人简历进行分析、追问设计和面试辅导。
             当用户提供 resumeId 时，应优先调用工具获取真实简历画像、已生成问题或相似简历上下文。
@@ -22,6 +25,9 @@ public class AgentRuntimeConfig {
             回答应聚焦 Java 后端、Spring Boot、MySQL、Redis、系统设计和智能体工程化。
             """;
 
+    /**
+     * 构建 AI 求职顾问 ReAct Agent，并把简历工具注册给 Agent 调用。
+     */
     @Bean
     public ReactAgent interviewAssistantReactAgent(
             ChatModel chatModel,

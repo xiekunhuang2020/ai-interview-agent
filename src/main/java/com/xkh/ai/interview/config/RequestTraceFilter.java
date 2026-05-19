@@ -15,9 +15,19 @@ import java.util.UUID;
 @Component
 public class RequestTraceFilter extends OncePerRequestFilter {
 
+    /**
+     * 请求链路 ID 的 HTTP Header 名称，前端或网关传入时会继续沿用。
+     */
     public static final String TRACE_ID_HEADER = "X-Trace-Id";
+
+    /**
+     * 写入日志 MDC 的 Key，日志格式通过 %X{traceId} 输出它。
+     */
     public static final String TRACE_ID_KEY = "traceId";
 
+    /**
+     * 为每个请求准备 traceId，并在请求结束后清理 MDC，避免线程复用导致串日志。
+     */
     @Override
     protected void doFilterInternal(HttpServletRequest request,
                                     HttpServletResponse response,
