@@ -376,36 +376,6 @@ function createInterviewApp() {
                     });
                 });
             },
-            async consumeAssistantStream(response, assistantMessage) {
-                if (!response.ok) {
-                    const text = await response.text();
-                    let payload = null;
-                    try {
-                        payload = text ? JSON.parse(text) : null;
-                    } catch (error) {
-                        payload = null;
-                    }
-                    throw new Error((payload && payload.error) || text || `请求失败：${response.status}`);
-                }
-                if (!response.body) {
-                    throw new Error('当前浏览器不支持流式响应。');
-                }
-
-                const reader = response.body.getReader();
-                const decoder = new TextDecoder('utf-8');
-                let buffer = '';
-                while (true) {
-                    const { value, done } = await reader.read();
-                    if (done) {
-                        break;
-                    }
-                    buffer += decoder.decode(value, { stream: true });
-                    buffer = this.consumeSseBuffer(buffer, assistantMessage);
-                }
-                buffer += decoder.decode();
-                this.consumeSseBuffer(buffer, assistantMessage, true);
-                await this.waitAssistantTypingDone();
-            },
             handleAssistantStreamPayload(eventName, rawData, assistantMessage) {
                 const payload = rawData ? JSON.parse(rawData) : {};
                 if (eventName === 'meta') {

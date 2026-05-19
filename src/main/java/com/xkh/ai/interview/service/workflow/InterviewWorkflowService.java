@@ -9,18 +9,15 @@ import com.xkh.ai.interview.dto.InterviewEvaluation;
 import com.xkh.ai.interview.dto.InterviewQuestions;
 import com.xkh.ai.interview.dto.JobDescriptionMatchResult;
 import com.xkh.ai.interview.dto.ResumeData;
-import com.xkh.ai.interview.dto.ResumeSearchResult;
 import com.xkh.ai.interview.dto.ResumeUploadResult;
 import com.xkh.ai.interview.service.tool.ResumeParseTool;
 import com.xkh.ai.interview.service.tool.ResumeRepositoryTool;
 import com.xkh.ai.interview.service.tool.ResumeVectorTool;
 import org.apache.commons.lang3.StringUtils;
-import org.springframework.ai.document.Document;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
-import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.UUID;
@@ -115,26 +112,6 @@ public class InterviewWorkflowService {
     }
 
     /**
-     * 将已存在的简历补写到向量库，用于历史数据补录或重建索引。
-     */
-    public void vectorizeResume(String resumeId) {
-        ResumeData resumeData = requireResume(resumeId);
-        resumeVectorTool.addResume(resumeId, "", resumeData.getResumeText());
-    }
-
-    /**
-     * 按关键词或 JD 文本检索相似简历，返回给 RAG 调试和检索接口使用。
-     */
-    public List<ResumeSearchResult> searchResumes(String queryText, int topK) {
-        if (StringUtils.isBlank(queryText)) {
-            throw new IllegalArgumentException("query参数不能为空");
-        }
-        return resumeVectorTool.search(queryText, normalizeTopK(topK)).stream()
-                .map(this::toSearchResult)
-                .toList();
-    }
-
-    /**
      * 分析指定简历与目标岗位 JD 的匹配度，输出优势、缺口和建议。
      */
     public JobDescriptionMatchResult matchJobDescription(String resumeId, String jobDescription) {
@@ -195,16 +172,4 @@ public class InterviewWorkflowService {
         return Math.max(1, Math.min(topK, 20));
     }
 
-    /**
-     * 将向量库返回的文档转换成前端接口需要的相似简历结果。
-     */
-    private ResumeSearchResult toSearchResult(Document doc) {
-        Object resumeId = doc.getMetadata().get("resumeId");
-        Object fileName = doc.getMetadata().get("fileName");
-        return new ResumeSearchResult(
-                resumeId == null ? "" : resumeId.toString(),
-                fileName == null ? "" : fileName.toString(),
-                doc.getText()
-        );
-    }
 }

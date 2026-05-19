@@ -94,19 +94,6 @@ public class InterviewController {
     }
 
     /**
-     * 获取简历分析详情
-     */
-    @GetMapping("/api/resume/{resumeId}/analysis")
-    @ResponseBody
-    public ResponseEntity<?> getResumeAnalysis(@PathVariable String resumeId) {
-        ResumeData resumeData = interviewWorkflowService.getResumeById(resumeId);
-        if (resumeData == null) {
-            return ResponseEntity.notFound().build();
-        }
-        return ResponseEntity.ok(resumeData.getScoreResult());
-    }
-
-    /**
      * 获取当前简历工作台数据
      */
     @GetMapping("/api/resume/{resumeId}")
@@ -224,44 +211,6 @@ public class InterviewController {
         return "assistant";
     }
 
-    // ==================== RAG 向量检索接口 ====================
-
-    /**
-     * 手动触发简历向量化（用于历史数据补录）
-     */
-    @PostMapping("/api/rag/resume/{resumeId}/vectorize")
-    @ResponseBody
-    public ResponseEntity<?> vectorizeResume(@PathVariable String resumeId) {
-        try {
-            interviewWorkflowService.vectorizeResume(resumeId);
-            return ResponseEntity.ok(Map.of("success", true, "resumeId", resumeId));
-        } catch (NoSuchElementException e) {
-            return ResponseEntity.notFound().build();
-        } catch (Exception e) {
-            return serverError("向量化失败, resumeId=" + resumeId, e, "向量化失败：" + e.getMessage());
-        }
-    }
-
-    /**
-     * 根据文本搜索相似简历（支持JD匹配、关键词搜索）
-     */
-    @PostMapping("/api/rag/search")
-    @ResponseBody
-    public ResponseEntity<?> searchResumesByText(@RequestBody Map<String, Object> request) {
-        try {
-            String queryText = (String) request.get("query");
-            int topK = parseTopK(request.get("topK"));
-            return ResponseEntity.ok(Map.of(
-                    "query", queryText,
-                    "results", interviewWorkflowService.searchResumes(queryText, topK)
-            ));
-        } catch (IllegalArgumentException e) {
-            return badRequest(e);
-        } catch (Exception e) {
-            return serverError("文本检索失败", e, "检索失败：" + e.getMessage());
-        }
-    }
-
     /**
      * 分析候选人简历与目标岗位 JD 的匹配度
      */
@@ -284,34 +233,6 @@ public class InterviewController {
         } catch (Exception e) {
             return serverError("JD 匹配失败", e, "JD 匹配失败：" + e.getMessage());
         }
-    }
-
-    /**
-     * ReAct Agent 对话入口，可自主调用简历画像、面试问题和相似简历检索工具
-     */
-    @PostMapping("/api/agent/interview-assistant/chat")
-    @ResponseBody
-    public ResponseEntity<?> chatWithInterviewAssistant(@RequestBody AgentChatRequest request) {
-        try {
-            return ResponseEntity.ok(interviewAssistantAgentService.chat(request));
-        } catch (IllegalArgumentException e) {
-            return badRequest(e);
-        } catch (Exception e) {
-            return serverError("Agent 对话失败", e, "Agent 对话失败：" + e.getMessage());
-        }
-    }
-
-    /**
-     * AI 求职顾问流式对话入口。
-     */
-    @PostMapping(value = "/api/agent/interview-assistant/stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
-    @ResponseBody
-    public ResponseEntity<SseEmitter> streamWithInterviewAssistant(@RequestBody AgentChatRequest request) {
-        return ResponseEntity.ok()
-                .contentType(MediaType.TEXT_EVENT_STREAM)
-                .header("Cache-Control", "no-cache")
-                .header("X-Accel-Buffering", "no")
-                .body(interviewAssistantAgentService.stream(request));
     }
 
     /**
@@ -380,6 +301,9 @@ public class InterviewController {
         return ResponseEntity.ok(auditQueryService.listFailureReasons(operationName, promptVersion, limit));
     }
 
+    /**
+     * 解析前端传入的 RAG 召回数量，未传时使用默认值。
+     */
     private int parseTopK(Object topK) {
         if (topK instanceof Number number) {
             return number.intValue();
@@ -387,20 +311,32 @@ public class InterviewController {
         return 5;
     }
 
+    /**
+     * 统一返回 400 参数错误，避免每个接口重复组装响应体。
+     */
     private ResponseEntity<Map<String, String>> badRequest(RuntimeException e) {
         return error(HttpStatus.BAD_REQUEST, e.getMessage());
     }
 
+    /**
+     * 统一记录服务端异常日志，并返回给前端可读的错误文案。
+     */
     private ResponseEntity<Map<String, String>> serverError(String logMessage, Exception e, String clientMessage) {
         logger.error(logMessage, e);
         return error(HttpStatus.INTERNAL_SERVER_ERROR, clientMessage);
     }
 
+    /**
+     * 统一处理模型调用或结构化输出失败，返回网关类错误状态。
+     */
     private ResponseEntity<Map<String, String>> aiGatewayError(RuntimeException e) {
         logger.warn("AI gateway error", e);
         return error(HttpStatus.BAD_GATEWAY, e.getMessage());
     }
 
+    /**
+     * 按指定 HTTP 状态码组装标准错误响应。
+     */
     private ResponseEntity<Map<String, String>> error(HttpStatus status, String message) {
         return ResponseEntity.status(status).body(Map.of("error", message));
     }
