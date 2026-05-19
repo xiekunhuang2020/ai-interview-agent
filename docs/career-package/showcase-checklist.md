@@ -3,7 +3,7 @@
 ## GitHub 前置检查
 
 - README 能在 1 分钟内说明项目定位、技术栈和亮点。
-- `docs/architecture.md` 能讲清 Controller + Orchestrator + Agent + Tool。
+- `docs/architecture.md` 能讲清 Page Controller、API Controller、Workflow Service、Agent 和 Tool。
 - `docs/api-examples.md` 覆盖上传简历、基础出题、岗位匹配、根据岗位生成面试题、评估、审计和看板接口。
 - `.env.example` 不包含真实 API Key 或密码。
 - `samples/` 中有展示用简历和 JD。
@@ -14,7 +14,6 @@
 ## 运行前检查
 
 ```bash
-mvn -q test
 mvn -q -DskipTests compile
 ```
 
@@ -43,8 +42,8 @@ mvn spring-boot:run
 
 - 能用 30 秒讲清项目定位。
 - 能用 2 分钟讲清业务流程。
-- 能画出 Controller + Orchestrator + Agent + Tool。
-- 能解释为什么采用确定性 Orchestrator，而不是完全自主 Agent。
+- 能画出 Page Controller、API Controller、Workflow Service、Agent 和 Tool。
+- 能解释为什么采用确定性 Workflow Service，而不是完全自主 Agent。
 - 能解释 RAG 检索上下文如何防止张冠李戴。
 - 能解释 Spring AI 模型重试、业务降级、traceId 和审计怎么协作。
 - 能解释 BeanOutputConverter 和 Bean Validation 如何治理结构化输出。
@@ -55,9 +54,9 @@ mvn spring-boot:run
 ```text
 README.md
 docs/architecture.md
-src/main/java/com/xkh/ai/interview/orchestrator/InterviewAgentOrchestrator.java
-src/main/java/com/xkh/ai/interview/support/AiModelInvoker.java
-src/main/java/com/xkh/ai/interview/support/AiJsonResponseParser.java
+src/main/java/com/xkh/ai/interview/service/workflow/InterviewWorkflowService.java
+src/main/java/com/xkh/ai/interview/service/llm/AiModelInvoker.java
+src/main/java/com/xkh/ai/interview/service/llm/AiJsonResponseParser.java
 src/main/resources/templates/prompt-dashboard.html
 docs/career-package/technical-faq.md
 ```

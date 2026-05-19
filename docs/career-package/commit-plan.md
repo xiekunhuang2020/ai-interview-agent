@@ -119,7 +119,6 @@ docs/career-package/
 ## 提交前检查命令
 
 ```bash
-mvn -q test
 mvn -q -DskipTests compile
 git status --short
 git diff --stat

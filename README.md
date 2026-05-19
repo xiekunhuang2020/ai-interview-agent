@@ -175,6 +175,7 @@ http://localhost:8080
 
 ## 面试材料
 
+- [深度优化路线图](docs/deep-optimization-roadmap.md)
 - [最终版简历文本](docs/career-package/final-resume-text.md)
 - [简历项目描述](docs/career-package/resume-project.md)
 - [面试讲稿](docs/career-package/interview-script.md)
@@ -191,7 +192,7 @@ http://localhost:8080
 4. 调用“根据岗位生成面试题”接口，生成岗位定制化面试问题。
 5. 填写答案并提交。
 6. 查看面试评估报告、分类得分和参考答案。
-7. 通过 `/api/rag/search` 测试简历向量检索。
+7. 打开 AI 求职顾问页面，围绕当前简历进行追问。
 8. 打开 `/audit/prompt-dashboard` 查看 Prompt 效果评估看板。
 
 ## 简历可写亮点

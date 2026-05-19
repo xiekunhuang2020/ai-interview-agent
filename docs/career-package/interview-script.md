@@ -10,15 +10,18 @@
 
 在面试训练阶段，系统有两种出题模式。第一种是基础面试题，直接根据候选人简历生成问题。第二种是岗位定制面试题，用户输入目标岗位说明后，系统会用岗位说明去 Milvus 检索相似简历片段，再由 `RagInterviewQuestionAgent` 结合候选人简历、岗位说明和检索上下文生成更贴近投递岗位的问题。候选人提交答案后，`AnswerEvaluationAgent` 会输出逐题评分、分类得分、优势、不足和参考答案。
 
-架构上我没有把所有逻辑堆在 Service 里，而是拆成 Controller、Orchestrator、Agent 和 Tool。Controller 只处理 HTTP，`InterviewAgentOrchestrator` 负责编排流程，Agent 处理需要模型推理的任务，Tool 处理文档解析、存储、缓存和向量检索等确定性能力。
+架构上我没有把所有逻辑堆在 Controller 里，而是拆成 Page Controller、API Controller、Workflow Service、Agent 和 Tool。Page Controller 只返回页面，API Controller 只处理 HTTP 入参和错误码，`InterviewWorkflowService` 负责编排流程，Agent 处理需要模型推理的任务，Tool 处理文档解析、存储、缓存和向量检索等确定性能力。
 
 我重点补了 AI 应用工程化能力。所有模型调用都经过 Spring AI `ChatClient`，模型侧重试和退避交给 Spring AI 的 `spring.ai.retry` 配置；业务层的 `AiModelInvoker` 只保留 Prompt 版本、调用审计、显式降级和 traceId 日志追踪。模型输出先由 Spring AI `BeanOutputConverter` 转成 DTO，再用 Jakarta Bean Validation 做必填、范围、枚举和级联校验，少量业务规则比如简历分项分数归一化才保留在代码里。每次模型调用还会记录 operation、Prompt 版本、耗时、成功状态、降级状态和失败原因，并提供 Prompt 效果看板观察成功率、降级率和平均耗时。
 
 ## 架构讲法
 
 ```text
-Controller
-  -> Orchestrator
+Page Controller
+  -> Thymeleaf 页面
+
+API Controller
+  -> Workflow Service
       -> Agent
           -> AiModelInvoker
       -> Tool
@@ -31,7 +34,7 @@ Controller
 我把系统拆成两类能力：需要模型推理的 Agent，和结果确定的 Tool。
 比如简历评分、岗位匹配、岗位定制出题和答案评估属于 Agent；
 文档解析、数据库读写、缓存读写和向量检索属于 Tool。
-Orchestrator 负责编排这些 Agent 和 Tool，避免 Controller 直接堆业务逻辑，也方便后续替换模型、扩展工具或增加新的面试流程。
+Workflow Service 负责编排这些 Agent 和 Tool，避免 Controller 直接堆业务逻辑，也方便后续替换模型、扩展工具或增加新的面试流程。
 ```
 
 ## RAG 讲法

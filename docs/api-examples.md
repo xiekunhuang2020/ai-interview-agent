@@ -21,10 +21,10 @@ curl -X POST http://localhost:8080/api/resume/upload \
 
 所有接口都会在响应头返回 `X-Trace-Id`。如果请求未传入该 header，服务端会自动生成，方便把 HTTP 请求、Agent 编排和模型调用日志串起来。
 
-## 获取简历分析
+## 获取简历工作台数据
 
 ```bash
-curl http://localhost:8080/api/resume/{resumeId}/analysis
+curl http://localhost:8080/api/resume/{resumeId}
 ```
 
 ## 生成面试问题
@@ -39,14 +39,6 @@ curl -X POST http://localhost:8080/api/interview/{resumeId}/questions
 curl -X POST http://localhost:8080/api/interview/{resumeId}/submit \
   -H "Content-Type: application/json" \
   -d "{\"0\":\"我会从业务场景、技术方案、结果指标三个层次回答。\"}"
-```
-
-## 简历向量检索
-
-```bash
-curl -X POST http://localhost:8080/api/rag/search \
-  -H "Content-Type: application/json" \
-  -d "{\"query\":\"Java 后端，熟悉 Redis 和 Spring Boot，有高并发项目经验\", \"topK\": 5}"
 ```
 
 ## 岗位匹配分析
