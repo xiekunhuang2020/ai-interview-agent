@@ -8,8 +8,9 @@
 
 ```mermaid
 flowchart TD
-    U["用户 / 浏览器"] --> C["InterviewController"]
-    C --> O["InterviewAgentOrchestrator"]
+    U["用户 / 浏览器"] --> PC["InterviewPageController"]
+    U --> AC["InterviewApiController"]
+    AC --> O["InterviewWorkflowService"]
 
     O --> T1["ResumeParseTool"]
     O --> A1["ResumeAnalysisAgent"]
@@ -28,9 +29,9 @@ flowchart TD
     INV --> LLM["DashScope Chat Model"]
     INV --> AUDIT["ai_model_call_log"]
 
-    C --> RA["ReactAgent"]
-    RA --> TOOLCALL["ResumeAgentTools"]
-    RA --> MSGAUDIT["agent_conversation_message"]
+    AC --> AS["InterviewAssistantAgentService"]
+    AS --> TOOLCALL["ResumeAgentTools"]
+    AS --> MSGAUDIT["agent_conversation_message"]
 
     T1 --> Tika["Apache Tika"]
     T2 --> MySQL["MySQL"]
@@ -38,15 +39,28 @@ flowchart TD
     T3 --> Milvus["Milvus Vector Store"]
 ```
 
+## 开发约束
+
+项目优先体现“会用框架”，而不是“把框架能力再造一层”。
+
+- 严禁重复封装 Spring AI、Spring AI Alibaba、MyBatis-Plus、Milvus Vector Store、RedisTemplate 等官方已经提供的能力。
+- 新增代码前必须先检查官方 API 和当前依赖能力，能用框架配置、Starter、Builder、Advisor、Converter、Template 完成的，不写自研替代实现。
+- 业务层只保留业务编排、参数校验、审计记录、异常映射和页面接口适配。
+- 如果确实需要写适配代码，方法备注必须说明业务边界，避免被误解为重复造轮子。
+
 ## 核心角色
 
-### Controller
+### Page Controller
 
-只处理 HTTP 入参、响应和错误码，不直接编排业务流程，也不直接调用大模型。API 错误响应统一收敛为 `{ "error": "..." }`，由 Controller 私有方法映射 400、500 和模型网关 502。
+`InterviewPageController` 只负责返回 Thymeleaf 页面，不处理业务逻辑。
 
-### Orchestrator
+### API Controller
 
-`InterviewAgentOrchestrator` 是面试流程编排器，负责决定每一步调用哪个 Agent 或 Tool。
+`InterviewApiController` 只处理 HTTP 入参、响应和错误码，不直接调用大模型。API 错误响应统一收敛为 `{ "error": "..." }`，由私有方法映射 400、500 和模型网关 502。
+
+### Workflow Service
+
+`InterviewWorkflowService` 是面试流程编排服务，负责决定每一步调用哪个 Agent 或 Tool。
 
 典型流程：
 
@@ -68,9 +82,9 @@ Agent 负责需要模型推理的任务，目前包含：
 - `JobDescriptionMatchAgent`：分析候选人简历与目标 JD 的匹配度
 - `RagInterviewQuestionAgent`：结合目标岗位说明、候选人简历和向量检索上下文生成岗位定制面试题
 
-### ReAct Agent Runtime
+### AI 求职顾问
 
-`InterviewAssistantAgentService` 提供面向对话式使用的 ReAct Agent 入口。它使用 `conversationId` 作为 `RunnableConfig.threadId`，让同一会话内的 Agent 执行具备线程级上下文。
+`InterviewAssistantAgentService` 提供面向对话式使用的 AI 求职顾问入口。它基于 Spring AI `ChatClient.stream()` 做流式输出，并使用 `conversationId` 保存最近几轮对话上下文。
 
 Agent 可调用的工具集中在 `ResumeAgentTools`，只暴露查询类能力：
 
@@ -183,7 +197,7 @@ Tool 负责确定性能力，方便后续迁移到函数调用或工具调用框
 
 ## 当前边界
 
-当前版本采用确定性 Orchestrator 编排 Agent，不做完全自主规划。这样更适合业务系统落地：链路可控、错误边界清楚、易于测试和排查。
+当前版本采用确定性 `InterviewWorkflowService` 编排 Agent，不做完全自主规划。这样更适合业务系统落地：链路可控、错误边界清楚、易于排查。
 
 ## 岗位定制面试题生成流程
 

@@ -29,13 +29,23 @@ AI 求职顾问是一个面向程序员求职和技术面试训练场景的智�
 | 页面渲染 | Thymeleaf, Vue 3, HTML, CSS, JavaScript |
 | 工程化 | Maven, Docker Compose |
 
+## 开发约束
+
+- 严禁重复封装框架已有能力。Spring AI、Spring AI Alibaba、MyBatis-Plus、Milvus Vector Store、RedisTemplate 已提供的能力必须优先直接使用。
+- 新增功能前先检查官方 API 和当前依赖能力，确认框架没有现成方案后，才允许写项目内业务适配代码。
+- 项目代码只保留业务编排、参数校验、审计记录、异常映射和页面接口适配，不自研模型重试、工具调度、向量检索、结构化转换等框架能力。
+- 如果必须做业务适配，方法注释里要说明“适配的业务边界”，避免后续误解为重复造轮子。
+
 ## Agent 架构
 
-项目已从单一 Service 调用模型，改造成 Controller + Orchestrator + Agent + Tool 分层。
+项目已从单一 Service 调用模型，改造成 Controller + Service + Agent + Tool 分层。
 
 ```text
-Controller
-  -> InterviewAgentOrchestrator
+InterviewPageController
+  -> 返回 Thymeleaf 页面
+
+InterviewApiController
+  -> InterviewWorkflowService
       -> ResumeParseTool
       -> ResumeAnalysisAgent
       -> ResumeRepositoryTool
@@ -52,15 +62,18 @@ Controller
 
 ```text
 src/main/java/com/xkh/ai/interview
-├── agent             # 需要大模型推理的任务角色
-├── config            # MyBatis-Plus、Redis 配置
-├── controller        # HTTP 入口
+├── config            # MyBatis-Plus、Redis、Trace 配置
+├── controller        # 页面入口和 API 入口
+├── dto               # 请求、响应和模型结构化输出 DTO
 ├── entity            # 数据库实体
 ├── mapper            # MyBatis-Plus Mapper
-├── orchestrator      # Agent 工作流编排
-├── service/dto       # 业务 DTO
-├── support           # 通用支持能力
-└── tool              # 确定性工具能力
+└── service
+    ├── agent         # 需要大模型推理的任务角色
+    ├── audit         # 模型调用和对话审计
+    ├── llm           # 模型调用、结构化解析和 Prompt 版本
+    ├── rag           # Spring AI RAG Advisor 适配
+    ├── tool          # Agent 可调用的确定性工具
+    └── workflow      # 面试业务流程编排
 ```
 
 ## Prompt 版本管理
