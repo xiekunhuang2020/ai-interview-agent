@@ -27,6 +27,8 @@ curl -X POST http://localhost:8080/api/resume/upload \
 curl http://localhost:8080/api/resume/{resumeId}
 ```
 
+响应会包含 `session` 字段，用于展示当前简历所在流程阶段，例如 `ANALYZED`、`JD_MATCHED`、`QUESTIONS_GENERATED`、`ANSWER_SUBMITTED`、`EVALUATED` 或 `FAILED`。
+
 ## 生成面试问题
 
 ```bash
@@ -100,4 +102,5 @@ http://localhost:8080/audit/prompt-dashboard
 ```bash
 mysql -uroot -p ai_interview < sql/migration-v2-ai-model-call-log.sql
 mysql -uroot -p ai_interview < sql/migration-v3-agent-conversation-message.sql
+mysql -uroot -p ai_interview < sql/migration-v4-interview-session.sql
 ```

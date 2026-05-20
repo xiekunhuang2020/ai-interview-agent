@@ -52,6 +52,10 @@ API Controller
 
 上传简历、分析、匹配、出题、评估这些步骤有明确业务顺序。确定性 Workflow 更适合业务系统落地，能减少不可控行为，也方便排查失败阶段。
 
+### 流程状态怎么管理？
+
+项目新增了 `interview_session` 表，记录每份简历当前状态：`UPLOADED`、`ANALYZED`、`JD_MATCHED`、`QUESTIONS_GENERATED`、`ANSWER_SUBMITTED`、`EVALUATED`、`FAILED`。核心阶段失败时会记录失败阶段和失败原因，页面也会展示当前流程。
+
 ### RAG 解决什么问题？
 
 RAG 用在岗位定制面试题生成。系统用目标 JD 检索相似简历片段，让模型参考同类岗位常见追问方向。Prompt 明确要求检索上下文只能作为参考，不能当成当前候选人真实经历。

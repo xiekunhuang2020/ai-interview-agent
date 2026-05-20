@@ -30,6 +30,7 @@ flowchart TD
     A5 --> INV
     INV --> LLM["DashScope Chat Model"]
     INV --> AUDIT["ai_model_call_log"]
+    O --> SESSION["interview_session"]
 
     AC --> AS["InterviewAssistantAgentService"]
     AS --> TOOLCALL["ResumeAgentTools"]
@@ -141,6 +142,18 @@ jd-match -> jd-match-v2026-05-17-01
 - createTime
 
 审计写入失败不会影响主业务流程。
+
+`interview_session` 记录每份简历当前所在的业务阶段：
+
+- UPLOADED：简历已上传
+- ANALYZED：简历诊断完成
+- JD_MATCHED：岗位匹配完成
+- QUESTIONS_GENERATED：面试题生成完成
+- ANSWER_SUBMITTED：答案已提交
+- EVALUATED：复盘评估完成
+- FAILED：流程失败，并记录失败阶段和失败原因
+
+状态由 `InterviewWorkflowService` 在关键业务节点更新，用于页面展示当前进度，也方便排查失败卡在哪个阶段。
 
 `agent_conversation_message` 记录 AI 顾问对话消息审计信息：
 

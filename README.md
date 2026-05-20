@@ -154,7 +154,7 @@ docker compose exec redis redis-cli ping
 curl http://localhost:9091/healthz
 ```
 
-`sql/init.sql` 会在 MySQL 数据卷首次初始化时自动执行。若本地已有旧数据卷，需要保留数据并补齐新表结构，请手动执行 `sql/migration-v2-ai-model-call-log.sql` 和 `sql/migration-v3-agent-conversation-message.sql`。
+`sql/init.sql` 会在 MySQL 数据卷首次初始化时自动执行。若本地已有旧数据卷，需要保留数据并补齐新表结构，请手动执行 `sql/migration-v2-ai-model-call-log.sql`、`sql/migration-v3-agent-conversation-message.sql` 和 `sql/migration-v4-interview-session.sql`。
 
 ### 3. 启动应用
 
