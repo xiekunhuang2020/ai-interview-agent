@@ -45,7 +45,7 @@ mvn spring-boot:run
 - 能画出 Page Controller、API Controller、Workflow Service、Agent 和 Tool。
 - 能解释为什么采用确定性 Workflow Service，而不是完全自主 Agent。
 - 能解释 RAG 检索上下文如何防止张冠李戴。
-- 能解释 Spring AI 模型重试、业务降级、traceId 和审计怎么协作。
+- 能解释 Spring AI 模型重试、traceId、异常映射和审计怎么协作。
 - 能解释 BeanOutputConverter 和 Bean Validation 如何治理结构化输出。
 - 能诚实说明这是个人自研项目，没有虚构线上 QPS 或准确率。
 
@@ -55,7 +55,7 @@ mvn spring-boot:run
 README.md
 docs/architecture.md
 src/main/java/com/xkh/ai/interview/service/workflow/InterviewWorkflowService.java
-src/main/java/com/xkh/ai/interview/service/llm/AiModelInvoker.java
+src/main/java/com/xkh/ai/interview/service/llm/AiModelCallService.java
 src/main/java/com/xkh/ai/interview/service/llm/AiJsonResponseParser.java
 src/main/resources/templates/prompt-dashboard.html
 docs/career-package/technical-faq.md

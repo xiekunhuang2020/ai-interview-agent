@@ -7,10 +7,9 @@
 ```text
 feat(agent): introduce orchestrator, agents and tools
 feat(rag): add job matching and RAG-based tailored questions
-feat(model): use ChatClient with Spring AI retry and business fallback
+feat(model): use ChatClient with Spring AI retry and audit mapping
 feat(audit): add prompt versioning, model call logs and agent conversation audit
 feat(dashboard): add prompt metrics dashboard
-test(parser): strengthen structured output validation
 docs(project): add architecture, API examples and runtime docs
 docs(career): add resume and interview preparation package
 ```
@@ -45,15 +44,14 @@ samples/java-ai-agent-jd.txt
 ### feat(model)
 
 ```text
-AiModelInvoker
+AiModelCallService
 AiModelCallException
 AiStructuredOutputException
-AiModelFallbackResponseFactory
 RequestTraceFilter
-application.yml 中 spring.ai.retry 和 ai-interview.model 配置
+application.yml 中 spring.ai.retry 配置
 ```
 
-说明重点：Spring AI 框架级重试、业务显式降级、Prompt 版本和 traceId。
+说明重点：Spring AI 框架级重试、Prompt 版本、调用审计、异常映射和 traceId。
 
 ### feat(audit)
 
@@ -84,16 +82,6 @@ InterviewController 中 /audit/prompt-dashboard 和 /api/audit/* 接口
 ```
 
 说明重点：Prompt 效果指标和失败原因看板。
-
-### test(parser)
-
-```text
-AiJsonResponseParserTests
-AiModelFallbackResponseFactoryTests
-PromptVersionRegistryTests
-```
-
-说明重点：Spring AI 结构化输出转换、Jakarta Bean Validation 约束和降级 JSON 契约。
 
 ### docs(project)
 

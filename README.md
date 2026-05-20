@@ -12,9 +12,9 @@ AI 求职顾问是一个面向程序员求职和技术面试训练场景的智�
 - 答案评估：结合简历背景和候选人回答，输出逐题评分、分类得分、优势、不足和参考答案。
 - RAG 基础能力：将简历写入 Milvus 向量库，支持基于 JD 或关键词的相似简历检索。
 - 会话存储：使用 MySQL 持久化简历、问题和评估结果，使用 Redis 缓存热点面试会话。
-- 模型调用治理：基于 Spring AI `ChatClient` 统一模型调用入口，模型侧重试和退避交给 `spring.ai.retry`，业务层保留显式降级、结构化输出强校验和 traceId 日志追踪。
-- 调用审计：记录每次大模型调用的 operation、Prompt 版本、traceId、耗时、成功状态、降级状态和失败原因。
-- 降级与评估：模型最终失败后可返回显式降级结果，并按 Prompt 版本统计成功率、降级率、平均耗时和失败原因分布。
+- 模型调用治理：基于 Spring AI `ChatClient` 统一模型调用入口，模型侧重试和退避交给 `spring.ai.retry`，业务层只保留 Prompt 版本、调用审计、异常映射、结构化输出强校验和 traceId 日志追踪。
+- 调用审计：记录每次大模型调用的 operation、Prompt 版本、traceId、耗时、成功状态和失败原因。
+- Prompt 评估：按 Prompt 版本统计成功率、失败数、平均耗时、最大耗时和失败原因分布。
 
 ## 技术栈
 
@@ -97,7 +97,7 @@ ai-interview:
 GET /api/audit/prompt-metrics?operationName=jd-match&limit=1000
 ```
 
-指标包括调用总数、成功率、降级率、平均耗时和最大耗时；`avgAttemptCount` 作为早期外层重试审计兼容字段保留。
+指标包括调用总数、成功率、失败数、平均耗时和最大耗时；`avgAttemptCount` 作为早期外层重试审计兼容字段保留。
 
 也可以打开页面查看：
 
@@ -119,7 +119,7 @@ cp .env.example .env
 
 应用会通过 `spring.config.import=optional:file:.env[.properties]` 读取当前目录下的 `.env`，Docker Compose 也会复用同一份配置。
 
-模型调用治理参数也可以通过 `.env` 调整：
+模型调用、HTTP 超时和审计参数也可以通过 `.env` 调整：
 
 ```text
 AI_MODEL_RETRY_MAX_ATTEMPTS=3
@@ -130,7 +130,6 @@ HTTP_CLIENT_CONNECT_TIMEOUT=60s
 HTTP_CLIENT_READ_TIMEOUT=600s
 HTTP_REACTIVE_CLIENT_CONNECT_TIMEOUT=60s
 HTTP_REACTIVE_CLIENT_READ_TIMEOUT=600s
-AI_MODEL_FALLBACK_ENABLED=true
 AI_AGENT_AUDIT_ENABLED=true
 AI_AGENT_AUDIT_LOG_MESSAGE_CONTENT=true
 AI_AGENT_AUDIT_MAX_MESSAGE_CONTENT_LENGTH=4000
@@ -202,10 +201,10 @@ AI 面试 Agent 平台｜Java 21 / Spring Boot / Spring AI Alibaba / DashScope /
 
 - 设计并实现“简历解析 -> 能力画像 -> 岗位匹配 -> 面试题生成 -> 回答评估 -> 面试报告生成”的 Agent 工作流，提升模拟面试的个性化与反馈质量。
 - 基于 Spring AI Alibaba 接入通义千问模型，通过 System/User Prompt 分层设计、结构化 JSON 输出约束和容错解析，降低大模型输出不稳定对业务流程的影响。
-- 基于 Spring AI `ChatClient` 统一模型调用入口，模型侧重试和退避交给 `spring.ai.retry` 配置，业务层保留显式降级、traceId 日志追踪和模型侧故障分层处理；无可用降级时将模型侧故障映射为 502。
+- 基于 Spring AI `ChatClient` 统一模型调用入口，模型侧重试和退避交给 `spring.ai.retry` 配置，业务层保留 Prompt 版本、调用审计、traceId 日志追踪和模型侧故障映射。
 - 强化 AI 结构化输出校验，覆盖必填字段、类型、数值范围、枚举值、数组元素结构和未知字段检测，避免异常模型输出污染业务数据。
-- 设计 AI 调用审计表，记录 operation、Prompt 版本、traceId、耗时、成功状态、降级状态和错误原因，支持模型链路问题回溯。
-- 实现显式降级策略和 Prompt 指标聚合，支持按版本观察成功率、降级率、平均耗时和失败原因分布，为 Prompt 迭代提供数据依据。
+- 设计 AI 调用审计表，记录 operation、Prompt 版本、traceId、耗时、成功状态和错误原因，支持模型链路问题回溯。
+- 实现 Prompt 指标聚合，支持按版本观察成功率、失败数、平均耗时和失败原因分布，为 Prompt 迭代提供数据依据。
 - 使用 Apache Tika 支持多格式简历解析，并围绕项目深度、技能匹配、内容完整性、结构清晰度和表达专业性生成多维度评分。
 - 基于 Milvus 构建简历向量知识库，结合目标岗位说明检索相似简历片段，为岗位定制化出题提供 RAG 上下文。
 - 实现岗位匹配 Agent，输出岗位匹配分、能力证据、缺失技能、风险点和面试追问方向。
@@ -215,4 +214,4 @@ AI 面试 Agent 平台｜Java 21 / Spring Boot / Spring AI Alibaba / DashScope /
 ## 后续规划
 
 - 增加 Prompt 评估看板的时间范围筛选。
-- 补充集成测试。
+- 补充 Demo 数据集和 Prompt/RAG 评测脚本。

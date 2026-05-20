@@ -75,8 +75,6 @@ ai-interview:
       enabled: ${AI_AGENT_AUDIT_ENABLED:true}
       log-message-content: ${AI_AGENT_AUDIT_LOG_MESSAGE_CONTENT:true}
       max-message-content-length: ${AI_AGENT_AUDIT_MAX_MESSAGE_CONTENT_LENGTH:4000}
-  model:
-    fallback-enabled: ${AI_MODEL_FALLBACK_ENABLED:true}
   prompt:
     versions:
       resume-analysis: resume-analysis-v2026-05-17-01

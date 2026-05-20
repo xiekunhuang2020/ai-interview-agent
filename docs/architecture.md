@@ -21,7 +21,7 @@ flowchart TD
     O --> A4["JobDescriptionMatchAgent"]
     O --> A5["RagInterviewQuestionAgent"]
 
-    A1 --> INV["AiModelInvoker"]
+    A1 --> INV["AiModelCallService"]
     A2 --> INV
     A3 --> INV
     A4 --> INV
@@ -94,9 +94,9 @@ Agent 可调用的工具集中在 `ResumeAgentTools`，只暴露查询类能力�
 
 上传、保存、向量写入等副作用操作不暴露给模型直接调用，避免 Agent 自主执行不可控写操作。模型可见工具返回的是裁剪后的摘要或片段：简历画像只返回有限优势/建议和文本片段，面试问题最多返回前 10 题，相似简历返回 `snippet` 而不是完整简历原文。Agent 系统提示进一步区分事实来源：画像和问题工具是当前候选人的真实数据，相似简历工具只能作为同类岗位追问方向参考。
 
-### Model Invoker
+### Model Call Service
 
-`AiModelInvoker` 统一封装大模型调用，避免每个 Agent 分散处理网络异常和模型波动。
+`AiModelCallService` 是模型调用业务适配层，底层统一使用 Spring AI `ChatClient`，避免每个 Agent 分散处理 Prompt 版本、审计和异常映射。
 
 当前治理能力：
 
@@ -106,13 +106,12 @@ Agent 可调用的工具集中在 `ResumeAgentTools`，只暴露查询类能力�
 - 模型侧重试和退避交给 Spring AI `spring.ai.retry` 自动配置
 - 调用耗时日志
 - traceId 贯穿 HTTP 请求和模型调用日志
-- 无可用降级时将模型调用失败映射为 502 响应
+- 模型调用最终失败后映射为 502 响应
 - 结构化输出治理：Spring AI `BeanOutputConverter` 负责 DTO 转换，Jakarta Bean Validation 负责必填、范围、枚举和级联校验
 - Prompt 版本记录
 - 调用审计落库
-- 最终失败后的显式降级结果
 
-`AiModelInvoker` 只保留业务层必须关心的审计、Prompt 版本和 fallback，不再手写 retry/backoff/线程池调度，避免和框架模型层能力重复。
+`AiModelCallService` 只保留业务层必须关心的审计、Prompt 版本和异常映射，不手写 retry/backoff、线程池调度、通用模型网关或伪造兜底响应，避免和框架模型层能力重复。
 
 ### Prompt 版本
 
@@ -133,7 +132,7 @@ jd-match -> jd-match-v2026-05-17-01
 - operationName
 - promptVersion
 - success
-- fallbackUsed
+- fallbackUsed（历史兼容字段，当前固定写 0，不再作为业务指标展示）
 - attemptCount（兼容早期外层重试审计；当前模型侧重试由 Spring AI 管理）
 - latencyMs
 - errorMessage
@@ -166,20 +165,20 @@ AI_AGENT_AUDIT_MAX_MESSAGE_CONTENT_LENGTH=4000
 
 生产环境如果担心简历、JD 等敏感信息进入审计表，可以关闭 `AI_AGENT_AUDIT_LOG_MESSAGE_CONTENT`，只保留会话、轮次、耗时和错误状态。消息正文默认按 `AI_AGENT_AUDIT_MAX_MESSAGE_CONTENT_LENGTH` 裁剪，错误原因按 1024 字符裁剪；被裁剪内容会保留原始长度标记，便于排查时识别审计记录不是完整内容。
 
-### 降级策略
+### 失败处理
 
-`AiModelFallbackResponseFactory` 为每个 operation 提供结构合法的降级 JSON。模型最终失败时，如果 `AI_MODEL_FALLBACK_ENABLED=true`，调用器会返回降级结果，并在审计中记录：
+模型调用失败时，底层重试由 Spring AI `spring.ai.retry` 配置处理。重试后仍失败时，`AiModelCallService` 会记录失败审计，并把异常映射为模型网关错误，由接口层返回 502。
 
 ```text
 success = 0
-fallbackUsed = 1
+fallbackUsed = 0
 ```
 
-这表示“真实模型调用失败，但业务使用了降级响应继续执行”。
+当前项目不再生成结构合法但没有真实模型结果的兜底 JSON，避免把失败包装成“可继续使用的结果”。
 
 ### Prompt 指标
 
-`/api/audit/prompt-metrics` 基于最近的模型调用审计记录，按 operation 和 Prompt 版本聚合 totalCalls、successRate、fallbackRate、avgLatencyMs 和 maxLatencyMs。`avgAttemptCount` 保留用于兼容早期外层重试审计。
+`/api/audit/prompt-metrics` 基于最近的模型调用审计记录，按 operation 和 Prompt 版本聚合 totalCalls、successRate、failedCalls、avgLatencyMs 和 maxLatencyMs。`avgAttemptCount` 保留用于兼容早期外层重试审计。
 
 `/audit/prompt-dashboard` 提供一个轻量看板页面，用于查看 Prompt 版本指标和失败原因分布。
 

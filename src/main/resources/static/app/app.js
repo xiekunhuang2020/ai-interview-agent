@@ -199,7 +199,7 @@ function createInterviewApp() {
 职责：
 1. 基于 Spring Boot、Spring AI、检索增强生成和工具调用开发企业级智能体应用；
 2. 负责简历解析、向量检索、面试问答、评估报告等业务链路；
-3. 建设模型调用审计、提示词版本管理、稳定性监控和降级策略。
+3. 建设模型调用审计、提示词版本管理、稳定性监控和错误追踪。
 要求：
 1. 熟悉 Java 21、Spring Boot、MyBatis-Plus、MySQL、Redis；
 2. 有 LangChain、Spring AI、Milvus 或向量数据库经验；

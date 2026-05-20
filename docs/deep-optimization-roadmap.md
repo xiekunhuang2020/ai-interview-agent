@@ -27,7 +27,7 @@ Agent 和普通 ChatBot 的区别在哪里？
 
 | 序号 | 优化项 | 当前状态 |
 | --- | --- | --- |
-| 1 | 收敛模型调用层，减少自研味道 | 还需优化 |
+| 1 | 收敛模型调用层，减少自研味道 | 已做 |
 | 2 | 修正项目定位：确定性工作流，不硬吹自主 Agent | 还需优化 |
 | 3 | 增加面试会话状态机 | 没做 |
 | 4 | 拆分核心业务表，降低 JSON 大字段依赖 | 没做 |
@@ -52,11 +52,11 @@ Agent 和普通 ChatBot 的区别在哪里？
 
 ### 1. 收敛模型调用层，减少自研味道
 
-**状态：还需优化**
+**状态：已做**
 
-**现状问题**
+**早期问题**
 
-项目里有 `AiModelInvoker`、`AiJsonResponseParser`、`AiModelFallbackResponseFactory` 等类，容易被问成“为什么不直接用 Spring AI 的 ChatClient、Converter 和 Retry 配置？”
+项目早期有旧模型调用类和手写兜底响应，容易被问成“为什么不直接用 Spring AI 的 ChatClient、Converter 和 Retry 配置？”
 
 **优化目标**
 
@@ -64,10 +64,10 @@ Agent 和普通 ChatBot 的区别在哪里？
 
 **改造内容**
 
-- 梳理 `service.llm` 包，只保留业务必要类。
-- 优先使用 `ChatClient`、`BeanOutputConverter`、Jakarta Validation、`spring.ai.retry`。
-- 删除或弱化重复封装意味强的类名和职责。
-- 将“降级”定义为业务兜底策略，不包装成模型调用框架。
+- 已将模型调用入口收敛为 `AiModelCallService`。
+- 底层统一使用 Spring AI `ChatClient`，重试和退避交给 `spring.ai.retry`。
+- 删除手写兜底响应工厂，不再生成没有真实模型结果的兜底 JSON。
+- 业务层只保留 Prompt 版本、调用审计、异常映射和 traceId 日志。
 - 给模型调用链路加清晰注释：哪些是官方能力，哪些是业务边界。
 
 **验收标准**
@@ -77,7 +77,7 @@ Agent 和普通 ChatBot 的区别在哪里？
 
 **面试可讲**
 
-我没有重复造模型调用框架，底层统一使用 Spring AI `ChatClient`。项目层只保留 Prompt 版本、业务审计、异常映射和最终失败后的业务降级。
+我没有重复造模型调用框架，底层统一使用 Spring AI `ChatClient`。项目层只保留 Prompt 版本、业务审计、异常映射和 traceId，模型最终失败后直接记录失败并返回 502。
 
 ### 2. 修正项目定位：确定性工作流，不硬吹自主 Agent
 
@@ -412,7 +412,7 @@ UNKNOWN
 RAG TopK 命中率
 岗位匹配生成耗时
 面试题生成成功率
-降级次数
+模型失败次数
 ```
 
 **改造内容**
@@ -428,7 +428,7 @@ RAG TopK 命中率
 
 **面试可讲**
 
-我把 AI 调用做成可观测链路，能看到成功率、耗时、降级率和 RAG 召回效果，用数据驱动 Prompt 和检索策略调整。
+我把 AI 调用做成可观测链路，能看到成功率、失败率、耗时和 RAG 召回效果，用数据驱动 Prompt 和检索策略调整。
 
 ### 12. 增加 Prompt/RAG Evaluation Harness
 
