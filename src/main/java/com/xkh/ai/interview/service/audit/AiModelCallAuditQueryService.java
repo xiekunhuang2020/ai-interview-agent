@@ -18,10 +18,16 @@ public class AiModelCallAuditQueryService {
 
     private final AiModelCallLogMapper aiModelCallLogMapper;
 
+    /**
+     * 注入模型调用审计 Mapper，用于查询调用日志和聚合指标。
+     */
     public AiModelCallAuditQueryService(AiModelCallLogMapper aiModelCallLogMapper) {
         this.aiModelCallLogMapper = aiModelCallLogMapper;
     }
 
+    /**
+     * 查询最近的模型调用记录，可按 traceId 或 operationName 缩小排查范围。
+     */
     public List<AiModelCallLog> listRecent(String traceId, String operationName, int limit) {
         int safeLimit = Math.max(1, Math.min(limit, 100));
         LambdaQueryWrapper<AiModelCallLog> wrapper = new LambdaQueryWrapper<>();
@@ -32,6 +38,9 @@ public class AiModelCallAuditQueryService {
         return aiModelCallLogMapper.selectList(wrapper);
     }
 
+    /**
+     * 按 operationName 和 Prompt 版本聚合调用次数、成功率、失败数和耗时指标。
+     */
     public List<PromptMetricsResult> listPromptMetrics(String operationName, String promptVersion, int limit) {
         int safeLimit = Math.max(1, Math.min(limit, 5000));
         LambdaQueryWrapper<AiModelCallLog> wrapper = new LambdaQueryWrapper<>();
@@ -50,6 +59,9 @@ public class AiModelCallAuditQueryService {
                 .toList();
     }
 
+    /**
+     * 聚合模型调用失败原因，用于 Prompt 看板排查高频失败类型。
+     */
     public List<PromptFailureReasonResult> listFailureReasons(String operationName, String promptVersion, int limit) {
         int safeLimit = Math.max(1, Math.min(limit, 5000));
         LambdaQueryWrapper<AiModelCallLog> wrapper = new LambdaQueryWrapper<>();
@@ -70,10 +82,12 @@ public class AiModelCallAuditQueryService {
                 .toList();
     }
 
+    /**
+     * 将同一 Prompt 版本下的调用日志转换为前端看板需要的指标 DTO。
+     */
     private PromptMetricsResult toMetrics(List<AiModelCallLog> logs) {
         long totalCalls = logs.size();
         long successCalls = logs.stream().filter(log -> Integer.valueOf(1).equals(log.getSuccess())).count();
-        long fallbackCalls = logs.stream().filter(log -> Integer.valueOf(1).equals(log.getFallbackUsed())).count();
         long failedCalls = totalCalls - successCalls;
         double avgLatencyMs = logs.stream()
                 .mapToLong(log -> log.getLatencyMs() == null ? 0L : log.getLatencyMs())
@@ -95,15 +109,16 @@ public class AiModelCallAuditQueryService {
                 .totalCalls(totalCalls)
                 .successCalls(successCalls)
                 .failedCalls(failedCalls)
-                .fallbackCalls(fallbackCalls)
                 .successRate(rate(successCalls, totalCalls))
-                .fallbackRate(rate(fallbackCalls, totalCalls))
                 .avgLatencyMs(round(avgLatencyMs))
                 .maxLatencyMs(maxLatencyMs)
                 .avgAttemptCount(round(avgAttemptCount))
                 .build();
     }
 
+    /**
+     * 将同一失败原因下的日志转换为失败原因分布 DTO。
+     */
     private PromptFailureReasonResult toFailureReason(String reason, List<AiModelCallLog> logs, long totalFailures) {
         AiModelCallLog sample = logs.get(0);
         return PromptFailureReasonResult.builder()
@@ -115,6 +130,9 @@ public class AiModelCallAuditQueryService {
                 .build();
     }
 
+    /**
+     * 生成失败原因聚合键，避免完整异常堆栈导致同类错误无法归并。
+     */
     private String failureReasonKey(AiModelCallLog log) {
         if (StringUtils.isBlank(log.getErrorMessage())) {
             return "unknown";
@@ -126,6 +144,9 @@ public class AiModelCallAuditQueryService {
         return reason;
     }
 
+    /**
+     * 计算百分比并统一保留两位小数。
+     */
     private double rate(long numerator, long denominator) {
         if (denominator == 0) {
             return 0D;
@@ -133,6 +154,9 @@ public class AiModelCallAuditQueryService {
         return round(numerator * 100D / denominator);
     }
 
+    /**
+     * 将浮点数四舍五入到两位小数，保证看板展示稳定。
+     */
     private double round(double value) {
         return Math.round(value * 100D) / 100D;
     }

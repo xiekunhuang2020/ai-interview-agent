@@ -17,15 +17,20 @@ public class AiModelCallAuditRecorder {
 
     private final AiModelCallLogMapper aiModelCallLogMapper;
 
+    /**
+     * 注入模型调用审计表 Mapper，用于把每次模型调用结果写入数据库。
+     */
     public AiModelCallAuditRecorder(AiModelCallLogMapper aiModelCallLogMapper) {
         this.aiModelCallLogMapper = aiModelCallLogMapper;
     }
 
+    /**
+     * 记录一次模型调用审计，审计失败只打印日志，不影响主业务流程。
+     */
     @Transactional
     public void record(String operationName,
                        String promptVersion,
                        boolean success,
-                       boolean fallbackUsed,
                        int attemptCount,
                        long latencyMs,
                        String errorMessage) {
@@ -35,7 +40,7 @@ public class AiModelCallAuditRecorder {
             log.setOperationName(operationName);
             log.setPromptVersion(promptVersion);
             log.setSuccess(success ? 1 : 0);
-            log.setFallbackUsed(fallbackUsed ? 1 : 0);
+            log.setFallbackUsed(0);
             log.setAttemptCount(attemptCount);
             log.setLatencyMs(latencyMs);
             log.setErrorMessage(truncate(errorMessage));
@@ -46,6 +51,9 @@ public class AiModelCallAuditRecorder {
         }
     }
 
+    /**
+     * 裁剪过长的错误信息，避免异常堆栈直接撑爆审计字段。
+     */
     private String truncate(String errorMessage) {
         if (errorMessage == null || errorMessage.length() <= MAX_ERROR_MESSAGE_LENGTH) {
             return errorMessage;
