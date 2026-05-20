@@ -166,8 +166,8 @@ function createInterviewApp() {
                     this.matchResult = await this.matchJobByResumeId(uploadedResumeId, targetJd);
                     this.jdText = targetJd;
                     this.persistMatch();
-                    this.globalMessage = '简历诊断和岗位匹配已完成。';
-                    window.location.href = `/match/${encodeURIComponent(uploadedResumeId)}`;
+                    this.globalMessage = '简历诊断和岗位匹配已完成，可继续查看岗位匹配结果。';
+                    window.location.href = `/analysis/${encodeURIComponent(uploadedResumeId)}`;
                 } catch (error) {
                     this.globalError = uploadedResumeId
                         ? `简历已导入，但岗位匹配失败：${error.message}`
