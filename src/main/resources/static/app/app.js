@@ -161,7 +161,7 @@ function createInterviewApp() {
                     uploadedResumeId = payload.resumeId;
                     this.resumeId = uploadedResumeId;
                     this.scoreResult = payload.scoreResult || null;
-                    this.uploadStage = '正在调用岗位匹配智能体...';
+                    this.uploadStage = '正在分析简历与岗位匹配度...';
                     this.matchResult = await this.matchJobByResumeId(uploadedResumeId, targetJd);
                     this.jdText = targetJd;
                     this.persistMatch();
@@ -197,7 +197,7 @@ function createInterviewApp() {
             fillSampleJd() {
                 this.jdText = `岗位：Java 智能应用开发工程师
 职责：
-1. 基于 Spring Boot、Spring AI、检索增强生成和工具调用开发企业级智能体应用；
+1. 基于 Spring Boot、Spring AI、检索增强生成和工具调用开发企业级 AI 应用；
 2. 负责简历解析、向量检索、面试问答、评估报告等业务链路；
 3. 建设模型调用审计、提示词版本管理、稳定性监控和错误追踪。
 要求：
@@ -562,7 +562,7 @@ function createInterviewApp() {
                     'interview-assistant': '面试顾问',
                     'InterviewAssistantAgentService': '面试顾问'
                 };
-                return map[agentName] || '智能体';
+                return map[agentName] || '顾问';
             },
             roleText(role) {
                 const map = {

@@ -1,6 +1,6 @@
 # AI 求职顾问
 
-AI 求职顾问是一个面向程序员求职和技术面试训练场景的智能面试 Agent 应用。系统围绕“简历解析、能力画像、岗位匹配、面试题生成、回答评估、报告生成、向量检索”构建完整闭环，适合作为 Java 后端转型 AI Agent 应用开发的展示项目。
+AI 求职顾问是一个面向程序员求职和技术面试训练场景的 AI 面试工作流应用。系统围绕“简历解析、能力画像、岗位匹配、面试题生成、回答评估、报告生成、向量检索”构建完整闭环，适合作为 Java 后端转型 AI 应用开发的展示项目。
 
 ## 核心能力
 
@@ -36,9 +36,9 @@ AI 求职顾问是一个面向程序员求职和技术面试训练场景的智�
 - 项目代码只保留业务编排、参数校验、审计记录、异常映射和页面接口适配，不自研模型重试、工具调度、向量检索、结构化转换等框架能力。
 - 如果必须做业务适配，方法注释里要说明“适配的业务边界”，避免后续误解为重复造轮子。
 
-## Agent 架构
+## 工作流架构
 
-项目已从单一 Service 调用模型，改造成 Controller + Service + Agent + Tool 分层。
+项目已从单一 Service 调用模型，改造成 Controller + Service + 模型任务角色 + Tool 分层。这里的 `agent` 包表示“需要大模型推理的任务角色”，整体流程仍由 `InterviewWorkflowService` 确定性编排，不宣称完全自主规划。
 
 ```text
 InterviewPageController
@@ -72,7 +72,7 @@ src/main/java/com/xkh/ai/interview
     ├── audit         # 模型调用和对话审计
     ├── llm           # 模型调用、结构化解析和 Prompt 版本
     ├── rag           # Spring AI RAG Advisor 适配
-    ├── tool          # Agent 可调用的确定性工具
+    ├── tool          # AI 顾问和工作流可调用的确定性工具
     └── workflow      # 面试业务流程编排
 ```
 
@@ -172,16 +172,12 @@ http://localhost:8080
 
 见 [docs/api-examples.md](docs/api-examples.md)。
 
-## 面试材料
+## 项目文档
 
 - [深度优化路线图](docs/deep-optimization-roadmap.md)
-- [最终版简历文本](docs/career-package/final-resume-text.md)
-- [简历项目描述](docs/career-package/resume-project.md)
-- [面试讲稿](docs/career-package/interview-script.md)
-- [技术难点 FAQ](docs/career-package/technical-faq.md)
-- [GitHub 项目亮点清单](docs/career-package/github-highlights.md)
-- [提交拆分建议](docs/career-package/commit-plan.md)
-- [展示前检查清单](docs/career-package/showcase-checklist.md)
+- [架构说明](docs/architecture.md)
+- [API 示例](docs/api-examples.md)
+- [面试备注](docs/interview-notes.md)
 
 ## 展示流程
 
@@ -197,9 +193,9 @@ http://localhost:8080
 ## 简历可写亮点
 
 ```text
-AI 面试 Agent 平台｜Java 21 / Spring Boot / Spring AI Alibaba / DashScope / Milvus / Redis / MySQL
+AI 求职顾问｜Java 21 / Spring Boot / Spring AI Alibaba / DashScope / Milvus / Redis / MySQL
 
-- 设计并实现“简历解析 -> 能力画像 -> 岗位匹配 -> 面试题生成 -> 回答评估 -> 面试报告生成”的 Agent 工作流，提升模拟面试的个性化与反馈质量。
+- 设计并实现“简历解析 -> 能力画像 -> 岗位匹配 -> 面试题生成 -> 回答评估 -> 面试报告生成”的确定性 AI 面试工作流，提升模拟面试的个性化与反馈质量。
 - 基于 Spring AI Alibaba 接入通义千问模型，通过 System/User Prompt 分层设计、结构化 JSON 输出约束和容错解析，降低大模型输出不稳定对业务流程的影响。
 - 基于 Spring AI `ChatClient` 统一模型调用入口，模型侧重试和退避交给 `spring.ai.retry` 配置，业务层保留 Prompt 版本、调用审计、traceId 日志追踪和模型侧故障映射。
 - 强化 AI 结构化输出校验，覆盖必填字段、类型、数值范围、枚举值、数组元素结构和未知字段检测，避免异常模型输出污染业务数据。
@@ -207,7 +203,7 @@ AI 面试 Agent 平台｜Java 21 / Spring Boot / Spring AI Alibaba / DashScope /
 - 实现 Prompt 指标聚合，支持按版本观察成功率、失败数、平均耗时和失败原因分布，为 Prompt 迭代提供数据依据。
 - 使用 Apache Tika 支持多格式简历解析，并围绕项目深度、技能匹配、内容完整性、结构清晰度和表达专业性生成多维度评分。
 - 基于 Milvus 构建简历向量知识库，结合目标岗位说明检索相似简历片段，为岗位定制化出题提供 RAG 上下文。
-- 实现岗位匹配 Agent，输出岗位匹配分、能力证据、缺失技能、风险点和面试追问方向。
+- 实现岗位匹配分析能力，输出岗位匹配分、能力证据、缺失技能、风险点和面试追问方向。
 - 设计 MySQL + Redis 的存储与缓存机制，持久化简历评分、面试题和回答评估结果，并对热点会话数据做缓存加速。
 ```
 

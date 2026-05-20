@@ -19,7 +19,7 @@ curl -X POST http://localhost:8080/api/resume/upload \
 }
 ```
 
-所有接口都会在响应头返回 `X-Trace-Id`。如果请求未传入该 header，服务端会自动生成，方便把 HTTP 请求、Agent 编排和模型调用日志串起来。
+所有接口都会在响应头返回 `X-Trace-Id`。如果请求未传入该 header，服务端会自动生成，方便把 HTTP 请求、工作流编排和模型调用日志串起来。
 
 ## 获取简历工作台数据
 
@@ -46,7 +46,7 @@ curl -X POST http://localhost:8080/api/interview/{resumeId}/submit \
 ```bash
 curl -X POST http://localhost:8080/api/jd/{resumeId}/match \
   -H "Content-Type: application/json" \
-  -d "{\"jobDescription\":\"Java AI Agent 应用开发工程师，要求 Spring Boot、Spring AI、RAG、Milvus、Redis、工程化经验\"}"
+  -d "{\"jobDescription\":\"Java AI 应用开发工程师，要求 Spring Boot、Spring AI、RAG、Milvus、Redis、工程化经验\"}"
 ```
 
 响应会包含总匹配分、匹配等级、已匹配技能、缺失技能、风险点和学习建议。
@@ -56,7 +56,7 @@ curl -X POST http://localhost:8080/api/jd/{resumeId}/match \
 ```bash
 curl -X POST http://localhost:8080/api/interview/{resumeId}/rag-questions \
   -H "Content-Type: application/json" \
-  -d "{\"jobDescription\":\"Java AI Agent 应用开发工程师，要求 Spring Boot、Spring AI、RAG、Milvus、Redis、工程化经验\", \"topK\": 5}"
+  -d "{\"jobDescription\":\"Java AI 应用开发工程师，要求 Spring Boot、Spring AI、RAG、Milvus、Redis、工程化经验\", \"topK\": 5}"
 ```
 
 该接口对应页面里的“根据岗位生成面试题”。服务端会先用目标岗位说明检索向量库中的相似简历片段，再结合候选人简历生成岗位定制化面试题，并保存到当前面试会话。这里的 RAG 是技术实现方式，用户侧不需要理解“增强题”这类技术词。

@@ -2,7 +2,9 @@
 
 ## 目标定位
 
-本项目从传统的“LLM 接口调用应用”改造成面向求职场景的 AI Agent 应用。系统将模拟面试拆成可编排的任务链路：简历解析、能力画像、问题生成、答案评估、报告生成和向量检索。
+本项目从传统的“LLM 接口调用应用”改造成面向求职场景的 AI 面试工作流应用。系统将模拟面试拆成可编排的任务链路：简历解析、能力画像、岗位匹配、问题生成、答案评估、报告生成和向量检索。
+
+当前版本不是完全自主规划型 Agent。核心流程由 `InterviewWorkflowService` 确定性编排，`agent` 包只表示“需要大模型推理的任务角色”，Tool 负责文档解析、存储、缓存和向量检索等确定性能力。这样更符合业务系统落地要求：链路可控、错误边界清楚、便于审计和排查。
 
 ## 分层设计
 
@@ -60,7 +62,7 @@ flowchart TD
 
 ### Workflow Service
 
-`InterviewWorkflowService` 是面试流程编排服务，负责决定每一步调用哪个 Agent 或 Tool。
+`InterviewWorkflowService` 是面试流程编排服务，负责决定每一步调用哪个模型任务角色或 Tool。
 
 典型流程：
 
@@ -72,9 +74,9 @@ flowchart TD
   -> ResumeVectorTool 写入向量库
 ```
 
-### Agent
+### 模型任务角色
 
-Agent 负责需要模型推理的任务，目前包含：
+`service.agent` 包中的类负责需要模型推理的任务。它们不是自主规划器，而是被 Workflow Service 按业务顺序调用的推理节点，目前包含：
 
 - `ResumeAnalysisAgent`：简历评分、能力画像、优化建议
 - `InterviewQuestionAgent`：基于简历生成个性化面试题
@@ -86,17 +88,17 @@ Agent 负责需要模型推理的任务，目前包含：
 
 `InterviewAssistantAgentService` 提供面向对话式使用的 AI 求职顾问入口。它基于 Spring AI `ChatClient.stream()` 做流式输出，并使用 `conversationId` 保存最近几轮对话上下文。
 
-Agent 可调用的工具集中在 `ResumeAgentTools`，只暴露查询类能力：
+AI 顾问可调用的工具集中在 `ResumeAgentTools`，只暴露查询类能力：
 
 - `get_resume_profile`：查询简历画像
 - `get_resume_interview_questions`：查询已生成面试问题摘要
 - `search_similar_resumes`：按文本检索相似简历片段
 
-上传、保存、向量写入等副作用操作不暴露给模型直接调用，避免 Agent 自主执行不可控写操作。模型可见工具返回的是裁剪后的摘要或片段：简历画像只返回有限优势/建议和文本片段，面试问题最多返回前 10 题，相似简历返回 `snippet` 而不是完整简历原文。Agent 系统提示进一步区分事实来源：画像和问题工具是当前候选人的真实数据，相似简历工具只能作为同类岗位追问方向参考。
+上传、保存、向量写入等副作用操作不暴露给模型直接调用，避免模型自主执行不可控写操作。模型可见工具返回的是裁剪后的摘要或片段：简历画像只返回有限优势/建议和文本片段，面试问题最多返回前 10 题，相似简历返回 `snippet` 而不是完整简历原文。顾问系统提示进一步区分事实来源：画像和问题工具是当前候选人的真实数据，相似简历工具只能作为同类岗位追问方向参考。
 
 ### Model Call Service
 
-`AiModelCallService` 是模型调用业务适配层，底层统一使用 Spring AI `ChatClient`，避免每个 Agent 分散处理 Prompt 版本、审计和异常映射。
+`AiModelCallService` 是模型调用业务适配层，底层统一使用 Spring AI `ChatClient`，避免每个模型任务分散处理 Prompt 版本、审计和异常映射。
 
 当前治理能力：
 
@@ -140,7 +142,7 @@ jd-match -> jd-match-v2026-05-17-01
 
 审计写入失败不会影响主业务流程。
 
-`agent_conversation_message` 记录 Agent 对话消息审计信息：
+`agent_conversation_message` 记录 AI 顾问对话消息审计信息：
 
 - conversationId
 - turnId
@@ -153,7 +155,7 @@ jd-match -> jd-match-v2026-05-17-01
 - errorMessage
 - createTime
 
-`/api/audit/agent-messages` 可按 conversationId 或 traceId 查询最近的 Agent 对话轨迹，用于排查工具调用前后的用户输入、助手回复和失败原因。
+`/api/audit/agent-messages` 可按 conversationId 或 traceId 查询最近的 AI 顾问对话轨迹，用于排查工具调用前后的用户输入、助手回复和失败原因。
 
 对话正文落库可通过配置控制：
 
@@ -196,7 +198,7 @@ Tool 负责确定性能力，方便后续迁移到函数调用或工具调用框
 
 ## 当前边界
 
-当前版本采用确定性 `InterviewWorkflowService` 编排 Agent，不做完全自主规划。这样更适合业务系统落地：链路可控、错误边界清楚、易于排查。
+当前版本采用确定性 `InterviewWorkflowService` 编排模型任务和 Tool，不做完全自主规划。后续如果引入更复杂的 Planner，也会优先围绕明确业务状态和可审计工具边界展开，而不是让模型自由决定核心流程。
 
 ## 岗位定制面试题生成流程
 
