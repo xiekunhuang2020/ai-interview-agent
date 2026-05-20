@@ -27,6 +27,10 @@
 
         <div class="notice error" v-if="globalError">{{ globalError }}</div>
         <div class="notice success" v-if="globalMessage">{{ globalMessage }}</div>
+        <div class="notice info" v-if="session">
+            当前流程：{{ sessionSummary() }}
+            <span v-if="session.status === 'FAILED' && session.failedReason">，失败原因：{{ session.failedReason }}</span>
+        </div>
         <div class="notice info" v-if="loading.workspace">正在加载已生成的问题...</div>
 
         <section class="interview-layout">

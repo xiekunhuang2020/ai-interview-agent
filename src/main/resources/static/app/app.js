@@ -26,6 +26,7 @@ function createInterviewApp() {
                 questions: [],
                 answers: {},
                 evaluation: null,
+                session: null,
                 jdText: '',
                 matchResult: null,
                 topK: 5,
@@ -187,6 +188,7 @@ function createInterviewApp() {
                     this.scoreResult = payload.scoreResult || null;
                     this.questions = this.safeList(payload.questions && payload.questions.questions);
                     this.evaluation = payload.evaluation || null;
+                    this.session = payload.session || null;
                     this.answers = Object.fromEntries(this.questions.map((_, index) => [index, this.answers[index] || '']));
                 } catch (error) {
                     this.globalError = error.message;
@@ -216,6 +218,7 @@ function createInterviewApp() {
                 try {
                     this.matchResult = await this.matchJobByResumeId(this.resumeId, this.jdText.trim());
                     this.persistMatch();
+                    await this.loadWorkspace();
                     this.globalMessage = '岗位匹配完成，可以继续根据岗位生成面试题。';
                 } catch (error) {
                     this.globalError = error.message;
@@ -546,6 +549,14 @@ function createInterviewApp() {
                     return '--';
                 }
                 return `${this.round(value)} 毫秒`;
+            },
+            sessionSummary() {
+                if (!this.session) {
+                    return '暂无流程状态';
+                }
+                const status = this.session.statusText || this.session.status || '--';
+                const stage = this.session.currentStageText || this.session.currentStage || '--';
+                return `${status} / ${stage}`;
             },
             operationNameText(operationName) {
                 const map = {

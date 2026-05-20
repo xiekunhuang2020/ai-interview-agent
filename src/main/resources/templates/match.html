@@ -24,6 +24,10 @@
 
         <div class="notice error" v-if="globalError">{{ globalError }}</div>
         <div class="notice success" v-if="globalMessage">{{ globalMessage }}</div>
+        <div class="notice info" v-if="session">
+            当前流程：{{ sessionSummary() }}
+            <span v-if="session.status === 'FAILED' && session.failedReason">，失败原因：{{ session.failedReason }}</span>
+        </div>
 
         <section class="content-grid">
             <div class="panel wide-panel">
