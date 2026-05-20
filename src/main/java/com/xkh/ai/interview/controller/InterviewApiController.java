@@ -88,6 +88,7 @@ public class InterviewApiController {
         response.put("scoreResult", resumeData.getScoreResult());
         response.put("questions", resumeData.getQuestions());
         response.put("evaluation", resumeData.getEvaluation());
+        response.put("session", interviewWorkflowService.getSessionInfo(resumeId, resumeData));
         return ResponseEntity.ok(response);
     }
 

@@ -7,6 +7,7 @@ import com.xkh.ai.interview.service.agent.RagInterviewQuestionAgent;
 import com.xkh.ai.interview.service.agent.ResumeAnalysisAgent;
 import com.xkh.ai.interview.dto.InterviewEvaluation;
 import com.xkh.ai.interview.dto.InterviewQuestions;
+import com.xkh.ai.interview.dto.InterviewSessionInfo;
 import com.xkh.ai.interview.dto.JobDescriptionMatchResult;
 import com.xkh.ai.interview.dto.ResumeData;
 import com.xkh.ai.interview.dto.ResumeUploadResult;
@@ -33,9 +34,10 @@ public class InterviewWorkflowService {
     private final AnswerEvaluationAgent answerEvaluationAgent;
     private final JobDescriptionMatchAgent jobDescriptionMatchAgent;
     private final RagInterviewQuestionAgent ragInterviewQuestionAgent;
+    private final InterviewSessionService interviewSessionService;
 
     /**
-     * 注入简历解析、存储、向量化和各类 AI Agent，组成完整面试工作流。
+     * 注入简历解析、存储、向量化、模型任务和会话状态服务，组成完整面试工作流。
      */
     public InterviewWorkflowService(ResumeParseTool resumeParseTool,
                                     ResumeRepositoryTool resumeRepositoryTool,
@@ -44,7 +46,8 @@ public class InterviewWorkflowService {
                                     InterviewQuestionAgent interviewQuestionAgent,
                                     AnswerEvaluationAgent answerEvaluationAgent,
                                     JobDescriptionMatchAgent jobDescriptionMatchAgent,
-                                    RagInterviewQuestionAgent ragInterviewQuestionAgent) {
+                                    RagInterviewQuestionAgent ragInterviewQuestionAgent,
+                                    InterviewSessionService interviewSessionService) {
         this.resumeParseTool = resumeParseTool;
         this.resumeRepositoryTool = resumeRepositoryTool;
         this.resumeVectorTool = resumeVectorTool;
@@ -53,6 +56,7 @@ public class InterviewWorkflowService {
         this.answerEvaluationAgent = answerEvaluationAgent;
         this.jobDescriptionMatchAgent = jobDescriptionMatchAgent;
         this.ragInterviewQuestionAgent = ragInterviewQuestionAgent;
+        this.interviewSessionService = interviewSessionService;
     }
 
     /**
@@ -68,11 +72,17 @@ public class InterviewWorkflowService {
         }
 
         String resumeId = UUID.randomUUID().toString();
-        var scoreResult = resumeAnalysisAgent.analyze(resumeText);
-        resumeRepositoryTool.saveAnalyzedResume(resumeId, originalFileName, resumeText, scoreResult);
-        resumeVectorTool.addResume(resumeId, originalFileName, resumeText);
-
-        return new ResumeUploadResult(resumeId, scoreResult);
+        interviewSessionService.markUploaded(resumeId, originalFileName);
+        try {
+            var scoreResult = resumeAnalysisAgent.analyze(resumeText);
+            resumeRepositoryTool.saveAnalyzedResume(resumeId, originalFileName, resumeText, scoreResult);
+            resumeVectorTool.addResume(resumeId, originalFileName, resumeText);
+            interviewSessionService.markAnalyzed(resumeId, originalFileName);
+            return new ResumeUploadResult(resumeId, scoreResult);
+        } catch (RuntimeException e) {
+            interviewSessionService.markFailed(resumeId, "RESUME_ANALYSIS", e);
+            throw e;
+        }
     }
 
     /**
@@ -83,13 +93,26 @@ public class InterviewWorkflowService {
     }
 
     /**
+     * 查询简历当前所在的面试流程状态。
+     */
+    public InterviewSessionInfo getSessionInfo(String resumeId, ResumeData resumeData) {
+        return interviewSessionService.findInfo(resumeId, resumeData);
+    }
+
+    /**
      * 基于简历内容生成普通面试题，并保存到当前简历记录。
      */
     public InterviewQuestions generateInterviewQuestions(String resumeId) {
         ResumeData resumeData = requireResume(resumeId);
-        InterviewQuestions questions = interviewQuestionAgent.generate(resumeData.getResumeText());
-        resumeRepositoryTool.saveQuestions(resumeId, questions);
-        return questions;
+        try {
+            InterviewQuestions questions = interviewQuestionAgent.generate(resumeData.getResumeText());
+            resumeRepositoryTool.saveQuestions(resumeId, questions);
+            interviewSessionService.markQuestionsGenerated(resumeId);
+            return questions;
+        } catch (RuntimeException e) {
+            interviewSessionService.markFailed(resumeId, "QUESTION_GENERATION", e);
+            throw e;
+        }
     }
 
     /**
@@ -102,13 +125,20 @@ public class InterviewWorkflowService {
             throw new IllegalStateException("请先生成面试问题，再提交答案");
         }
 
-        InterviewEvaluation evaluation = answerEvaluationAgent.evaluate(
-                resumeData.getResumeText(),
-                resumeData.getQuestions(),
-                answers
-        );
-        resumeRepositoryTool.saveEvaluation(resumeId, evaluation);
-        return evaluation;
+        interviewSessionService.markAnswerSubmitted(resumeId);
+        try {
+            InterviewEvaluation evaluation = answerEvaluationAgent.evaluate(
+                    resumeData.getResumeText(),
+                    resumeData.getQuestions(),
+                    answers
+            );
+            resumeRepositoryTool.saveEvaluation(resumeId, evaluation);
+            interviewSessionService.markEvaluated(resumeId);
+            return evaluation;
+        } catch (RuntimeException e) {
+            interviewSessionService.markFailed(resumeId, "ANSWER_EVALUATION", e);
+            throw e;
+        }
     }
 
     /**
@@ -120,7 +150,14 @@ public class InterviewWorkflowService {
         }
 
         ResumeData resumeData = requireResume(resumeId);
-        return jobDescriptionMatchAgent.match(resumeData.getResumeText(), jobDescription);
+        try {
+            JobDescriptionMatchResult matchResult = jobDescriptionMatchAgent.match(resumeData.getResumeText(), jobDescription);
+            interviewSessionService.markJobMatched(resumeId);
+            return matchResult;
+        } catch (RuntimeException e) {
+            interviewSessionService.markFailed(resumeId, "JD_MATCH", e);
+            throw e;
+        }
     }
 
     /**
@@ -132,14 +169,20 @@ public class InterviewWorkflowService {
         }
 
         ResumeData resumeData = requireResume(resumeId);
-        InterviewQuestions questions = ragInterviewQuestionAgent.generate(
-                resumeData.getResumeText(),
-                jobDescription,
-                resumeId,
-                normalizeTopK(topK)
-        );
-        resumeRepositoryTool.saveQuestions(resumeId, questions);
-        return questions;
+        try {
+            InterviewQuestions questions = ragInterviewQuestionAgent.generate(
+                    resumeData.getResumeText(),
+                    jobDescription,
+                    resumeId,
+                    normalizeTopK(topK)
+            );
+            resumeRepositoryTool.saveQuestions(resumeId, questions);
+            interviewSessionService.markQuestionsGenerated(resumeId);
+            return questions;
+        } catch (RuntimeException e) {
+            interviewSessionService.markFailed(resumeId, "QUESTION_GENERATION", e);
+            throw e;
+        }
     }
 
     /**
