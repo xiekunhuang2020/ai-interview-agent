@@ -3,7 +3,7 @@ package com.xkh.ai.interview.service.agent;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.xkh.ai.interview.dto.InterviewQuestions;
 import com.xkh.ai.interview.service.llm.AiJsonResponseParser;
-import com.xkh.ai.interview.service.llm.AiModelInvoker;
+import com.xkh.ai.interview.service.llm.AiModelCallService;
 import com.xkh.ai.interview.service.rag.ResumeRagAdvisorFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -22,17 +22,17 @@ public class RagInterviewQuestionAgent {
 
     private static final Logger logger = LoggerFactory.getLogger(RagInterviewQuestionAgent.class);
 
-    private final AiModelInvoker aiModelInvoker;
+    private final AiModelCallService aiModelCallService;
     private final AiJsonResponseParser responseParser;
     private final ResumeRagAdvisorFactory ragAdvisorFactory;
 
     @Value("classpath:/prompt/rag-interview-question-system.st")
     private Resource systemPromptResource;
 
-    public RagInterviewQuestionAgent(AiModelInvoker aiModelInvoker,
+    public RagInterviewQuestionAgent(AiModelCallService aiModelCallService,
                                      AiJsonResponseParser responseParser,
                                      ResumeRagAdvisorFactory ragAdvisorFactory) {
-        this.aiModelInvoker = aiModelInvoker;
+        this.aiModelCallService = aiModelCallService;
         this.responseParser = responseParser;
         this.ragAdvisorFactory = ragAdvisorFactory;
     }
@@ -56,7 +56,7 @@ public class RagInterviewQuestionAgent {
                 %s
                 """.formatted(resumeText, jobDescription)));
 
-        String response = aiModelInvoker.call(
+        String response = aiModelCallService.call(
                 "rag-interview-question-generation",
                 messages,
                 0.7,

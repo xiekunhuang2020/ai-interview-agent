@@ -15,9 +15,7 @@ public class PromptMetricsResult {
     private Long totalCalls;
     private Long successCalls;
     private Long failedCalls;
-    private Long fallbackCalls;
     private Double successRate;
-    private Double fallbackRate;
     private Double avgLatencyMs;
     private Long maxLatencyMs;
     private Double avgAttemptCount;

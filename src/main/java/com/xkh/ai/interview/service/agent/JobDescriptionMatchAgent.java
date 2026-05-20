@@ -3,7 +3,7 @@ package com.xkh.ai.interview.service.agent;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.xkh.ai.interview.dto.JobDescriptionMatchResult;
 import com.xkh.ai.interview.service.llm.AiJsonResponseParser;
-import com.xkh.ai.interview.service.llm.AiModelInvoker;
+import com.xkh.ai.interview.service.llm.AiModelCallService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.ai.chat.messages.Message;
@@ -21,14 +21,14 @@ public class JobDescriptionMatchAgent {
 
     private static final Logger logger = LoggerFactory.getLogger(JobDescriptionMatchAgent.class);
 
-    private final AiModelInvoker aiModelInvoker;
+    private final AiModelCallService aiModelCallService;
     private final AiJsonResponseParser responseParser;
 
     @Value("classpath:/prompt/jd-match-system.st")
     private Resource systemPromptResource;
 
-    public JobDescriptionMatchAgent(AiModelInvoker aiModelInvoker, AiJsonResponseParser responseParser) {
-        this.aiModelInvoker = aiModelInvoker;
+    public JobDescriptionMatchAgent(AiModelCallService aiModelCallService, AiJsonResponseParser responseParser) {
+        this.aiModelCallService = aiModelCallService;
         this.responseParser = responseParser;
     }
 
@@ -48,7 +48,7 @@ public class JobDescriptionMatchAgent {
                 %s
                 """.formatted(resumeText, jobDescription)));
 
-        String response = aiModelInvoker.call("jd-match", messages, 0.5);
+        String response = aiModelCallService.call("jd-match", messages, 0.5);
         try {
             return responseParser.parseJobDescriptionMatchResult(response);
         } catch (JsonProcessingException e) {

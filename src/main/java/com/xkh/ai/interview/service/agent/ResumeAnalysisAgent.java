@@ -3,7 +3,7 @@ package com.xkh.ai.interview.service.agent;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.xkh.ai.interview.dto.ResumeScoreResult;
 import com.xkh.ai.interview.service.llm.AiJsonResponseParser;
-import com.xkh.ai.interview.service.llm.AiModelInvoker;
+import com.xkh.ai.interview.service.llm.AiModelCallService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.ai.chat.messages.Message;
@@ -25,7 +25,7 @@ public class ResumeAnalysisAgent {
 
     private static final Logger logger = LoggerFactory.getLogger(ResumeAnalysisAgent.class);
 
-    private final AiModelInvoker aiModelInvoker;
+    private final AiModelCallService aiModelCallService;
     private final AiJsonResponseParser responseParser;
 
     @Value("classpath:/prompt/resume-analysis-system.st")
@@ -34,8 +34,8 @@ public class ResumeAnalysisAgent {
     @Value("classpath:/prompt/resume-analysis-user.st")
     private Resource userPromptResource;
 
-    public ResumeAnalysisAgent(AiModelInvoker aiModelInvoker, AiJsonResponseParser responseParser) {
-        this.aiModelInvoker = aiModelInvoker;
+    public ResumeAnalysisAgent(AiModelCallService aiModelCallService, AiJsonResponseParser responseParser) {
+        this.aiModelCallService = aiModelCallService;
         this.responseParser = responseParser;
     }
 
@@ -48,7 +48,7 @@ public class ResumeAnalysisAgent {
         PromptTemplate promptTemplate = new PromptTemplate(userPromptResource.getContentAsString(StandardCharsets.UTF_8));
         messages.add(new UserMessage(promptTemplate.render(Map.of("resumeText", resumeText))));
 
-        String response = aiModelInvoker.call("resume-analysis", messages, 0.7);
+        String response = aiModelCallService.call("resume-analysis", messages, 0.7);
         try {
             return responseParser.parseResumeScoreResult(response);
         } catch (JsonProcessingException e) {
