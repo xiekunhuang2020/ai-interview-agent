@@ -14,19 +14,19 @@ RAG 用在岗位定制面试题生成。普通出题只看候选人简历，容�
 
 ## 4. 为什么要做 Prompt 版本管理？
 
-Prompt 会持续迭代，如果不记录版本，很难判断一次调用失败或质量变化是模型问题、Prompt 问题还是输入问题。项目用 `PromptVersionRegistry` 管理 operation 到 Prompt 版本的映射，并在调用审计中记录 `promptVersion`，后续可以按版本统计成功率、降级率和耗时。
+Prompt 会持续迭代，如果不记录版本，很难判断一次调用失败或质量变化是模型问题、Prompt 问题还是输入问题。项目用 `PromptVersionRegistry` 管理 operation 到 Prompt 版本的映射，并在调用审计中记录 `promptVersion`，后续可以按版本统计成功率、失败数和耗时。
 
 ## 5. 模型调用失败怎么处理？
 
-所有模型调用统一经过 Spring AI `ChatClient`。模型侧重试和退避使用 Spring AI Alibaba 注入到 `DashScopeChatModel` 的 `RetryTemplate`，通过 `spring.ai.retry` 配置管理。业务层 `AiModelInvoker` 不再手写 retry/backoff，只负责 Prompt 版本、调用审计和最终失败后的显式降级。如果当前 operation 有降级响应且开启了降级配置，会返回结构合法的降级 JSON，同时审计记录 `success=0`、`fallbackUsed=1`。如果没有可用降级，则接口返回模型网关错误。
+所有模型调用统一经过 Spring AI `ChatClient`。模型侧重试和退避使用 Spring AI Alibaba 注入到 `DashScopeChatModel` 的 `RetryTemplate`，通过 `spring.ai.retry` 配置管理。业务层 `AiModelCallService` 不手写 retry/backoff，只负责 Prompt 版本、调用审计和异常映射。模型最终失败时，审计记录 `success=0` 和失败原因，接口返回模型网关错误。
 
 ## 6. 为什么不自己创建 DashScopeApi？
 
 项目早期为了设置 HTTP 超时手写过 `DashScopeApi` Bean。后续改造成由 `spring-ai-alibaba-starter-dashscope` 自动装配 DashScope 客户端，HTTP connect/read timeout 交给 Spring Boot 标准的 `spring.http.client.*` 和 `spring.http.reactiveclient.*` 配置。这样减少自定义装配代码，也避免绕开 starter 后续升级带来的默认能力。
 
-## 7. 为什么降级结果不算成功？
+## 7. 为什么不返回伪造兜底结果？
 
-因为降级只是保证业务链路不崩，不代表模型真实完成了任务。如果把降级算成成功，会污染 Prompt 效果评估。项目里审计会明确记录 `success=0` 和 `fallbackUsed=1`，这样看板能看到真实模型成功率和降级率。
+因为伪造兜底结果不代表模型真实完成了任务，容易让页面看起来“成功”，但实际质量不可控。当前项目选择明确失败：审计记录 `success=0` 和失败原因，接口返回 502，这样看板能看到真实模型成功率和失败数。
 
 ## 8. 怎么防止模型输出脏数据？
 
@@ -50,14 +50,14 @@ Milvus 用于简历向量检索。当前场景里，目标岗位说明可以作�
 
 ## 11. 这个项目最大的工程亮点是什么？
 
-不是单纯接入大模型，而是补了 AI 应用落地常见的工程治理：Agent/Tool 分层、RAG、Prompt 版本、结构化输出强校验、框架级模型重试、显式降级、traceId、调用审计和 Prompt 效果看板。
+不是单纯接入大模型，而是补了 AI 应用落地常见的工程治理：Agent/Tool 分层、RAG、Prompt 版本、结构化输出强校验、框架级模型重试、traceId、调用审计和 Prompt 效果看板。
 
 ## 12. 如果面试官问“有没有真实线上数据”怎么回答？
 
 可以诚实说：
 
 ```text
-这是我的个人转型项目，目前重点是实现完整 AI Agent 工程链路和可展示能力，没有线上大规模用户数据。所以我不会虚构 QPS 或准确率指标。项目里做了 Prompt 版本审计和效果看板，是为了后续能用真实调用数据评估成功率、降级率和耗时。
+这是我的个人转型项目，目前重点是实现完整 AI Agent 工程链路和可展示能力，没有线上大规模用户数据。所以我不会虚构 QPS 或准确率指标。项目里做了 Prompt 版本审计和效果看板，是为了后续能用真实调用数据评估成功率、失败率和耗时。
 ```
 
 ## 13. 后续还能怎么扩展？
@@ -67,4 +67,4 @@ Milvus 用于简历向量检索。当前场景里，目标岗位说明可以作�
 - 增加时间范围筛选和指标趋势图。
 - 增加更完整的集成测试。
 - 增加报告导出、分享链接和更完整的客户交付页。
-- 增加模型供应商切换和备用模型降级。
+- 增加模型供应商切换和备用模型容灾。
