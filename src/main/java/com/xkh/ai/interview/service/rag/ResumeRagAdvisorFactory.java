@@ -23,10 +23,16 @@ public class ResumeRagAdvisorFactory {
 
     private final VectorStore vectorStore;
 
+    /**
+     * 注入 Spring AI VectorStore，后续由官方 RAG Advisor 完成检索增强。
+     */
     public ResumeRagAdvisorFactory(VectorStore vectorStore) {
         this.vectorStore = vectorStore;
     }
 
+    /**
+     * 创建面向岗位定制出题的 RAG Advisor，限制召回当前简历之外的参考片段。
+     */
     public Advisor createAdvisor(String excludedResumeId, int topK, String retrievalQuery) {
         return RetrievalAugmentationAdvisor.builder()
                 .queryTransformers(createRetrievalQueryTransformer(retrievalQuery))
@@ -35,6 +41,9 @@ public class ResumeRagAdvisorFactory {
                 .build();
     }
 
+    /**
+     * 将 RAG 检索 query 固定为岗位 JD，避免直接拿完整 prompt 做向量检索。
+     */
     QueryTransformer createRetrievalQueryTransformer(String retrievalQuery) {
         return query -> new Query(
                 StringUtils.defaultIfBlank(retrievalQuery, query.text()),
@@ -43,6 +52,9 @@ public class ResumeRagAdvisorFactory {
         );
     }
 
+    /**
+     * 创建向量库检索器，并排除当前候选人的简历片段。
+     */
     DocumentRetriever createDocumentRetriever(String excludedResumeId, int topK) {
         VectorStoreDocumentRetriever.Builder builder = VectorStoreDocumentRetriever.builder()
                 .vectorStore(vectorStore)
@@ -57,6 +69,9 @@ public class ResumeRagAdvisorFactory {
         return builder.build();
     }
 
+    /**
+     * 创建上下文增强器，将相似简历片段注入到用户问题中。
+     */
     private ContextualQueryAugmenter createQueryAugmenter() {
         return ContextualQueryAugmenter.builder()
                 .allowEmptyContext(true)
@@ -73,12 +88,17 @@ public class ResumeRagAdvisorFactory {
                 .build();
     }
 
+    /**
+     * 格式化检索到的 Document，给模型明确标注参考片段来源和段落。
+     */
     private String formatDocuments(List<Document> documents) {
         StringBuilder context = new StringBuilder();
         for (int i = 0; i < documents.size(); i++) {
             Document document = documents.get(i);
             Object resumeId = document.getMetadata().get("resumeId");
             Object fileName = document.getMetadata().get("fileName");
+            Object chunkIndex = document.getMetadata().get("chunkIndex");
+            Object chunkCount = document.getMetadata().get("chunkCount");
             context.append("参考片段 ").append(i + 1).append("：\n");
             if (resumeId != null) {
                 context.append("resumeId: ").append(resumeId).append("\n");
@@ -86,11 +106,17 @@ public class ResumeRagAdvisorFactory {
             if (fileName != null) {
                 context.append("fileName: ").append(fileName).append("\n");
             }
+            if (chunkIndex != null && chunkCount != null) {
+                context.append("chunk: ").append(chunkIndex).append("/").append(chunkCount).append("\n");
+            }
             context.append(truncate(document.getText())).append("\n\n");
         }
         return context.toString();
     }
 
+    /**
+     * 裁剪单个 RAG 片段，避免参考上下文过长。
+     */
     private String truncate(String text) {
         if (text == null || text.length() <= MAX_CONTEXT_CHARS_PER_RESUME) {
             return text == null ? "" : text;
@@ -98,6 +124,9 @@ public class ResumeRagAdvisorFactory {
         return text.substring(0, MAX_CONTEXT_CHARS_PER_RESUME) + "\n...[truncated]";
     }
 
+    /**
+     * 限制 RAG topK 范围，防止请求过大导致上下文膨胀。
+     */
     private int normalizeTopK(int topK) {
         return Math.max(1, Math.min(topK, 20));
     }

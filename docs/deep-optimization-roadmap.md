@@ -210,23 +210,22 @@ jd_match_result
 
 - 已使用 Spring AI Alibaba `RecursiveCharacterTextSplitter` 对简历文本切片后再写入 Milvus。
 - 已移除未使用的 MiniMax embedding 配置，统一使用 DashScope `text-embedding-v3`。
-- 已给每个 chunk 标记 `resumeId`、`fileName`、`chunkIndex`、`chunkCount`，便于检索结果溯源。
+- 已在入库前清洗多余空白。
+- 已给每个 chunk 标记 `resumeId`、`fileName`、`chunkIndex`、`chunkCount`、`indexedAt`，便于检索结果溯源。
+- 已在 AI 顾问工具返回和 RAG 注入上下文中展示 chunk 来源。
 - 后续继续使用 Spring AI 文档/向量相关官方能力。
-- 简历文本入库前做业务清洗：
-  - 去除多余空白
-  - 保留项目经历、技能、工作经历等段落边界
-  - 给每个 chunk 标记 `resumeId`、`section`、`fileName`
-- 向量入库记录 chunk 数量和入库时间。
+- 暂不硬编码识别 `section`，后续如果需要精准段落，可用模型结构化解析结果反哺向量入库。
+- 后续可补一张向量入库记录表，记录每次上传的 chunk 数量和入库时间。
 
 **验收标准**
 
-- Milvus 中能按 `resumeId` 和 `section` 过滤。
-- 每次上传能知道写入了多少 chunk。
-- 相似检索结果能看到来源段落。
+- Milvus 中能按 `resumeId` 过滤。
+- 上传日志能看到写入了多少 chunk。
+- 相似检索结果能看到来源 chunk。
 
 **面试可讲**
 
-我不是直接把整份简历扔进向量库，而是按简历语义段落切分，并给 chunk 加 resumeId、section 等元数据，便于过滤和溯源。
+我不是直接把整份简历扔进向量库，而是先做文本清洗，再用 Spring AI Alibaba 的 splitter 切片，并给 chunk 加 resumeId、fileName、chunkIndex 等元数据，便于过滤和溯源。
 
 ### 6. 增加 RAG 召回评估集
 

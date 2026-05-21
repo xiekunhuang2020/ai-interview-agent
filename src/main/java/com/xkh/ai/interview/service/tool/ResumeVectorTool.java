@@ -1,11 +1,13 @@
 package com.xkh.ai.interview.service.tool;
 
 import com.alibaba.cloud.ai.transformer.splitter.RecursiveCharacterTextSplitter;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.ai.document.Document;
 import org.springframework.ai.vectorstore.SearchRequest;
 import org.springframework.ai.vectorstore.VectorStore;
 import org.springframework.stereotype.Component;
 
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -15,6 +17,7 @@ import java.util.Map;
 public class ResumeVectorTool {
 
     private static final int CHUNK_SIZE = 800;
+    private static final int DASHSCOPE_EMBEDDING_BATCH_LIMIT = 10;
 
     private final VectorStore vectorStore;
     private final RecursiveCharacterTextSplitter textSplitter;
@@ -30,10 +33,17 @@ public class ResumeVectorTool {
     /**
      * 将简历文本切分成多个语义片段后写入 Milvus，避免整份简历作为单个向量导致召回粒度过粗。
      */
-    public void addResume(String resumeId, String fileName, String resumeText) {
-        Document sourceDocument = new Document(resumeText, Map.of("resumeId", resumeId, "fileName", fileName));
+    public int addResume(String resumeId, String fileName, String resumeText) {
+        String cleanedText = cleanResumeText(resumeText);
+        if (StringUtils.isBlank(cleanedText)) {
+            return 0;
+        }
+
+        String indexedAt = LocalDateTime.now().toString();
+        Document sourceDocument = new Document(cleanedText, buildResumeMetadata(resumeId, fileName, indexedAt));
         List<Document> chunks = withChunkMetadata(textSplitter.split(sourceDocument));
-        vectorStore.add(chunks);
+        addInBatches(chunks);
+        return chunks.size();
     }
 
     /**
@@ -59,5 +69,43 @@ public class ResumeVectorTool {
             enrichedChunks.add(new Document(chunk.getText(), metadata));
         }
         return enrichedChunks;
+    }
+
+    /**
+     * 按 DashScope embedding 单次最多 10 条文本的限制分批写入，仍复用 Spring AI VectorStore 官方入口。
+     */
+    private void addInBatches(List<Document> chunks) {
+        for (int start = 0; start < chunks.size(); start += DASHSCOPE_EMBEDDING_BATCH_LIMIT) {
+            int end = Math.min(start + DASHSCOPE_EMBEDDING_BATCH_LIMIT, chunks.size());
+            vectorStore.add(chunks.subList(start, end));
+        }
+    }
+
+    /**
+     * 清洗简历文本中的多余空白，保留换行边界用于后续识别简历段落。
+     */
+    private String cleanResumeText(String resumeText) {
+        if (resumeText == null) {
+            return "";
+        }
+        List<String> lines = resumeText.replace('\u00A0', ' ')
+                .replace("\r\n", "\n")
+                .replace('\r', '\n')
+                .lines()
+                .map(line -> line.replaceAll("[\\t ]+", " ").trim())
+                .filter(StringUtils::isNotBlank)
+                .toList();
+        return String.join("\n", lines);
+    }
+
+    /**
+     * 创建简历向量入库的基础元数据，避免写不可靠的业务 section 硬编码。
+     */
+    private Map<String, Object> buildResumeMetadata(String resumeId, String fileName, String indexedAt) {
+        Map<String, Object> metadata = new HashMap<>();
+        metadata.put("resumeId", StringUtils.defaultString(resumeId));
+        metadata.put("fileName", StringUtils.defaultString(fileName));
+        metadata.put("indexedAt", indexedAt);
+        return metadata;
     }
 }

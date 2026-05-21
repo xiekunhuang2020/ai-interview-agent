@@ -15,6 +15,8 @@ import com.xkh.ai.interview.service.tool.ResumeParseTool;
 import com.xkh.ai.interview.service.tool.ResumeRepositoryTool;
 import com.xkh.ai.interview.service.tool.ResumeVectorTool;
 import org.apache.commons.lang3.StringUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -25,6 +27,8 @@ import java.util.UUID;
 
 @Service
 public class InterviewWorkflowService {
+
+    private static final Logger logger = LoggerFactory.getLogger(InterviewWorkflowService.class);
 
     private final ResumeParseTool resumeParseTool;
     private final ResumeRepositoryTool resumeRepositoryTool;
@@ -76,7 +80,8 @@ public class InterviewWorkflowService {
         try {
             var scoreResult = resumeAnalysisAgent.analyze(resumeText);
             resumeRepositoryTool.saveAnalyzedResume(resumeId, originalFileName, resumeText, scoreResult);
-            resumeVectorTool.addResume(resumeId, originalFileName, resumeText);
+            int vectorChunkCount = resumeVectorTool.addResume(resumeId, originalFileName, resumeText);
+            logger.info("Resume vector indexing completed, resumeId={}, chunkCount={}", resumeId, vectorChunkCount);
             interviewSessionService.markAnalyzed(resumeId, originalFileName);
             return new ResumeUploadResultDTO(resumeId, scoreResult);
         } catch (RuntimeException e) {
