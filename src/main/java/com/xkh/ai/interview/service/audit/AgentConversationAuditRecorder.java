@@ -1,6 +1,6 @@
 package com.xkh.ai.interview.service.audit;
 
-import com.xkh.ai.interview.entity.AgentConversationMessage;
+import com.xkh.ai.interview.entity.AgentConversationMessageEntity;
 import com.xkh.ai.interview.mapper.AgentConversationMessageMapper;
 import com.xkh.ai.interview.config.RequestTraceFilter;
 import org.slf4j.Logger;
@@ -67,7 +67,7 @@ public class AgentConversationAuditRecorder {
             return;
         }
         try {
-            AgentConversationMessage message = new AgentConversationMessage();
+            AgentConversationMessageEntity message = new AgentConversationMessageEntity();
             message.setConversationId(conversationId);
             message.setTurnId(turnId);
             message.setTraceId(MDC.get(RequestTraceFilter.TRACE_ID_KEY));
@@ -106,3 +106,4 @@ public class AgentConversationAuditRecorder {
         return value.substring(0, maxLength - marker.length()) + marker;
     }
 }
+

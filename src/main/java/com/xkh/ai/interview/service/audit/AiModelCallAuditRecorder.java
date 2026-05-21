@@ -1,6 +1,6 @@
 package com.xkh.ai.interview.service.audit;
 
-import com.xkh.ai.interview.entity.AiModelCallLog;
+import com.xkh.ai.interview.entity.AiModelCallLogEntity;
 import com.xkh.ai.interview.mapper.AiModelCallLogMapper;
 import com.xkh.ai.interview.config.RequestTraceFilter;
 import org.slf4j.Logger;
@@ -35,7 +35,7 @@ public class AiModelCallAuditRecorder {
                        long latencyMs,
                        String errorMessage) {
         try {
-            AiModelCallLog log = new AiModelCallLog();
+            AiModelCallLogEntity log = new AiModelCallLogEntity();
             log.setTraceId(MDC.get(RequestTraceFilter.TRACE_ID_KEY));
             log.setOperationName(operationName);
             log.setPromptVersion(promptVersion);
@@ -61,3 +61,4 @@ public class AiModelCallAuditRecorder {
         return errorMessage.substring(0, MAX_ERROR_MESSAGE_LENGTH);
     }
 }
+

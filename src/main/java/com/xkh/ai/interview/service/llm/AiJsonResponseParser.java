@@ -4,10 +4,10 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.MapperFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.xkh.ai.interview.dto.InterviewEvaluation;
-import com.xkh.ai.interview.dto.InterviewQuestions;
-import com.xkh.ai.interview.dto.JobDescriptionMatchResult;
-import com.xkh.ai.interview.dto.ResumeScoreResult;
+import com.xkh.ai.interview.dto.InterviewEvaluationDTO;
+import com.xkh.ai.interview.dto.InterviewQuestionsDTO;
+import com.xkh.ai.interview.dto.JobDescriptionMatchResultDTO;
+import com.xkh.ai.interview.dto.ResumeScoreResultDTO;
 import jakarta.validation.ConstraintViolation;
 import jakarta.validation.Validator;
 import org.slf4j.Logger;
@@ -66,44 +66,44 @@ public class AiJsonResponseParser {
     );
 
     private final Validator validator;
-    private final BeanOutputConverter<ResumeScoreResult> resumeScoreConverter;
-    private final BeanOutputConverter<InterviewQuestions> interviewQuestionsConverter;
-    private final BeanOutputConverter<InterviewEvaluation> interviewEvaluationConverter;
-    private final BeanOutputConverter<JobDescriptionMatchResult> jobDescriptionMatchConverter;
+    private final BeanOutputConverter<ResumeScoreResultDTO> resumeScoreConverter;
+    private final BeanOutputConverter<InterviewQuestionsDTO> interviewQuestionsConverter;
+    private final BeanOutputConverter<InterviewEvaluationDTO> interviewEvaluationConverter;
+    private final BeanOutputConverter<JobDescriptionMatchResultDTO> jobDescriptionMatchConverter;
 
     public AiJsonResponseParser(ObjectMapper objectMapper, Validator validator) {
         ObjectMapper strictObjectMapper = objectMapper.copy()
                 .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, true)
                 .configure(MapperFeature.ALLOW_COERCION_OF_SCALARS, false);
         this.validator = validator;
-        this.resumeScoreConverter = new BeanOutputConverter<>(ResumeScoreResult.class, strictObjectMapper);
-        this.interviewQuestionsConverter = new BeanOutputConverter<>(InterviewQuestions.class, strictObjectMapper);
-        this.interviewEvaluationConverter = new BeanOutputConverter<>(InterviewEvaluation.class, strictObjectMapper);
-        this.jobDescriptionMatchConverter = new BeanOutputConverter<>(JobDescriptionMatchResult.class, strictObjectMapper);
+        this.resumeScoreConverter = new BeanOutputConverter<>(ResumeScoreResultDTO.class, strictObjectMapper);
+        this.interviewQuestionsConverter = new BeanOutputConverter<>(InterviewQuestionsDTO.class, strictObjectMapper);
+        this.interviewEvaluationConverter = new BeanOutputConverter<>(InterviewEvaluationDTO.class, strictObjectMapper);
+        this.jobDescriptionMatchConverter = new BeanOutputConverter<>(JobDescriptionMatchResultDTO.class, strictObjectMapper);
     }
 
-    public ResumeScoreResult parseResumeScoreResult(String json) throws JsonProcessingException {
-        ResumeScoreResult result = convertWithSpringAi(json, resumeScoreConverter, "resume-score");
+    public ResumeScoreResultDTO parseResumeScoreResult(String json) throws JsonProcessingException {
+        ResumeScoreResultDTO result = convertWithSpringAi(json, resumeScoreConverter, "resume-score");
         validateBean(result, "resume-score");
         normalizeResumeScoreDetail(result);
         return result;
     }
 
-    public InterviewQuestions parseInterviewQuestions(String json) throws JsonProcessingException {
-        InterviewQuestions result = convertWithSpringAi(json, interviewQuestionsConverter, "interview-questions");
+    public InterviewQuestionsDTO parseInterviewQuestions(String json) throws JsonProcessingException {
+        InterviewQuestionsDTO result = convertWithSpringAi(json, interviewQuestionsConverter, "interview-questions");
         normalizeInterviewQuestionTypes(result);
         validateBean(result, "interview-questions");
         return result;
     }
 
-    public InterviewEvaluation parseInterviewEvaluation(String json) throws JsonProcessingException {
-        InterviewEvaluation result = convertWithSpringAi(json, interviewEvaluationConverter, "interview-evaluation");
+    public InterviewEvaluationDTO parseInterviewEvaluation(String json) throws JsonProcessingException {
+        InterviewEvaluationDTO result = convertWithSpringAi(json, interviewEvaluationConverter, "interview-evaluation");
         validateBean(result, "interview-evaluation");
         return result;
     }
 
-    public JobDescriptionMatchResult parseJobDescriptionMatchResult(String json) throws JsonProcessingException {
-        JobDescriptionMatchResult result = convertWithSpringAi(json, jobDescriptionMatchConverter, "jd-match");
+    public JobDescriptionMatchResultDTO parseJobDescriptionMatchResult(String json) throws JsonProcessingException {
+        JobDescriptionMatchResultDTO result = convertWithSpringAi(json, jobDescriptionMatchConverter, "jd-match");
         validateBean(result, "jd-match");
         return result;
     }
@@ -136,8 +136,8 @@ public class AiJsonResponseParser {
                 .collect(Collectors.joining("; "));
     }
 
-    private void normalizeResumeScoreDetail(ResumeScoreResult result) {
-        ResumeScoreResult.ScoreDetail scoreDetail = result.getScoreDetail();
+    private void normalizeResumeScoreDetail(ResumeScoreResultDTO result) {
+        ResumeScoreResultDTO.ScoreDetail scoreDetail = result.getScoreDetail();
         scoreDetail.setProjectScore(clampScore("resume-score", "scoreDetail", "projectScore",
                 scoreDetail.getProjectScore(), 0, 40));
         scoreDetail.setSkillMatchScore(clampScore("resume-score", "scoreDetail", "skillMatchScore",
@@ -150,14 +150,14 @@ public class AiJsonResponseParser {
                 scoreDetail.getExpressionScore(), 0, 10));
     }
 
-    private void normalizeInterviewQuestionTypes(InterviewQuestions result) {
+    private void normalizeInterviewQuestionTypes(InterviewQuestionsDTO result) {
         if (result == null || result.getQuestions() == null) {
             return;
         }
 
-        List<InterviewQuestions.Question> questions = result.getQuestions();
+        List<InterviewQuestionsDTO.Question> questions = result.getQuestions();
         for (int index = 0; index < questions.size(); index++) {
-            InterviewQuestions.Question question = questions.get(index);
+            InterviewQuestionsDTO.Question question = questions.get(index);
             if (question == null) {
                 continue;
             }
@@ -215,3 +215,4 @@ public class AiJsonResponseParser {
         return cleaned.trim();
     }
 }
+

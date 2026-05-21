@@ -1,8 +1,8 @@
 package com.xkh.ai.interview.service.workflow;
 
-import com.xkh.ai.interview.dto.InterviewSessionInfo;
-import com.xkh.ai.interview.dto.ResumeData;
-import com.xkh.ai.interview.entity.InterviewSession;
+import com.xkh.ai.interview.dto.InterviewSessionInfoDTO;
+import com.xkh.ai.interview.dto.ResumeDataDTO;
+import com.xkh.ai.interview.entity.InterviewSessionEntity;
 import com.xkh.ai.interview.mapper.InterviewSessionMapper;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Service;
@@ -95,8 +95,8 @@ public class InterviewSessionService {
     /**
      * 查询面试会话状态；旧数据没有会话记录时，根据简历已有结果推断一个只读状态。
      */
-    public InterviewSessionInfo findInfo(String resumeId, ResumeData resumeData) {
-        InterviewSession session = interviewSessionMapper.selectById(resumeId);
+    public InterviewSessionInfoDTO findInfo(String resumeId, ResumeDataDTO resumeData) {
+        InterviewSessionEntity session = interviewSessionMapper.selectById(resumeId);
         if (session != null) {
             return toInfo(session);
         }
@@ -115,9 +115,9 @@ public class InterviewSessionService {
                         String currentStage,
                         String failedStage,
                         String failedReason) {
-        InterviewSession session = interviewSessionMapper.selectById(resumeId);
+        InterviewSessionEntity session = interviewSessionMapper.selectById(resumeId);
         if (session == null) {
-            session = new InterviewSession();
+            session = new InterviewSessionEntity();
             session.setResumeId(resumeId);
             session.setOriginalFileName(originalFileName);
             session.setStatus(status.name());
@@ -141,8 +141,8 @@ public class InterviewSessionService {
     /**
      * 将数据库实体转换成前端可直接展示的状态 DTO。
      */
-    private InterviewSessionInfo toInfo(InterviewSession session) {
-        return InterviewSessionInfo.builder()
+    private InterviewSessionInfoDTO toInfo(InterviewSessionEntity session) {
+        return InterviewSessionInfoDTO.builder()
                 .resumeId(session.getResumeId())
                 .status(session.getStatus())
                 .statusText(statusText(session.getStatus()))
@@ -158,7 +158,7 @@ public class InterviewSessionService {
     /**
      * 根据旧简历记录中已有的问题和评估结果推断一个展示用状态。
      */
-    private InterviewSessionInfo inferInfo(String resumeId, ResumeData resumeData) {
+    private InterviewSessionInfoDTO inferInfo(String resumeId, ResumeDataDTO resumeData) {
         InterviewSessionStatus status = InterviewSessionStatus.ANALYZED;
         String stage = "RESUME_ANALYSIS";
         if (resumeData.getEvaluation() != null) {
@@ -171,7 +171,7 @@ public class InterviewSessionService {
             stage = "QUESTION_GENERATION";
         }
 
-        return InterviewSessionInfo.builder()
+        return InterviewSessionInfoDTO.builder()
                 .resumeId(resumeId)
                 .status(status.name())
                 .statusText(status.getText())
@@ -218,3 +218,4 @@ public class InterviewSessionService {
         return message.substring(0, MAX_FAILED_REASON_LENGTH);
     }
 }
+

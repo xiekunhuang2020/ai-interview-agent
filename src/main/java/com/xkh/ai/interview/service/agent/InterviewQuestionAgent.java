@@ -1,7 +1,7 @@
 package com.xkh.ai.interview.service.agent;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
-import com.xkh.ai.interview.dto.InterviewQuestions;
+import com.xkh.ai.interview.dto.InterviewQuestionsDTO;
 import com.xkh.ai.interview.service.llm.AiJsonResponseParser;
 import com.xkh.ai.interview.service.llm.AiModelCallService;
 import org.slf4j.Logger;
@@ -32,7 +32,7 @@ public class InterviewQuestionAgent {
         this.responseParser = responseParser;
     }
 
-    public InterviewQuestions generate(String resumeText) {
+    public InterviewQuestionsDTO generate(String resumeText) {
         logger.info("InterviewQuestionAgent starts, resumeTextLength={}", resumeText.length());
 
         List<Message> messages = new ArrayList<>();
@@ -52,3 +52,4 @@ public class InterviewQuestionAgent {
         }
     }
 }
+

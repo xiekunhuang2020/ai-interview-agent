@@ -10,29 +10,21 @@ import lombok.Data;
 import java.time.LocalDateTime;
 
 @Data
-@TableName("interview_evaluation")
-public class InterviewEvaluationRecord {
+@TableName("interview_question")
+public class InterviewQuestionRecordEntity {
 
-    @TableId(type = IdType.INPUT)
+    @TableId(type = IdType.AUTO)
+    private Long id;
+
     private String resumeId;
 
-    private String sessionId;
+    private Integer questionIndex;
 
-    private Integer totalQuestions;
+    private String questionType;
 
-    private Integer overallScore;
+    private String category;
 
-    private String overallFeedback;
-
-    private String categoryScoresJson;
-
-    private String questionDetailsJson;
-
-    private String strengthsJson;
-
-    private String improvementsJson;
-
-    private String referenceAnswersJson;
+    private String questionText;
 
     @TableField(fill = FieldFill.INSERT)
     private LocalDateTime createTime;
@@ -40,3 +32,4 @@ public class InterviewEvaluationRecord {
     @TableField(fill = FieldFill.INSERT_UPDATE)
     private LocalDateTime updateTime;
 }
+

@@ -11,7 +11,7 @@ import java.time.LocalDateTime;
 
 @Data
 @TableName("interview_session")
-public class InterviewSession {
+public class InterviewSessionEntity {
 
     @TableId(type = IdType.INPUT)
     private String resumeId;
@@ -32,3 +32,4 @@ public class InterviewSession {
     @TableField(fill = FieldFill.INSERT_UPDATE)
     private LocalDateTime updateTime;
 }
+

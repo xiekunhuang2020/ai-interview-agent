@@ -1,10 +1,10 @@
 package com.xkh.ai.interview.service.audit;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
-import com.xkh.ai.interview.entity.AiModelCallLog;
+import com.xkh.ai.interview.entity.AiModelCallLogEntity;
 import com.xkh.ai.interview.mapper.AiModelCallLogMapper;
-import com.xkh.ai.interview.dto.PromptFailureReasonResult;
-import com.xkh.ai.interview.dto.PromptMetricsResult;
+import com.xkh.ai.interview.dto.PromptFailureReasonResultDTO;
+import com.xkh.ai.interview.dto.PromptMetricsResultDTO;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Service;
 
@@ -28,12 +28,12 @@ public class AiModelCallAuditQueryService {
     /**
      * 查询最近的模型调用记录，可按 traceId 或 operationName 缩小排查范围。
      */
-    public List<AiModelCallLog> listRecent(String traceId, String operationName, int limit) {
+    public List<AiModelCallLogEntity> listRecent(String traceId, String operationName, int limit) {
         int safeLimit = Math.max(1, Math.min(limit, 100));
-        LambdaQueryWrapper<AiModelCallLog> wrapper = new LambdaQueryWrapper<>();
-        wrapper.eq(StringUtils.isNotBlank(traceId), AiModelCallLog::getTraceId, traceId);
-        wrapper.eq(StringUtils.isNotBlank(operationName), AiModelCallLog::getOperationName, operationName);
-        wrapper.orderByDesc(AiModelCallLog::getCreateTime);
+        LambdaQueryWrapper<AiModelCallLogEntity> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(StringUtils.isNotBlank(traceId), AiModelCallLogEntity::getTraceId, traceId);
+        wrapper.eq(StringUtils.isNotBlank(operationName), AiModelCallLogEntity::getOperationName, operationName);
+        wrapper.orderByDesc(AiModelCallLogEntity::getCreateTime);
         wrapper.last("LIMIT " + safeLimit);
         return aiModelCallLogMapper.selectList(wrapper);
     }
@@ -41,51 +41,51 @@ public class AiModelCallAuditQueryService {
     /**
      * 按 operationName 和 Prompt 版本聚合调用次数、成功率、失败数和耗时指标。
      */
-    public List<PromptMetricsResult> listPromptMetrics(String operationName, String promptVersion, int limit) {
+    public List<PromptMetricsResultDTO> listPromptMetrics(String operationName, String promptVersion, int limit) {
         int safeLimit = Math.max(1, Math.min(limit, 5000));
-        LambdaQueryWrapper<AiModelCallLog> wrapper = new LambdaQueryWrapper<>();
-        wrapper.eq(StringUtils.isNotBlank(operationName), AiModelCallLog::getOperationName, operationName);
-        wrapper.eq(StringUtils.isNotBlank(promptVersion), AiModelCallLog::getPromptVersion, promptVersion);
-        wrapper.orderByDesc(AiModelCallLog::getCreateTime);
+        LambdaQueryWrapper<AiModelCallLogEntity> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(StringUtils.isNotBlank(operationName), AiModelCallLogEntity::getOperationName, operationName);
+        wrapper.eq(StringUtils.isNotBlank(promptVersion), AiModelCallLogEntity::getPromptVersion, promptVersion);
+        wrapper.orderByDesc(AiModelCallLogEntity::getCreateTime);
         wrapper.last("LIMIT " + safeLimit);
 
-        List<AiModelCallLog> logs = aiModelCallLogMapper.selectList(wrapper);
-        Map<String, List<AiModelCallLog>> groupedLogs = logs.stream()
+        List<AiModelCallLogEntity> logs = aiModelCallLogMapper.selectList(wrapper);
+        Map<String, List<AiModelCallLogEntity>> groupedLogs = logs.stream()
                 .collect(Collectors.groupingBy(log -> log.getOperationName() + "::" + log.getPromptVersion()));
 
         return groupedLogs.values().stream()
                 .map(this::toMetrics)
-                .sorted(Comparator.comparing(PromptMetricsResult::getTotalCalls).reversed())
+                .sorted(Comparator.comparing(PromptMetricsResultDTO::getTotalCalls).reversed())
                 .toList();
     }
 
     /**
      * 聚合模型调用失败原因，用于 Prompt 看板排查高频失败类型。
      */
-    public List<PromptFailureReasonResult> listFailureReasons(String operationName, String promptVersion, int limit) {
+    public List<PromptFailureReasonResultDTO> listFailureReasons(String operationName, String promptVersion, int limit) {
         int safeLimit = Math.max(1, Math.min(limit, 5000));
-        LambdaQueryWrapper<AiModelCallLog> wrapper = new LambdaQueryWrapper<>();
-        wrapper.eq(StringUtils.isNotBlank(operationName), AiModelCallLog::getOperationName, operationName);
-        wrapper.eq(StringUtils.isNotBlank(promptVersion), AiModelCallLog::getPromptVersion, promptVersion);
-        wrapper.eq(AiModelCallLog::getSuccess, 0);
-        wrapper.orderByDesc(AiModelCallLog::getCreateTime);
+        LambdaQueryWrapper<AiModelCallLogEntity> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(StringUtils.isNotBlank(operationName), AiModelCallLogEntity::getOperationName, operationName);
+        wrapper.eq(StringUtils.isNotBlank(promptVersion), AiModelCallLogEntity::getPromptVersion, promptVersion);
+        wrapper.eq(AiModelCallLogEntity::getSuccess, 0);
+        wrapper.orderByDesc(AiModelCallLogEntity::getCreateTime);
         wrapper.last("LIMIT " + safeLimit);
 
-        List<AiModelCallLog> logs = aiModelCallLogMapper.selectList(wrapper);
+        List<AiModelCallLogEntity> logs = aiModelCallLogMapper.selectList(wrapper);
         long totalFailures = logs.size();
-        Map<String, List<AiModelCallLog>> groupedLogs = logs.stream()
+        Map<String, List<AiModelCallLogEntity>> groupedLogs = logs.stream()
                 .collect(Collectors.groupingBy(this::failureReasonKey));
 
         return groupedLogs.entrySet().stream()
                 .map(entry -> toFailureReason(entry.getKey(), entry.getValue(), totalFailures))
-                .sorted(Comparator.comparing(PromptFailureReasonResult::getCount).reversed())
+                .sorted(Comparator.comparing(PromptFailureReasonResultDTO::getCount).reversed())
                 .toList();
     }
 
     /**
      * 将同一 Prompt 版本下的调用日志转换为前端看板需要的指标 DTO。
      */
-    private PromptMetricsResult toMetrics(List<AiModelCallLog> logs) {
+    private PromptMetricsResultDTO toMetrics(List<AiModelCallLogEntity> logs) {
         long totalCalls = logs.size();
         long successCalls = logs.stream().filter(log -> Integer.valueOf(1).equals(log.getSuccess())).count();
         long failedCalls = totalCalls - successCalls;
@@ -102,8 +102,8 @@ public class AiModelCallAuditQueryService {
                 .average()
                 .orElse(0D);
 
-        AiModelCallLog sample = logs.get(0);
-        return PromptMetricsResult.builder()
+        AiModelCallLogEntity sample = logs.get(0);
+        return PromptMetricsResultDTO.builder()
                 .operationName(sample.getOperationName())
                 .promptVersion(sample.getPromptVersion())
                 .totalCalls(totalCalls)
@@ -119,9 +119,9 @@ public class AiModelCallAuditQueryService {
     /**
      * 将同一失败原因下的日志转换为失败原因分布 DTO。
      */
-    private PromptFailureReasonResult toFailureReason(String reason, List<AiModelCallLog> logs, long totalFailures) {
-        AiModelCallLog sample = logs.get(0);
-        return PromptFailureReasonResult.builder()
+    private PromptFailureReasonResultDTO toFailureReason(String reason, List<AiModelCallLogEntity> logs, long totalFailures) {
+        AiModelCallLogEntity sample = logs.get(0);
+        return PromptFailureReasonResultDTO.builder()
                 .operationName(sample.getOperationName())
                 .promptVersion(sample.getPromptVersion())
                 .reason(reason)
@@ -133,7 +133,7 @@ public class AiModelCallAuditQueryService {
     /**
      * 生成失败原因聚合键，避免完整异常堆栈导致同类错误无法归并。
      */
-    private String failureReasonKey(AiModelCallLog log) {
+    private String failureReasonKey(AiModelCallLogEntity log) {
         if (StringUtils.isBlank(log.getErrorMessage())) {
             return "unknown";
         }
@@ -161,3 +161,4 @@ public class AiModelCallAuditQueryService {
         return Math.round(value * 100D) / 100D;
     }
 }
+

@@ -9,10 +9,15 @@ import lombok.NoArgsConstructor;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class PromptFailureReasonResult {
+public class PromptMetricsResultDTO {
     private String operationName;
     private String promptVersion;
-    private String reason;
-    private Long count;
-    private Double percentage;
+    private Long totalCalls;
+    private Long successCalls;
+    private Long failedCalls;
+    private Double successRate;
+    private Double avgLatencyMs;
+    private Long maxLatencyMs;
+    private Double avgAttemptCount;
 }
+

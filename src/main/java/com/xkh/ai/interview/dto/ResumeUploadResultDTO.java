@@ -5,7 +5,8 @@ import lombok.Data;
 
 @Data
 @AllArgsConstructor
-public class ResumeUploadResult {
+public class ResumeUploadResultDTO {
     private String resumeId;
-    private ResumeScoreResult scoreResult;
+    private ResumeScoreResultDTO scoreResult;
 }
+

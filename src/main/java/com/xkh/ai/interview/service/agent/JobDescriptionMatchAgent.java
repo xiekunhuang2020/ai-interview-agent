@@ -1,7 +1,7 @@
 package com.xkh.ai.interview.service.agent;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
-import com.xkh.ai.interview.dto.JobDescriptionMatchResult;
+import com.xkh.ai.interview.dto.JobDescriptionMatchResultDTO;
 import com.xkh.ai.interview.service.llm.AiJsonResponseParser;
 import com.xkh.ai.interview.service.llm.AiModelCallService;
 import org.slf4j.Logger;
@@ -32,7 +32,7 @@ public class JobDescriptionMatchAgent {
         this.responseParser = responseParser;
     }
 
-    public JobDescriptionMatchResult match(String resumeText, String jobDescription) {
+    public JobDescriptionMatchResultDTO match(String resumeText, String jobDescription) {
         logger.info("JobDescriptionMatchAgent starts, resumeTextLength={}, jdLength={}",
                 resumeText.length(), jobDescription.length());
 
@@ -56,3 +56,4 @@ public class JobDescriptionMatchAgent {
         }
     }
 }
+

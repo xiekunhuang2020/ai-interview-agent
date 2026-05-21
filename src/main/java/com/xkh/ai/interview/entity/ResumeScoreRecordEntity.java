@@ -11,7 +11,7 @@ import java.time.LocalDateTime;
 
 @Data
 @TableName("resume_score")
-public class ResumeScoreRecord {
+public class ResumeScoreRecordEntity {
 
     @TableId(type = IdType.INPUT)
     private String resumeId;
@@ -40,3 +40,4 @@ public class ResumeScoreRecord {
     @TableField(fill = FieldFill.INSERT_UPDATE)
     private LocalDateTime updateTime;
 }
+

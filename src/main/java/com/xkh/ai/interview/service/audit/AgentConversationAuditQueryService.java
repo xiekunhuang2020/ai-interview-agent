@@ -1,7 +1,7 @@
 package com.xkh.ai.interview.service.audit;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
-import com.xkh.ai.interview.entity.AgentConversationMessage;
+import com.xkh.ai.interview.entity.AgentConversationMessageEntity;
 import com.xkh.ai.interview.mapper.AgentConversationMessageMapper;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Service;
@@ -17,13 +17,14 @@ public class AgentConversationAuditQueryService {
         this.agentConversationMessageMapper = agentConversationMessageMapper;
     }
 
-    public List<AgentConversationMessage> listRecent(String conversationId, String traceId, int limit) {
+    public List<AgentConversationMessageEntity> listRecent(String conversationId, String traceId, int limit) {
         int safeLimit = Math.max(1, Math.min(limit, 200));
-        LambdaQueryWrapper<AgentConversationMessage> wrapper = new LambdaQueryWrapper<>();
-        wrapper.eq(StringUtils.isNotBlank(conversationId), AgentConversationMessage::getConversationId, conversationId);
-        wrapper.eq(StringUtils.isNotBlank(traceId), AgentConversationMessage::getTraceId, traceId);
-        wrapper.orderByDesc(AgentConversationMessage::getCreateTime);
+        LambdaQueryWrapper<AgentConversationMessageEntity> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(StringUtils.isNotBlank(conversationId), AgentConversationMessageEntity::getConversationId, conversationId);
+        wrapper.eq(StringUtils.isNotBlank(traceId), AgentConversationMessageEntity::getTraceId, traceId);
+        wrapper.orderByDesc(AgentConversationMessageEntity::getCreateTime);
         wrapper.last("LIMIT " + safeLimit);
         return agentConversationMessageMapper.selectList(wrapper);
     }
 }
+

@@ -16,7 +16,7 @@ import java.util.List;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class JobDescriptionMatchResult {
+public class JobDescriptionMatchResultDTO {
     @NotNull
     @Min(0)
     @Max(100)
@@ -66,3 +66,4 @@ public class JobDescriptionMatchResult {
         private String suggestion;
     }
 }
+

@@ -10,7 +10,7 @@ import java.time.LocalDateTime;
 
 @Data
 @TableName("ai_model_call_log")
-public class AiModelCallLog {
+public class AiModelCallLogEntity {
 
     @TableId(type = IdType.AUTO)
     private Long id;
@@ -34,3 +34,4 @@ public class AiModelCallLog {
     @TableField(fill = com.baomidou.mybatisplus.annotation.FieldFill.INSERT)
     private LocalDateTime createTime;
 }
+

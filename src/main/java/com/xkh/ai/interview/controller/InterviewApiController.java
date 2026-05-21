@@ -1,8 +1,8 @@
 package com.xkh.ai.interview.controller;
 
-import com.xkh.ai.interview.dto.AgentChatRequest;
-import com.xkh.ai.interview.dto.JobDescriptionRequest;
-import com.xkh.ai.interview.dto.ResumeData;
+import com.xkh.ai.interview.dto.AgentChatRequestDTO;
+import com.xkh.ai.interview.dto.JobDescriptionRequestDTO;
+import com.xkh.ai.interview.dto.ResumeDataDTO;
 import com.xkh.ai.interview.service.agent.InterviewAssistantAgentService;
 import com.xkh.ai.interview.service.audit.AgentConversationAuditQueryService;
 import com.xkh.ai.interview.service.audit.AiModelCallAuditQueryService;
@@ -78,7 +78,7 @@ public class InterviewApiController {
      */
     @GetMapping("/api/resume/{resumeId}")
     public ResponseEntity<?> getResumeWorkspace(@PathVariable String resumeId) {
-        ResumeData resumeData = interviewWorkflowService.getResumeById(resumeId);
+        ResumeDataDTO resumeData = interviewWorkflowService.getResumeById(resumeId);
         if (resumeData == null) {
             return ResponseEntity.notFound().build();
         }
@@ -116,7 +116,7 @@ public class InterviewApiController {
     @PostMapping("/api/interview/{resumeId}/rag-questions")
     public ResponseEntity<?> generateRagQuestions(
             @PathVariable String resumeId,
-            @RequestBody JobDescriptionRequest request) {
+            @RequestBody JobDescriptionRequestDTO request) {
         try {
             return ResponseEntity.ok(interviewWorkflowService.generateRagInterviewQuestions(
                     resumeId,
@@ -160,7 +160,7 @@ public class InterviewApiController {
     @PostMapping("/api/jd/{resumeId}/match")
     public ResponseEntity<?> matchJobDescription(
             @PathVariable String resumeId,
-            @RequestBody JobDescriptionRequest request) {
+            @RequestBody JobDescriptionRequestDTO request) {
         try {
             return ResponseEntity.ok(interviewWorkflowService.matchJobDescription(
                     resumeId,
@@ -184,7 +184,7 @@ public class InterviewApiController {
     public ResponseEntity<Flux<ServerSentEvent<Map<String, Object>>>> streamWithInterviewAssistantByEventSource(
             @RequestParam String message,
             @RequestParam(required = false) String conversationId) {
-        AgentChatRequest request = new AgentChatRequest();
+        AgentChatRequestDTO request = new AgentChatRequestDTO();
         request.setMessage(message);
         request.setConversationId(conversationId);
         return ResponseEntity.ok()
@@ -278,3 +278,4 @@ public class InterviewApiController {
         return ResponseEntity.status(status).body(Map.of("error", message));
     }
 }
+

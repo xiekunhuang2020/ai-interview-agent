@@ -18,7 +18,7 @@ import java.util.List;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class InterviewEvaluation {
+public class InterviewEvaluationDTO {
     
     /**
      * 面试会话 ID
@@ -135,3 +135,4 @@ public class InterviewEvaluation {
         private List<@NotNull String> keyPoints;
     }
 }
+

@@ -1,8 +1,8 @@
 package com.xkh.ai.interview.service.tool;
 
-import com.xkh.ai.interview.dto.InterviewEvaluation;
-import com.xkh.ai.interview.dto.ResumeData;
-import com.xkh.ai.interview.dto.ResumeScoreResult;
+import com.xkh.ai.interview.dto.InterviewEvaluationDTO;
+import com.xkh.ai.interview.dto.ResumeDataDTO;
+import com.xkh.ai.interview.dto.ResumeScoreResultDTO;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.ai.document.Document;
 import org.springframework.ai.tool.annotation.Tool;
@@ -33,9 +33,9 @@ public class ResumeAgentTools {
     @Tool(name = "get_resume_profile", description = "只读工具。根据 resumeId 查询候选人的简历画像、评分摘要、优势、建议以及面试流程状态；返回内容会裁剪，不返回完整简历原文。")
     public ResumeProfileToolResult getResumeProfile(
             @ToolParam(required = true, description = "简历唯一标识 resumeId。") String resumeId) {
-        ResumeData resumeData = requireResume(resumeId);
-        ResumeScoreResult scoreResult = resumeData.getScoreResult();
-        InterviewEvaluation evaluation = resumeData.getEvaluation();
+        ResumeDataDTO resumeData = requireResume(resumeId);
+        ResumeScoreResultDTO scoreResult = resumeData.getScoreResult();
+        InterviewEvaluationDTO evaluation = resumeData.getEvaluation();
 
         return new ResumeProfileToolResult(
                 resumeData.getResumeId(),
@@ -54,7 +54,7 @@ public class ResumeAgentTools {
     @Tool(name = "get_resume_interview_questions", description = "只读工具。根据 resumeId 查询候选人已生成的面试问题；最多返回前 10 题，每题内容会裁剪。")
     public InterviewQuestionsToolResult getResumeInterviewQuestions(
             @ToolParam(required = true, description = "简历唯一标识 resumeId。") String resumeId) {
-        ResumeData resumeData = requireResume(resumeId);
+        ResumeDataDTO resumeData = requireResume(resumeId);
         if (resumeData.getQuestions() == null || resumeData.getQuestions().getQuestions() == null) {
             return new InterviewQuestionsToolResult(resumeId, 0, List.of());
         }
@@ -87,11 +87,11 @@ public class ResumeAgentTools {
                 .toList();
     }
 
-    private ResumeData requireResume(String resumeId) {
+    private ResumeDataDTO requireResume(String resumeId) {
         if (StringUtils.isBlank(resumeId)) {
             throw new IllegalArgumentException("resumeId 不能为空");
         }
-        ResumeData resumeData = resumeRepositoryTool.findById(resumeId);
+        ResumeDataDTO resumeData = resumeRepositoryTool.findById(resumeId);
         if (resumeData == null) {
             throw new IllegalArgumentException("简历不存在：" + resumeId);
         }
@@ -115,7 +115,7 @@ public class ResumeAgentTools {
         return Math.max(1, Math.min(topK, MAX_TOP_K));
     }
 
-    private List<String> summarizeSuggestions(List<ResumeScoreResult.Suggestion> suggestions) {
+    private List<String> summarizeSuggestions(List<ResumeScoreResultDTO.Suggestion> suggestions) {
         if (suggestions == null) {
             return List.of();
         }
@@ -179,3 +179,4 @@ public class ResumeAgentTools {
     ) {
     }
 }
+

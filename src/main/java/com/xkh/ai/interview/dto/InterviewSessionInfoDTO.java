@@ -11,7 +11,7 @@ import java.time.LocalDateTime;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class InterviewSessionInfo {
+public class InterviewSessionInfoDTO {
     private String resumeId;
     private String status;
     private String statusText;
@@ -22,3 +22,4 @@ public class InterviewSessionInfo {
     private LocalDateTime createTime;
     private LocalDateTime updateTime;
 }
+

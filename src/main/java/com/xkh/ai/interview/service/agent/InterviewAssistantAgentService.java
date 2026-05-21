@@ -1,7 +1,7 @@
 package com.xkh.ai.interview.service.agent;
 
 import com.alibaba.cloud.ai.dashscope.chat.DashScopeChatOptions;
-import com.xkh.ai.interview.dto.AgentChatRequest;
+import com.xkh.ai.interview.dto.AgentChatRequestDTO;
 import com.xkh.ai.interview.service.audit.AgentConversationAuditRecorder;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.ai.chat.client.ChatClient;
@@ -59,7 +59,7 @@ public class InterviewAssistantAgentService {
     /**
      * 创建 Spring 官方 Flux SSE 流，用于 AI 求职顾问逐段返回回答内容。
      */
-    public Flux<ServerSentEvent<Map<String, Object>>> stream(AgentChatRequest request) {
+    public Flux<ServerSentEvent<Map<String, Object>>> stream(AgentChatRequestDTO request) {
         if (request == null || StringUtils.isBlank(request.getMessage())) {
             return Flux.just(sse("error", Map.of("message", "请输入要咨询的问题。")));
         }
@@ -163,3 +163,4 @@ public class InterviewAssistantAgentService {
                 conversationId, turnId, agentName, null, false, latencyMs, e.getMessage());
     }
 }
+

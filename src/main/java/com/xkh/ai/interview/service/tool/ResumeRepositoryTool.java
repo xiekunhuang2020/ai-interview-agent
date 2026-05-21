@@ -4,21 +4,21 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JavaType;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.xkh.ai.interview.entity.InterviewEvaluationRecord;
-import com.xkh.ai.interview.entity.InterviewQuestionRecord;
-import com.xkh.ai.interview.entity.JobDescriptionMatchRecord;
-import com.xkh.ai.interview.entity.ResumeInfo;
-import com.xkh.ai.interview.entity.ResumeScoreRecord;
+import com.xkh.ai.interview.entity.InterviewEvaluationRecordEntity;
+import com.xkh.ai.interview.entity.InterviewQuestionRecordEntity;
+import com.xkh.ai.interview.entity.JobDescriptionMatchRecordEntity;
+import com.xkh.ai.interview.entity.ResumeInfoEntity;
+import com.xkh.ai.interview.entity.ResumeScoreRecordEntity;
 import com.xkh.ai.interview.mapper.InterviewEvaluationRecordMapper;
 import com.xkh.ai.interview.mapper.InterviewQuestionRecordMapper;
 import com.xkh.ai.interview.mapper.JobDescriptionMatchRecordMapper;
 import com.xkh.ai.interview.mapper.ResumeInfoMapper;
 import com.xkh.ai.interview.mapper.ResumeScoreRecordMapper;
-import com.xkh.ai.interview.dto.InterviewEvaluation;
-import com.xkh.ai.interview.dto.InterviewQuestions;
-import com.xkh.ai.interview.dto.JobDescriptionMatchResult;
-import com.xkh.ai.interview.dto.ResumeData;
-import com.xkh.ai.interview.dto.ResumeScoreResult;
+import com.xkh.ai.interview.dto.InterviewEvaluationDTO;
+import com.xkh.ai.interview.dto.InterviewQuestionsDTO;
+import com.xkh.ai.interview.dto.JobDescriptionMatchResultDTO;
+import com.xkh.ai.interview.dto.ResumeDataDTO;
+import com.xkh.ai.interview.dto.ResumeScoreResultDTO;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -65,9 +65,9 @@ public class ResumeRepositoryTool {
      * 保存简历基础信息和评分拆分结果。
      */
     @Transactional
-    public void saveAnalyzedResume(String resumeId, String originalFileName, String resumeText, ResumeScoreResult scoreResult) {
+    public void saveAnalyzedResume(String resumeId, String originalFileName, String resumeText, ResumeScoreResultDTO scoreResult) {
         try {
-            ResumeInfo entity = new ResumeInfo();
+            ResumeInfoEntity entity = new ResumeInfoEntity();
             entity.setResumeId(resumeId);
             entity.setOriginalFileName(originalFileName);
             entity.setResumeText(resumeText);
@@ -85,8 +85,8 @@ public class ResumeRepositoryTool {
      * 保存面试问题明细，同一份简历只保留最新一组问题。
      */
     @Transactional
-    public void saveQuestions(String resumeId, InterviewQuestions questions) {
-        ResumeInfo entity = requireResumeInfo(resumeId);
+    public void saveQuestions(String resumeId, InterviewQuestionsDTO questions) {
+        ResumeInfoEntity entity = requireResumeInfo(resumeId);
         replaceQuestionRecords(resumeId, questions);
         cacheResumeData(resumeId, buildResumeData(entity));
         logger.info("Interview questions saved, resumeId={}", resumeId);
@@ -96,9 +96,9 @@ public class ResumeRepositoryTool {
      * 保存面试评估结果。
      */
     @Transactional
-    public void saveEvaluation(String resumeId, InterviewEvaluation evaluation) {
+    public void saveEvaluation(String resumeId, InterviewEvaluationDTO evaluation) {
         try {
-            ResumeInfo entity = requireResumeInfo(resumeId);
+            ResumeInfoEntity entity = requireResumeInfo(resumeId);
             saveEvaluationRecord(resumeId, evaluation);
             cacheResumeData(resumeId, buildResumeData(entity));
             logger.info("Interview evaluation saved, resumeId={}", resumeId);
@@ -111,10 +111,10 @@ public class ResumeRepositoryTool {
      * 保存最近一次岗位匹配结果，让匹配结果不再只依赖浏览器本地缓存。
      */
     @Transactional
-    public void saveJobMatch(String resumeId, String jobDescription, JobDescriptionMatchResult matchResult) {
+    public void saveJobMatch(String resumeId, String jobDescription, JobDescriptionMatchResultDTO matchResult) {
         try {
-            ResumeInfo entity = requireResumeInfo(resumeId);
-            JobDescriptionMatchRecord record = new JobDescriptionMatchRecord();
+            ResumeInfoEntity entity = requireResumeInfo(resumeId);
+            JobDescriptionMatchRecordEntity record = new JobDescriptionMatchRecordEntity();
             record.setResumeId(resumeId);
             record.setJobDescription(jobDescription);
             record.setOverallScore(matchResult.getOverallScore());
@@ -136,19 +136,19 @@ public class ResumeRepositoryTool {
     /**
      * 查询简历聚合数据。
      */
-    public ResumeData findById(String resumeId) {
-        ResumeData cached = getCachedResumeData(resumeId);
+    public ResumeDataDTO findById(String resumeId) {
+        ResumeDataDTO cached = getCachedResumeData(resumeId);
         if (cached != null) {
             logger.debug("Resume cache hit, resumeId={}", resumeId);
             return cached;
         }
 
-        ResumeInfo entity = resumeInfoMapper.selectById(resumeId);
+        ResumeInfoEntity entity = resumeInfoMapper.selectById(resumeId);
         if (entity == null) {
             return null;
         }
 
-        ResumeData data = buildResumeData(entity);
+        ResumeDataDTO data = buildResumeData(entity);
         cacheResumeData(resumeId, data);
         return data;
     }
@@ -156,8 +156,8 @@ public class ResumeRepositoryTool {
     /**
      * 查询简历主表记录，不存在时抛出明确异常。
      */
-    private ResumeInfo requireResumeInfo(String resumeId) {
-        ResumeInfo entity = resumeInfoMapper.selectById(resumeId);
+    private ResumeInfoEntity requireResumeInfo(String resumeId) {
+        ResumeInfoEntity entity = resumeInfoMapper.selectById(resumeId);
         if (entity == null) {
             throw new NoSuchElementException("简历不存在：" + resumeId);
         }
@@ -167,9 +167,9 @@ public class ResumeRepositoryTool {
     /**
      * 新增或更新评分拆分表，便于后续按维度统计评分。
      */
-    private void saveResumeScoreRecord(String resumeId, ResumeScoreResult scoreResult) throws JsonProcessingException {
-        ResumeScoreResult.ScoreDetail detail = scoreResult.getScoreDetail();
-        ResumeScoreRecord record = new ResumeScoreRecord();
+    private void saveResumeScoreRecord(String resumeId, ResumeScoreResultDTO scoreResult) throws JsonProcessingException {
+        ResumeScoreResultDTO.ScoreDetail detail = scoreResult.getScoreDetail();
+        ResumeScoreRecordEntity record = new ResumeScoreRecordEntity();
         record.setResumeId(resumeId);
         record.setOverallScore(scoreResult.getOverallScore());
         record.setProjectScore(detail.getProjectScore());
@@ -186,13 +186,13 @@ public class ResumeRepositoryTool {
     /**
      * 刷新面试问题明细表，同一份简历只保留最新一组问题。
      */
-    private void replaceQuestionRecords(String resumeId, InterviewQuestions questions) {
-        interviewQuestionRecordMapper.delete(new LambdaQueryWrapper<InterviewQuestionRecord>()
-                .eq(InterviewQuestionRecord::getResumeId, resumeId));
-        List<InterviewQuestions.Question> questionList = questions == null ? List.of() : safeList(questions.getQuestions());
+    private void replaceQuestionRecords(String resumeId, InterviewQuestionsDTO questions) {
+        interviewQuestionRecordMapper.delete(new LambdaQueryWrapper<InterviewQuestionRecordEntity>()
+                .eq(InterviewQuestionRecordEntity::getResumeId, resumeId));
+        List<InterviewQuestionsDTO.Question> questionList = questions == null ? List.of() : safeList(questions.getQuestions());
         for (int index = 0; index < questionList.size(); index++) {
-            InterviewQuestions.Question question = questionList.get(index);
-            InterviewQuestionRecord record = new InterviewQuestionRecord();
+            InterviewQuestionsDTO.Question question = questionList.get(index);
+            InterviewQuestionRecordEntity record = new InterviewQuestionRecordEntity();
             record.setResumeId(resumeId);
             record.setQuestionIndex(index);
             record.setQuestionText(question.getQuestion());
@@ -205,8 +205,8 @@ public class ResumeRepositoryTool {
     /**
      * 新增或更新评估拆分表，把总分、题量、整体反馈等高频字段独立出来。
      */
-    private void saveEvaluationRecord(String resumeId, InterviewEvaluation evaluation) throws JsonProcessingException {
-        InterviewEvaluationRecord record = new InterviewEvaluationRecord();
+    private void saveEvaluationRecord(String resumeId, InterviewEvaluationDTO evaluation) throws JsonProcessingException {
+        InterviewEvaluationRecordEntity record = new InterviewEvaluationRecordEntity();
         record.setResumeId(resumeId);
         record.setSessionId(evaluation.getSessionId());
         record.setTotalQuestions(evaluation.getTotalQuestions());
@@ -223,7 +223,7 @@ public class ResumeRepositoryTool {
     /**
      * Upsert 简历评分记录，避免重复分析同一简历时主键冲突。
      */
-    private void upsertResumeScoreRecord(ResumeScoreRecord record) {
+    private void upsertResumeScoreRecord(ResumeScoreRecordEntity record) {
         if (resumeScoreRecordMapper.selectById(record.getResumeId()) == null) {
             resumeScoreRecordMapper.insert(record);
             return;
@@ -234,7 +234,7 @@ public class ResumeRepositoryTool {
     /**
      * Upsert 面试评估记录，保证每份简历只保留最新一次评估。
      */
-    private void upsertEvaluationRecord(InterviewEvaluationRecord record) {
+    private void upsertEvaluationRecord(InterviewEvaluationRecordEntity record) {
         if (interviewEvaluationRecordMapper.selectById(record.getResumeId()) == null) {
             interviewEvaluationRecordMapper.insert(record);
             return;
@@ -245,7 +245,7 @@ public class ResumeRepositoryTool {
     /**
      * Upsert 岗位匹配记录，保证每份简历只保留最近一次 JD 匹配结果。
      */
-    private void upsertJobMatchRecord(JobDescriptionMatchRecord record) {
+    private void upsertJobMatchRecord(JobDescriptionMatchRecordEntity record) {
         if (jobDescriptionMatchRecordMapper.selectById(record.getResumeId()) == null) {
             jobDescriptionMatchRecordMapper.insert(record);
             return;
@@ -256,7 +256,7 @@ public class ResumeRepositoryTool {
     /**
      * 写入 Redis 缓存，缓存失败不影响数据库主流程。
      */
-    private void cacheResumeData(String resumeId, ResumeData data) {
+    private void cacheResumeData(String resumeId, ResumeDataDTO data) {
         try {
             redisTemplate.opsForValue().set(cacheKey(resumeId), data, CACHE_TTL);
         } catch (RuntimeException e) {
@@ -267,9 +267,9 @@ public class ResumeRepositoryTool {
     /**
      * 从 Redis 读取简历聚合缓存，缓存异常时回退数据库。
      */
-    private ResumeData getCachedResumeData(String resumeId) {
+    private ResumeDataDTO getCachedResumeData(String resumeId) {
         try {
-            return (ResumeData) redisTemplate.opsForValue().get(cacheKey(resumeId));
+            return (ResumeDataDTO) redisTemplate.opsForValue().get(cacheKey(resumeId));
         } catch (RuntimeException e) {
             logger.warn("Resume cache read failed, resumeId={}, error={}", resumeId, e.getMessage());
             return null;
@@ -286,9 +286,9 @@ public class ResumeRepositoryTool {
     /**
      * 组装前端工作台 DTO。
      */
-    private ResumeData buildResumeData(ResumeInfo entity) {
+    private ResumeDataDTO buildResumeData(ResumeInfoEntity entity) {
         try {
-            ResumeData data = new ResumeData();
+            ResumeDataDTO data = new ResumeDataDTO();
             data.setResumeId(entity.getResumeId());
             data.setResumeText(entity.getResumeText());
             data.setScoreResult(readScoreResult(entity));
@@ -304,14 +304,14 @@ public class ResumeRepositoryTool {
     /**
      * 从 resume_score 读取评分结果。
      */
-    private ResumeScoreResult readScoreResult(ResumeInfo entity) throws JsonProcessingException {
-        ResumeScoreRecord record = resumeScoreRecordMapper.selectById(entity.getResumeId());
+    private ResumeScoreResultDTO readScoreResult(ResumeInfoEntity entity) throws JsonProcessingException {
+        ResumeScoreRecordEntity record = resumeScoreRecordMapper.selectById(entity.getResumeId());
         if (record == null) {
             return null;
         }
-        return ResumeScoreResult.builder()
+        return ResumeScoreResultDTO.builder()
                 .overallScore(record.getOverallScore())
-                .scoreDetail(new ResumeScoreResult.ScoreDetail(
+                .scoreDetail(new ResumeScoreResultDTO.ScoreDetail(
                         record.getProjectScore(),
                         record.getSkillMatchScore(),
                         record.getContentScore(),
@@ -319,7 +319,7 @@ public class ResumeRepositoryTool {
                         record.getExpressionScore()
                 ))
                 .strengths(readList(record.getStrengthsJson(), String.class))
-                .suggestions(readList(record.getSuggestionsJson(), ResumeScoreResult.Suggestion.class))
+                .suggestions(readList(record.getSuggestionsJson(), ResumeScoreResultDTO.Suggestion.class))
                 .summary(record.getSummary())
                 .build();
     }
@@ -327,21 +327,21 @@ public class ResumeRepositoryTool {
     /**
      * 从 interview_question 读取面试问题。
      */
-    private InterviewQuestions readQuestions(ResumeInfo entity) throws JsonProcessingException {
-        List<InterviewQuestionRecord> records = interviewQuestionRecordMapper.selectList(
-                new LambdaQueryWrapper<InterviewQuestionRecord>()
-                        .eq(InterviewQuestionRecord::getResumeId, entity.getResumeId())
-                        .orderByAsc(InterviewQuestionRecord::getQuestionIndex)
+    private InterviewQuestionsDTO readQuestions(ResumeInfoEntity entity) throws JsonProcessingException {
+        List<InterviewQuestionRecordEntity> records = interviewQuestionRecordMapper.selectList(
+                new LambdaQueryWrapper<InterviewQuestionRecordEntity>()
+                        .eq(InterviewQuestionRecordEntity::getResumeId, entity.getResumeId())
+                        .orderByAsc(InterviewQuestionRecordEntity::getQuestionIndex)
         );
         if (!records.isEmpty()) {
-            List<InterviewQuestions.Question> questions = records.stream()
-                    .map(record -> new InterviewQuestions.Question(
+            List<InterviewQuestionsDTO.Question> questions = records.stream()
+                    .map(record -> new InterviewQuestionsDTO.Question(
                             record.getQuestionText(),
                             record.getQuestionType(),
                             record.getCategory()
                     ))
                     .toList();
-            return InterviewQuestions.builder().questions(questions).build();
+            return InterviewQuestionsDTO.builder().questions(questions).build();
         }
         return null;
     }
@@ -349,39 +349,39 @@ public class ResumeRepositoryTool {
     /**
      * 从 interview_evaluation 读取评估结果。
      */
-    private InterviewEvaluation readEvaluation(ResumeInfo entity) throws JsonProcessingException {
-        InterviewEvaluationRecord record = interviewEvaluationRecordMapper.selectById(entity.getResumeId());
+    private InterviewEvaluationDTO readEvaluation(ResumeInfoEntity entity) throws JsonProcessingException {
+        InterviewEvaluationRecordEntity record = interviewEvaluationRecordMapper.selectById(entity.getResumeId());
         if (record == null) {
             return null;
         }
-        return InterviewEvaluation.builder()
+        return InterviewEvaluationDTO.builder()
                 .sessionId(record.getSessionId())
                 .totalQuestions(record.getTotalQuestions())
                 .overallScore(record.getOverallScore())
                 .overallFeedback(record.getOverallFeedback())
-                .categoryScores(readList(record.getCategoryScoresJson(), InterviewEvaluation.CategoryScore.class))
-                .questionDetails(readList(record.getQuestionDetailsJson(), InterviewEvaluation.QuestionDetail.class))
+                .categoryScores(readList(record.getCategoryScoresJson(), InterviewEvaluationDTO.CategoryScore.class))
+                .questionDetails(readList(record.getQuestionDetailsJson(), InterviewEvaluationDTO.QuestionDetail.class))
                 .strengths(readList(record.getStrengthsJson(), String.class))
                 .improvements(readList(record.getImprovementsJson(), String.class))
-                .referenceAnswers(readList(record.getReferenceAnswersJson(), InterviewEvaluation.ReferenceAnswer.class))
+                .referenceAnswers(readList(record.getReferenceAnswersJson(), InterviewEvaluationDTO.ReferenceAnswer.class))
                 .build();
     }
 
     /**
      * 读取最近一次岗位匹配结果，并写入工作台 DTO。
      */
-    private void applyJobMatch(ResumeData data) throws JsonProcessingException {
-        JobDescriptionMatchRecord record = jobDescriptionMatchRecordMapper.selectById(data.getResumeId());
+    private void applyJobMatch(ResumeDataDTO data) throws JsonProcessingException {
+        JobDescriptionMatchRecordEntity record = jobDescriptionMatchRecordMapper.selectById(data.getResumeId());
         if (record == null) {
             return;
         }
         data.setJobDescription(record.getJobDescription());
-        data.setMatchResult(JobDescriptionMatchResult.builder()
+        data.setMatchResult(JobDescriptionMatchResultDTO.builder()
                 .overallScore(record.getOverallScore())
                 .matchLevel(record.getMatchLevel())
                 .summary(record.getSummary())
-                .matchedSkills(readList(record.getMatchedSkillsJson(), JobDescriptionMatchResult.SkillMatch.class))
-                .missingSkills(readList(record.getMissingSkillsJson(), JobDescriptionMatchResult.SkillGap.class))
+                .matchedSkills(readList(record.getMatchedSkillsJson(), JobDescriptionMatchResultDTO.SkillMatch.class))
+                .missingSkills(readList(record.getMissingSkillsJson(), JobDescriptionMatchResultDTO.SkillGap.class))
                 .interviewFocus(readList(record.getInterviewFocusJson(), String.class))
                 .risks(readList(record.getRisksJson(), String.class))
                 .learningSuggestions(readList(record.getLearningSuggestionsJson(), String.class))
@@ -413,3 +413,4 @@ public class ResumeRepositoryTool {
         return values == null ? List.of() : values;
     }
 }
+

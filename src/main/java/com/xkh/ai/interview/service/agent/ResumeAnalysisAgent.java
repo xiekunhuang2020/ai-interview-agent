@@ -1,7 +1,7 @@
 package com.xkh.ai.interview.service.agent;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
-import com.xkh.ai.interview.dto.ResumeScoreResult;
+import com.xkh.ai.interview.dto.ResumeScoreResultDTO;
 import com.xkh.ai.interview.service.llm.AiJsonResponseParser;
 import com.xkh.ai.interview.service.llm.AiModelCallService;
 import org.slf4j.Logger;
@@ -39,7 +39,7 @@ public class ResumeAnalysisAgent {
         this.responseParser = responseParser;
     }
 
-    public ResumeScoreResult analyze(String resumeText) throws IOException {
+    public ResumeScoreResultDTO analyze(String resumeText) throws IOException {
         logger.info("ResumeAnalysisAgent starts, resumeTextLength={}", resumeText.length());
 
         List<Message> messages = new ArrayList<>();
@@ -56,3 +56,4 @@ public class ResumeAnalysisAgent {
         }
     }
 }
+

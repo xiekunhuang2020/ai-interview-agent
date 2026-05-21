@@ -1,7 +1,7 @@
 package com.xkh.ai.interview.service.agent;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
-import com.xkh.ai.interview.dto.InterviewQuestions;
+import com.xkh.ai.interview.dto.InterviewQuestionsDTO;
 import com.xkh.ai.interview.service.llm.AiJsonResponseParser;
 import com.xkh.ai.interview.service.llm.AiModelCallService;
 import com.xkh.ai.interview.service.rag.ResumeRagAdvisorFactory;
@@ -37,7 +37,7 @@ public class RagInterviewQuestionAgent {
         this.ragAdvisorFactory = ragAdvisorFactory;
     }
 
-    public InterviewQuestions generate(String resumeText,
+    public InterviewQuestionsDTO generate(String resumeText,
                                        String jobDescription,
                                        String resumeId,
                                        int topK) {
@@ -70,3 +70,4 @@ public class RagInterviewQuestionAgent {
     }
 
 }
+

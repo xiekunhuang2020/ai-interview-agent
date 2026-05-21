@@ -7,7 +7,7 @@ import java.time.LocalDateTime;
 
 @Data
 @TableName("resume_info")
-public class ResumeInfo {
+public class ResumeInfoEntity {
 
     @TableId(type = IdType.ASSIGN_UUID)
     private String resumeId;
@@ -26,3 +26,4 @@ public class ResumeInfo {
     @TableField(fill = FieldFill.INSERT)
     private Integer deleted;
 }
+

@@ -11,7 +11,7 @@ import java.time.LocalDateTime;
 
 @Data
 @TableName("jd_match_result")
-public class JobDescriptionMatchRecord {
+public class JobDescriptionMatchRecordEntity {
 
     @TableId(type = IdType.INPUT)
     private String resumeId;
@@ -40,3 +40,4 @@ public class JobDescriptionMatchRecord {
     @TableField(fill = FieldFill.INSERT_UPDATE)
     private LocalDateTime updateTime;
 }
+

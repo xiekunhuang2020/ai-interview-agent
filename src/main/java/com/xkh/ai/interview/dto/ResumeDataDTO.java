@@ -12,7 +12,7 @@ import lombok.NoArgsConstructor;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class ResumeData {
+public class ResumeDataDTO {
     
     /**
      * 简历 ID
@@ -27,25 +27,26 @@ public class ResumeData {
     /**
      * 评分结果
      */
-    private ResumeScoreResult scoreResult;
+    private ResumeScoreResultDTO scoreResult;
     
     /**
      * 面试问题
      */
-    private InterviewQuestions questions;
+    private InterviewQuestionsDTO questions;
     
     /**
      * 评估结果
      */
-    private InterviewEvaluation evaluation;
+    private InterviewEvaluationDTO evaluation;
 
     /**
      * 最近一次岗位匹配结果
      */
-    private JobDescriptionMatchResult matchResult;
+    private JobDescriptionMatchResultDTO matchResult;
 
     /**
      * 最近一次岗位匹配使用的岗位说明
      */
     private String jobDescription;
 }
+

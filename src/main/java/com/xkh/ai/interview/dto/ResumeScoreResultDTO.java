@@ -19,7 +19,7 @@ import java.util.List;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class ResumeScoreResult {
+public class ResumeScoreResultDTO {
     
     /**
      * 总分
@@ -86,3 +86,4 @@ public class ResumeScoreResult {
         private String recommendation;
     }
 }
+

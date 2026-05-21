@@ -11,7 +11,7 @@ import java.time.LocalDateTime;
 
 @Data
 @TableName("agent_conversation_message")
-public class AgentConversationMessage {
+public class AgentConversationMessageEntity {
 
     @TableId(type = IdType.AUTO)
     private Long id;
@@ -37,3 +37,4 @@ public class AgentConversationMessage {
     @TableField(fill = FieldFill.INSERT)
     private LocalDateTime createTime;
 }
+

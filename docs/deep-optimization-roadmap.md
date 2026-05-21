@@ -303,7 +303,7 @@ SIMILAR_RESUME_REFERENCE
 
 **改造内容**
 
-- 检查 `ResumeScoreResult`、`InterviewQuestions`、`JobDescriptionMatchResult`、`InterviewEvaluation`。
+- 检查 `ResumeScoreResultDTO`、`InterviewQuestionsDTO`、`JobDescriptionMatchResultDTO`、`InterviewEvaluationDTO`。
 - 用注解表达：
   - 必填
   - 长度
@@ -489,7 +489,7 @@ Prompt 版本
 AI 输出不符合 resume-score 结构：无法转换为目标 DTO
 ```
 
-这说明模型调用本身成功了，但返回内容没有稳定符合 `ResumeScoreResult` 的 DTO 结构。当前 `AiJsonResponseParser` 会直接抛出 `AiStructuredOutputException`，前端只能看到通用错误，无法判断是字段缺失、类型错误、Markdown 包裹、JSON 截断，还是模型返回了额外解释文本。
+这说明模型调用本身成功了，但返回内容没有稳定符合 `ResumeScoreResultDTO` 的 DTO 结构。当前 `AiJsonResponseParser` 会直接抛出 `AiStructuredOutputException`，前端只能看到通用错误，无法判断是字段缺失、类型错误、Markdown 包裹、JSON 截断，还是模型返回了额外解释文本。
 
 **可能原因**
 
@@ -581,3 +581,4 @@ UNKNOWN
 ```
 
 这套口径必须跟实际代码进度一致，不能提前吹。
+

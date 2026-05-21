@@ -5,12 +5,12 @@ import com.xkh.ai.interview.service.agent.InterviewQuestionAgent;
 import com.xkh.ai.interview.service.agent.JobDescriptionMatchAgent;
 import com.xkh.ai.interview.service.agent.RagInterviewQuestionAgent;
 import com.xkh.ai.interview.service.agent.ResumeAnalysisAgent;
-import com.xkh.ai.interview.dto.InterviewEvaluation;
-import com.xkh.ai.interview.dto.InterviewQuestions;
-import com.xkh.ai.interview.dto.InterviewSessionInfo;
-import com.xkh.ai.interview.dto.JobDescriptionMatchResult;
-import com.xkh.ai.interview.dto.ResumeData;
-import com.xkh.ai.interview.dto.ResumeUploadResult;
+import com.xkh.ai.interview.dto.InterviewEvaluationDTO;
+import com.xkh.ai.interview.dto.InterviewQuestionsDTO;
+import com.xkh.ai.interview.dto.InterviewSessionInfoDTO;
+import com.xkh.ai.interview.dto.JobDescriptionMatchResultDTO;
+import com.xkh.ai.interview.dto.ResumeDataDTO;
+import com.xkh.ai.interview.dto.ResumeUploadResultDTO;
 import com.xkh.ai.interview.service.tool.ResumeParseTool;
 import com.xkh.ai.interview.service.tool.ResumeRepositoryTool;
 import com.xkh.ai.interview.service.tool.ResumeVectorTool;
@@ -62,7 +62,7 @@ public class InterviewWorkflowService {
     /**
      * 上传简历后完成解析、AI 评分、数据库保存和向量库写入。
      */
-    public ResumeUploadResult analyzeUploadedResume(MultipartFile file) throws IOException {
+    public ResumeUploadResultDTO analyzeUploadedResume(MultipartFile file) throws IOException {
         validateResumeFile(file);
 
         String originalFileName = file.getOriginalFilename();
@@ -78,7 +78,7 @@ public class InterviewWorkflowService {
             resumeRepositoryTool.saveAnalyzedResume(resumeId, originalFileName, resumeText, scoreResult);
             resumeVectorTool.addResume(resumeId, originalFileName, resumeText);
             interviewSessionService.markAnalyzed(resumeId, originalFileName);
-            return new ResumeUploadResult(resumeId, scoreResult);
+            return new ResumeUploadResultDTO(resumeId, scoreResult);
         } catch (RuntimeException e) {
             interviewSessionService.markFailed(resumeId, "RESUME_ANALYSIS", e);
             throw e;
@@ -88,24 +88,24 @@ public class InterviewWorkflowService {
     /**
      * 根据简历 ID 查询简历工作台所需的完整数据。
      */
-    public ResumeData getResumeById(String resumeId) {
+    public ResumeDataDTO getResumeById(String resumeId) {
         return resumeRepositoryTool.findById(resumeId);
     }
 
     /**
      * 查询简历当前所在的面试流程状态。
      */
-    public InterviewSessionInfo getSessionInfo(String resumeId, ResumeData resumeData) {
+    public InterviewSessionInfoDTO getSessionInfo(String resumeId, ResumeDataDTO resumeData) {
         return interviewSessionService.findInfo(resumeId, resumeData);
     }
 
     /**
      * 基于简历内容生成普通面试题，并保存到当前简历记录。
      */
-    public InterviewQuestions generateInterviewQuestions(String resumeId) {
-        ResumeData resumeData = requireResume(resumeId);
+    public InterviewQuestionsDTO generateInterviewQuestions(String resumeId) {
+        ResumeDataDTO resumeData = requireResume(resumeId);
         try {
-            InterviewQuestions questions = interviewQuestionAgent.generate(resumeData.getResumeText());
+            InterviewQuestionsDTO questions = interviewQuestionAgent.generate(resumeData.getResumeText());
             resumeRepositoryTool.saveQuestions(resumeId, questions);
             interviewSessionService.markQuestionsGenerated(resumeId);
             return questions;
@@ -118,8 +118,8 @@ public class InterviewWorkflowService {
     /**
      * 根据候选人答案进行 AI 复盘评分，并保存本次面试评估结果。
      */
-    public InterviewEvaluation evaluateAnswers(String resumeId, Map<Integer, String> answers) {
-        ResumeData resumeData = requireResume(resumeId);
+    public InterviewEvaluationDTO evaluateAnswers(String resumeId, Map<Integer, String> answers) {
+        ResumeDataDTO resumeData = requireResume(resumeId);
         if (resumeData.getQuestions() == null || resumeData.getQuestions().getQuestions() == null
                 || resumeData.getQuestions().getQuestions().isEmpty()) {
             throw new IllegalStateException("请先生成面试问题，再提交答案");
@@ -127,7 +127,7 @@ public class InterviewWorkflowService {
 
         interviewSessionService.markAnswerSubmitted(resumeId);
         try {
-            InterviewEvaluation evaluation = answerEvaluationAgent.evaluate(
+            InterviewEvaluationDTO evaluation = answerEvaluationAgent.evaluate(
                     resumeData.getResumeText(),
                     resumeData.getQuestions(),
                     answers
@@ -144,14 +144,14 @@ public class InterviewWorkflowService {
     /**
      * 分析指定简历与目标岗位 JD 的匹配度，输出优势、缺口和建议。
      */
-    public JobDescriptionMatchResult matchJobDescription(String resumeId, String jobDescription) {
+    public JobDescriptionMatchResultDTO matchJobDescription(String resumeId, String jobDescription) {
         if (StringUtils.isBlank(jobDescription)) {
             throw new IllegalArgumentException("jobDescription不能为空");
         }
 
-        ResumeData resumeData = requireResume(resumeId);
+        ResumeDataDTO resumeData = requireResume(resumeId);
         try {
-            JobDescriptionMatchResult matchResult = jobDescriptionMatchAgent.match(resumeData.getResumeText(), jobDescription);
+            JobDescriptionMatchResultDTO matchResult = jobDescriptionMatchAgent.match(resumeData.getResumeText(), jobDescription);
             resumeRepositoryTool.saveJobMatch(resumeId, jobDescription, matchResult);
             interviewSessionService.markJobMatched(resumeId);
             return matchResult;
@@ -164,14 +164,14 @@ public class InterviewWorkflowService {
     /**
      * 结合目标岗位 JD 和相似简历召回结果，生成岗位增强面试题。
      */
-    public InterviewQuestions generateRagInterviewQuestions(String resumeId, String jobDescription, int topK) {
+    public InterviewQuestionsDTO generateRagInterviewQuestions(String resumeId, String jobDescription, int topK) {
         if (StringUtils.isBlank(jobDescription)) {
             throw new IllegalArgumentException("jobDescription不能为空");
         }
 
-        ResumeData resumeData = requireResume(resumeId);
+        ResumeDataDTO resumeData = requireResume(resumeId);
         try {
-            InterviewQuestions questions = ragInterviewQuestionAgent.generate(
+            InterviewQuestionsDTO questions = ragInterviewQuestionAgent.generate(
                     resumeData.getResumeText(),
                     jobDescription,
                     resumeId,
@@ -189,8 +189,8 @@ public class InterviewWorkflowService {
     /**
      * 查询简历并统一处理不存在的情况，避免各流程重复判空。
      */
-    private ResumeData requireResume(String resumeId) {
-        ResumeData resumeData = resumeRepositoryTool.findById(resumeId);
+    private ResumeDataDTO requireResume(String resumeId) {
+        ResumeDataDTO resumeData = resumeRepositoryTool.findById(resumeId);
         if (resumeData == null) {
             throw new NoSuchElementException("简历不存在：" + resumeId);
         }
@@ -217,3 +217,4 @@ public class InterviewWorkflowService {
     }
 
 }
+

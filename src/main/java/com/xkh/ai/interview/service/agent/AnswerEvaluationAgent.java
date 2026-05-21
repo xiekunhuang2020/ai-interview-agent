@@ -1,8 +1,8 @@
 package com.xkh.ai.interview.service.agent;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
-import com.xkh.ai.interview.dto.InterviewEvaluation;
-import com.xkh.ai.interview.dto.InterviewQuestions;
+import com.xkh.ai.interview.dto.InterviewEvaluationDTO;
+import com.xkh.ai.interview.dto.InterviewQuestionsDTO;
 import com.xkh.ai.interview.service.llm.AiJsonResponseParser;
 import com.xkh.ai.interview.service.llm.AiModelCallService;
 import org.apache.commons.lang3.StringUtils;
@@ -35,7 +35,7 @@ public class AnswerEvaluationAgent {
         this.responseParser = responseParser;
     }
 
-    public InterviewEvaluation evaluate(String resumeText, InterviewQuestions questions, Map<Integer, String> answers) {
+    public InterviewEvaluationDTO evaluate(String resumeText, InterviewQuestionsDTO questions, Map<Integer, String> answers) {
         logger.info("AnswerEvaluationAgent starts, questionCount={}", questions.getQuestions().size());
 
         List<Message> messages = new ArrayList<>();
@@ -50,10 +50,10 @@ public class AnswerEvaluationAgent {
         }
     }
 
-    private String buildUserPrompt(String resumeText, InterviewQuestions questions, Map<Integer, String> answers) {
+    private String buildUserPrompt(String resumeText, InterviewQuestionsDTO questions, Map<Integer, String> answers) {
         StringBuilder qaText = new StringBuilder();
         for (int i = 0; i < questions.getQuestions().size(); i++) {
-            InterviewQuestions.Question question = questions.getQuestions().get(i);
+            InterviewQuestionsDTO.Question question = questions.getQuestions().get(i);
             String answer = StringUtils.isBlank(answers.get(i)) ? "未作答" : answers.get(i);
             qaText.append("问题 %d [%s]: %s\n".formatted(i + 1, question.getType(), question.getQuestion()));
             qaText.append("候选人回答：%s\n\n".formatted(answer));
@@ -71,3 +71,4 @@ public class AnswerEvaluationAgent {
     }
 
 }
+

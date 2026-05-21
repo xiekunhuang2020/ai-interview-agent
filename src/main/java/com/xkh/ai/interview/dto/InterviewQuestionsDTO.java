@@ -17,7 +17,7 @@ import java.util.List;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class InterviewQuestions {
+public class InterviewQuestionsDTO {
     
     /**
      * 问题列表
@@ -50,3 +50,4 @@ public class InterviewQuestions {
         private String category;
     }
 }
+
