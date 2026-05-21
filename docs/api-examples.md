@@ -103,4 +103,6 @@ http://localhost:8080/audit/prompt-dashboard
 mysql -uroot -p ai_interview < sql/migration-v2-ai-model-call-log.sql
 mysql -uroot -p ai_interview < sql/migration-v3-agent-conversation-message.sql
 mysql -uroot -p ai_interview < sql/migration-v4-interview-session.sql
+mysql -uroot -p ai_interview < sql/migration-v5-core-result-tables.sql
+mysql -uroot -p ai_interview < sql/migration-v6-clean-resume-info-json-columns.sql
 ```

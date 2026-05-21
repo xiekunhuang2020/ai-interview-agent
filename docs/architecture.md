@@ -40,6 +40,7 @@ flowchart TD
     T2 --> MySQL["MySQL"]
     T2 --> Redis["Redis"]
     T3 --> Milvus["Milvus Vector Store"]
+    T2 --> RESULT["resume_score / interview_question / interview_evaluation / jd_match_result"]
 ```
 
 ## 开发约束
@@ -205,7 +206,16 @@ Tool 负责确定性能力，方便后续迁移到函数调用或工具调用框
 - `ResumeRepositoryTool`：MySQL + Redis 读写
 - `ResumeVectorTool`：Milvus 向量写入和相似检索
 
-`ResumeRepositoryTool` 以 MySQL 为事实存储，Redis 只作为加速缓存；缓存读写失败只记录 warn，并回退到数据库主流程。评分结果继续沿用现有拆分 JSON 字段，读取时兼容历史空列表字段为空列表，避免为低收益的表结构合并引入迁移成本。保存面试问题或评估结果时，只更新对应 JSON 字段；如果目标简历不存在，会显式抛出不存在异常，不做静默跳过。
+`ResumeRepositoryTool` 以 MySQL 为事实存储，Redis 只作为加速缓存；缓存读写失败只记录 warn，并回退到数据库主流程。保存问题、评估或岗位匹配结果时会显式校验简历是否存在，不做静默跳过。
+
+核心结果已从 `resume_info` 拆到可查询表：
+
+- `resume_score`：保存总分和五个评分维度，便于评分统计。
+- `interview_question`：按题目明细保存，便于按题型、分类统计。
+- `interview_evaluation`：保存评估总分、题量、整体反馈和复杂明细 JSON。
+- `jd_match_result`：保存最近一次岗位匹配分、匹配等级和目标岗位说明。
+
+`resume_info` 只保留简历文件名和原始文本。评分、问题、评估、岗位匹配结果都从拆分表读取，避免学习代码时在新旧存储逻辑之间来回跳。
 
 `ResumeVectorTool` 通过 Spring AI `SearchRequest.topK` 控制检索数量，避免先取默认结果再由业务代码手动截断。
 

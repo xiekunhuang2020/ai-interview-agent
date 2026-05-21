@@ -56,6 +56,10 @@ API Controller
 
 项目新增了 `interview_session` 表，记录每份简历当前状态：`UPLOADED`、`ANALYZED`、`JD_MATCHED`、`QUESTIONS_GENERATED`、`ANSWER_SUBMITTED`、`EVALUATED`、`FAILED`。核心阶段失败时会记录失败阶段和失败原因，页面也会展示当前流程。
 
+### 为什么还保留部分 JSON 字段？
+
+第一版为了快速闭环，评分、问题和评估都存在 `resume_info` 的 JSON 字段里。现在已经把核心结果拆到 `resume_score`、`interview_question`、`interview_evaluation`、`jd_match_result`，便于查询和统计；`resume_info` 只保留简历文件名和原始文本，避免新旧存储逻辑同时存在影响阅读。
+
 ### RAG 解决什么问题？
 
 RAG 用在岗位定制面试题生成。系统用目标 JD 检索相似简历片段，让模型参考同类岗位常见追问方向。Prompt 明确要求检索上下文只能作为参考，不能当成当前候选人真实经历。
