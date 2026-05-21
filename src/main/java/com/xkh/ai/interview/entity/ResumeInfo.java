@@ -16,20 +16,6 @@ public class ResumeInfo {
 
     private String resumeText;
 
-    private Integer overallScore;
-
-    private String scoreDetailJson;
-
-    private String strengthsJson;
-
-    private String suggestionsJson;
-
-    private String summary;
-
-    private String questionsJson;
-
-    private String evaluationJson;
-
     @TableField(fill = FieldFill.INSERT)
     private LocalDateTime createTime;
 

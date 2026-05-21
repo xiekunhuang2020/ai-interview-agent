@@ -152,6 +152,7 @@ public class InterviewWorkflowService {
         ResumeData resumeData = requireResume(resumeId);
         try {
             JobDescriptionMatchResult matchResult = jobDescriptionMatchAgent.match(resumeData.getResumeText(), jobDescription);
+            resumeRepositoryTool.saveJobMatch(resumeId, jobDescription, matchResult);
             interviewSessionService.markJobMatched(resumeId);
             return matchResult;
         } catch (RuntimeException e) {

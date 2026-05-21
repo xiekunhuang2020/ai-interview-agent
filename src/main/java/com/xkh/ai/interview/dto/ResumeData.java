@@ -38,4 +38,14 @@ public class ResumeData {
      * 评估结果
      */
     private InterviewEvaluation evaluation;
+
+    /**
+     * 最近一次岗位匹配结果
+     */
+    private JobDescriptionMatchResult matchResult;
+
+    /**
+     * 最近一次岗位匹配使用的岗位说明
+     */
+    private String jobDescription;
 }
