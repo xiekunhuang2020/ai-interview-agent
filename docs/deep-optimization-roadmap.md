@@ -46,8 +46,10 @@ Agent 和普通 ChatBot 的区别在哪里？
 1. 官方能力优先：Spring AI、Spring AI Alibaba、Milvus Vector Store、MyBatis-Plus、RedisTemplate 已提供的能力不重复封装。
 2. 业务代码只做业务编排、状态管理、参数校验、异常映射、审计记录和页面接口适配。
 3. 新增代码前先查当前依赖是否已有官方 API；能用配置、Builder、Advisor、Converter、Template 做的，不自研替代实现。
-4. 简历只写已经落地的能力。没有代码、数据、页面或文档证据的点，不写到简历。
-5. 每个新增方法必须写清楚方法用途，方便后续学习和面试复盘。
+4. 如果 Spring AI 和 Spring AI Alibaba 都提供同类能力，优先选择更贴近 DashScope/通义生态、代码更少且不明显增加复杂度的 Spring AI Alibaba 封装。
+5. Graph、Agent Framework、Admin 等重能力必须按项目复杂度引入；当前确定性流程能讲清楚时，不为了包装项目硬上。
+6. 简历只写已经落地的能力。没有代码、数据、页面或文档证据的点，不写到简历。
+7. 每个新增方法必须写清楚方法用途，方便后续学习和面试复盘。
 
 ## 第一阶段：先把“只是 Prompt 调用”降到最低
 

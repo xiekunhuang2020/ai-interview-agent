@@ -49,6 +49,8 @@ flowchart TD
 
 - 严禁重复封装 Spring AI、Spring AI Alibaba、MyBatis-Plus、Milvus Vector Store、RedisTemplate 等官方已经提供的能力。
 - 新增代码前必须先检查官方 API 和当前依赖能力，能用框架配置、Starter、Builder、Advisor、Converter、Template 完成的，不写自研替代实现。
+- 同一能力同时存在 Spring AI 通用封装和 Spring AI Alibaba 简化封装时，按“当前场景更少业务代码、更贴近 DashScope/通义生态”的原则选择 Spring AI Alibaba。
+- Spring AI Alibaba 的 Graph、Agent Framework、Admin 等能力只在流程复杂度真的需要时引入；当前能用确定性 Service 编排讲清楚的流程，不为了堆技术栈升级成重框架。
 - 业务层只保留业务编排、参数校验、审计记录、异常映射和页面接口适配。
 - 如果确实需要写适配代码，方法备注必须说明业务边界，避免被误解为重复造轮子。
 

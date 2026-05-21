@@ -33,6 +33,8 @@ AI 求职顾问是一个面向程序员求职和技术面试训练场景的 AI �
 
 - 严禁重复封装框架已有能力。Spring AI、Spring AI Alibaba、MyBatis-Plus、Milvus Vector Store、RedisTemplate 已提供的能力必须优先直接使用。
 - 新增功能前先检查官方 API 和当前依赖能力，确认框架没有现成方案后，才允许写项目内业务适配代码。
+- 如果同一能力 Spring AI 已提供通用抽象，而 Spring AI Alibaba 针对 DashScope、通义模型或阿里云生态提供了更少代码的官方 Starter、Builder、Options、Advisor 或 Graph/RAG 扩展，优先使用 Spring AI Alibaba 的简化封装。
+- 选择 Spring AI Alibaba 的前提是减少业务代码和配置复杂度；如果会引入明显更重的运行时、管理端或复杂编排框架，则继续使用 Spring AI 通用能力或当前确定性工作流。
 - 项目代码只保留业务编排、参数校验、审计记录、异常映射和页面接口适配，不自研模型重试、工具调度、向量检索、结构化转换等框架能力。
 - 如果必须做业务适配，方法注释里要说明“适配的业务边界”，避免后续误解为重复造轮子。
 
