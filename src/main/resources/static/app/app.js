@@ -105,7 +105,6 @@ function createInterviewApp() {
         mounted() {
             if (this.resumeId) {
                 this.loadWorkspace();
-                this.loadPersistedMatch();
             }
             if (this.page === 'ops') {
                 this.refreshOps();
@@ -165,7 +164,6 @@ function createInterviewApp() {
                     this.uploadStage = '正在分析简历与岗位匹配度...';
                     this.matchResult = await this.matchJobByResumeId(uploadedResumeId, targetJd);
                     this.jdText = targetJd;
-                    this.persistMatch();
                     this.globalMessage = '简历诊断和岗位匹配已完成，可继续查看岗位匹配结果。';
                     window.location.href = `/analysis/${encodeURIComponent(uploadedResumeId)}`;
                 } catch (error) {
@@ -188,6 +186,8 @@ function createInterviewApp() {
                     this.scoreResult = payload.scoreResult || null;
                     this.questions = this.safeList(payload.questions && payload.questions.questions);
                     this.evaluation = payload.evaluation || null;
+                    this.matchResult = payload.matchResult || this.matchResult;
+                    this.jdText = payload.jobDescription || this.jdText;
                     this.session = payload.session || null;
                     this.answers = Object.fromEntries(this.questions.map((_, index) => [index, this.answers[index] || '']));
                 } catch (error) {
@@ -217,7 +217,6 @@ function createInterviewApp() {
                 this.globalMessage = '';
                 try {
                     this.matchResult = await this.matchJobByResumeId(this.resumeId, this.jdText.trim());
-                    this.persistMatch();
                     await this.loadWorkspace();
                     this.globalMessage = '岗位匹配完成，可以继续根据岗位生成面试题。';
                 } catch (error) {
@@ -508,31 +507,6 @@ function createInterviewApp() {
                 } finally {
                     this.loading.ops = false;
                 }
-            },
-            persistMatch() {
-                if (!this.resumeId) {
-                    return;
-                }
-                localStorage.setItem(this.matchStorageKey(), JSON.stringify({
-                    jdText: this.jdText,
-                    matchResult: this.matchResult
-                }));
-            },
-            loadPersistedMatch() {
-                const raw = localStorage.getItem(this.matchStorageKey());
-                if (!raw) {
-                    return;
-                }
-                try {
-                    const payload = JSON.parse(raw);
-                    this.jdText = payload.jdText || '';
-                    this.matchResult = payload.matchResult || null;
-                } catch (error) {
-                    localStorage.removeItem(this.matchStorageKey());
-                }
-            },
-            matchStorageKey() {
-                return `aiInterviewMatch:${this.resumeId}`;
             },
             safeList(value) {
                 return Array.isArray(value) ? value : [];
