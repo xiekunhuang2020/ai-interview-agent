@@ -47,11 +47,10 @@ spring:
       chat:
         options:
           enable-thinking: true
-    minimax:
-      api-key: ${MINIMAX_API_KEY:}
       embedding:
         options:
-          model: text-embedding-v2
+          model: text-embedding-v3
+          dimensions: 1024
     vectorstore:
       milvus:
         client:

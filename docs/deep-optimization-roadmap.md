@@ -208,7 +208,10 @@ jd_match_result
 
 **改造内容**
 
-- 使用 Spring AI 文档/向量相关官方能力。
+- 已使用 Spring AI Alibaba `RecursiveCharacterTextSplitter` 对简历文本切片后再写入 Milvus。
+- 已移除未使用的 MiniMax embedding 配置，统一使用 DashScope `text-embedding-v3`。
+- 已给每个 chunk 标记 `resumeId`、`fileName`、`chunkIndex`、`chunkCount`，便于检索结果溯源。
+- 后续继续使用 Spring AI 文档/向量相关官方能力。
 - 简历文本入库前做业务清洗：
   - 去除多余空白
   - 保留项目经历、技能、工作经历等段落边界
