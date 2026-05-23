@@ -1,0 +1,62 @@
+[
+  {
+    "caseId": "java-ai-agent-rag",
+    "query": "Java AI Agent 应用开发，要求 Spring AI Alibaba、RAG、Milvus、Prompt 工程经验",
+    "expectedKeywords": ["Spring AI Alibaba", "Milvus", "Prompt"],
+    "note": "验证 AI 应用开发和 RAG 相关片段能否被召回"
+  },
+  {
+    "caseId": "spring-boot-mybatis",
+    "query": "Java 后端开发，熟悉 Spring Boot、MyBatis-Plus、MySQL",
+    "expectedKeywords": ["Spring Boot", "MyBatis-Plus", "MySQL"],
+    "note": "验证 Java 后端基础技术栈召回"
+  },
+  {
+    "caseId": "mysql-sql-optimization",
+    "query": "MySQL 慢 SQL 分析、索引优化、SQL 调优经验",
+    "expectedKeywords": ["慢 SQL", "索引优化", "SQL 调优"],
+    "note": "验证数据库性能优化能力召回"
+  },
+  {
+    "caseId": "redis-cache-high-concurrency",
+    "query": "Redis 缓存设计、分布式锁、缓存击穿穿透雪崩",
+    "expectedKeywords": ["Redis", "分布式锁", "缓存击穿"],
+    "note": "验证缓存和高并发相关片段召回"
+  },
+  {
+    "caseId": "async-thread-pool",
+    "query": "CompletableFuture 异步编排、线程池参数调优、接口性能优化",
+    "expectedKeywords": ["CompletableFuture", "线程池", "性能优化"],
+    "note": "验证异步和性能优化相关片段召回"
+  },
+  {
+    "caseId": "interview-training-platform",
+    "query": "智能面试训练平台，支持简历解析、智能评分、个性化问题生成、回答评估",
+    "expectedKeywords": ["智能面试训练平台", "简历解析", "回答评估"],
+    "note": "验证 AI 面试项目片段召回"
+  },
+  {
+    "caseId": "vector-store-semantic-search",
+    "query": "使用 Milvus 存储简历向量，支持语义检索和上下文增强",
+    "expectedKeywords": ["Milvus", "简历向量", "语义检索"],
+    "note": "验证向量库和语义检索片段召回"
+  },
+  {
+    "caseId": "order-performance",
+    "query": "订单查询链路优化，Redis 缓存，接口响应时间从 800ms 降低到 220ms",
+    "expectedKeywords": ["订单查询", "800ms", "220ms"],
+    "note": "验证业务性能优化项目片段召回"
+  },
+  {
+    "caseId": "stock-deduct-lua",
+    "query": "营销活动库存扣减，Redis Lua 脚本，幂等键，消息队列异步落库",
+    "expectedKeywords": ["库存扣减", "Lua", "幂等键"],
+    "note": "验证库存扣减和一致性方案召回"
+  },
+  {
+    "caseId": "engineering-observability",
+    "query": "模型调用超时、重试、降级、缓存、日志追踪和可观测性",
+    "expectedKeywords": ["重试", "缓存", "日志追踪"],
+    "note": "验证工程化治理能力召回"
+  }
+]
