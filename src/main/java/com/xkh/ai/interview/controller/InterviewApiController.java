@@ -8,6 +8,7 @@ import com.xkh.ai.interview.service.audit.AgentConversationAuditQueryService;
 import com.xkh.ai.interview.service.audit.AiModelCallAuditQueryService;
 import com.xkh.ai.interview.service.llm.AiModelCallException;
 import com.xkh.ai.interview.service.llm.AiStructuredOutputException;
+import com.xkh.ai.interview.service.rag.RagRecallEvaluationService;
 import com.xkh.ai.interview.service.workflow.InterviewWorkflowService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -41,18 +42,21 @@ public class InterviewApiController {
     private final AiModelCallAuditQueryService auditQueryService;
     private final InterviewAssistantAgentService interviewAssistantAgentService;
     private final AgentConversationAuditQueryService agentConversationAuditQueryService;
+    private final RagRecallEvaluationService ragRecallEvaluationService;
 
     /**
-     * 注入简历工作流、AI 顾问和审计查询服务。
+     * 注入简历工作流、AI 顾问、审计查询和 RAG 评估服务。
      */
     public InterviewApiController(InterviewWorkflowService interviewWorkflowService,
                                   AiModelCallAuditQueryService auditQueryService,
                                   InterviewAssistantAgentService interviewAssistantAgentService,
-                                  AgentConversationAuditQueryService agentConversationAuditQueryService) {
+                                  AgentConversationAuditQueryService agentConversationAuditQueryService,
+                                  RagRecallEvaluationService ragRecallEvaluationService) {
         this.interviewWorkflowService = interviewWorkflowService;
         this.auditQueryService = auditQueryService;
         this.interviewAssistantAgentService = interviewAssistantAgentService;
         this.agentConversationAuditQueryService = agentConversationAuditQueryService;
+        this.ragRecallEvaluationService = ragRecallEvaluationService;
     }
 
     /**
@@ -111,7 +115,7 @@ public class InterviewApiController {
     }
 
     /**
-     * 结合目标 JD 和 RAG 检索上下文生成岗位增强面试题。
+     * 结合目标 JD 和 RAG 检索上下文生成岗位定制面试题。
      */
     @PostMapping("/api/interview/{resumeId}/rag-questions")
     public ResponseEntity<?> generateRagQuestions(
@@ -130,7 +134,7 @@ public class InterviewApiController {
         } catch (AiModelCallException | AiStructuredOutputException e) {
             return aiGatewayError(e);
         } catch (Exception e) {
-            return serverError("生成 RAG 面试问题失败", e, "生成 RAG 面试问题失败：" + e.getMessage());
+            return serverError("生成岗位定制面试题失败", e, "生成岗位定制面试题失败：" + e.getMessage());
         }
     }
 
@@ -236,6 +240,20 @@ public class InterviewApiController {
             @RequestParam(required = false) String promptVersion,
             @RequestParam(defaultValue = "1000") int limit) {
         return ResponseEntity.ok(auditQueryService.listFailureReasons(operationName, promptVersion, limit));
+    }
+
+    /**
+     * 运行本地 RAG 召回评估集，输出 TopK 命中率、平均耗时和未命中样例。
+     */
+    @GetMapping("/api/evaluation/rag-recall")
+    public ResponseEntity<?> evaluateRagRecall(@RequestParam(defaultValue = "5") int topK) {
+        try {
+            return ResponseEntity.ok(ragRecallEvaluationService.evaluate(topK));
+        } catch (IllegalStateException e) {
+            return badRequest(e);
+        } catch (Exception e) {
+            return serverError("RAG 召回评估失败", e, "RAG 召回评估失败：" + e.getMessage());
+        }
     }
 
     /**
