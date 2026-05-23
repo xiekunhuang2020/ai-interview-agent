@@ -26,6 +26,8 @@ CREATE TABLE IF NOT EXISTS interview_question (
     question_type   VARCHAR(64)     NOT NULL COMMENT '问题类型',
     category        VARCHAR(128)    NOT NULL COMMENT '问题分类',
     question_text   TEXT            NOT NULL COMMENT '问题内容',
+    evidence_source VARCHAR(64)     NOT NULL DEFAULT 'CURRENT_RESUME_FACT' COMMENT '问题依据来源 CURRENT_RESUME_FACT/SIMILAR_RESUME_REFERENCE',
+    source_note     VARCHAR(500)    DEFAULT NULL COMMENT '问题来源说明',
     create_time     DATETIME        DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
     update_time     DATETIME        DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
     UNIQUE KEY uk_resume_question_index (resume_id, question_index),
