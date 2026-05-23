@@ -37,6 +37,13 @@ public class AiJsonResponseParser {
             "SPRING_BOOT",
             "AI"
     );
+    private static final String CURRENT_RESUME_FACT = "CURRENT_RESUME_FACT";
+    private static final String SIMILAR_RESUME_REFERENCE = "SIMILAR_RESUME_REFERENCE";
+    private static final int MAX_SOURCE_NOTE_CHARS = 120;
+    private static final Set<String> ALLOWED_EVIDENCE_SOURCES = Set.of(
+            CURRENT_RESUME_FACT,
+            SIMILAR_RESUME_REFERENCE
+    );
     private static final Map<String, String> QUESTION_TYPE_ALIASES = Map.ofEntries(
             Map.entry("JAVA", "JAVA_BASIC"),
             Map.entry("JAVA_CORE", "JAVA_BASIC"),
@@ -63,6 +70,20 @@ public class AiJsonResponseParser {
             Map.entry("项目", "PROJECT"),
             Map.entry("项目经历", "PROJECT"),
             Map.entry("系统设计", "PROJECT")
+    );
+    private static final Map<String, String> EVIDENCE_SOURCE_ALIASES = Map.ofEntries(
+            Map.entry("CURRENT", CURRENT_RESUME_FACT),
+            Map.entry("RESUME", CURRENT_RESUME_FACT),
+            Map.entry("CURRENT_RESUME", CURRENT_RESUME_FACT),
+            Map.entry("FACT", CURRENT_RESUME_FACT),
+            Map.entry("SIMILAR", SIMILAR_RESUME_REFERENCE),
+            Map.entry("REFERENCE", SIMILAR_RESUME_REFERENCE),
+            Map.entry("RAG", SIMILAR_RESUME_REFERENCE),
+            Map.entry("SIMILAR_RESUME", SIMILAR_RESUME_REFERENCE),
+            Map.entry("当前简历", CURRENT_RESUME_FACT),
+            Map.entry("当前简历事实", CURRENT_RESUME_FACT),
+            Map.entry("相似简历", SIMILAR_RESUME_REFERENCE),
+            Map.entry("相似简历参考", SIMILAR_RESUME_REFERENCE)
     );
 
     private final Validator validator;
@@ -92,6 +113,7 @@ public class AiJsonResponseParser {
     public InterviewQuestionsDTO parseInterviewQuestions(String json) throws JsonProcessingException {
         InterviewQuestionsDTO result = convertWithSpringAi(json, interviewQuestionsConverter, "interview-questions");
         normalizeInterviewQuestionTypes(result);
+        normalizeInterviewQuestionSources(result);
         validateBean(result, "interview-questions");
         return result;
     }
@@ -182,6 +204,71 @@ public class AiJsonResponseParser {
         }
 
         return QUESTION_TYPE_ALIASES.getOrDefault(normalized, "PROJECT");
+    }
+
+    /**
+     * 规整面试题来源字段，避免模型漏填或输出中文来源导致 DTO 校验失败。
+     */
+    private void normalizeInterviewQuestionSources(InterviewQuestionsDTO result) {
+        if (result == null || result.getQuestions() == null) {
+            return;
+        }
+
+        List<InterviewQuestionsDTO.Question> questions = result.getQuestions();
+        for (int index = 0; index < questions.size(); index++) {
+            InterviewQuestionsDTO.Question question = questions.get(index);
+            if (question == null) {
+                continue;
+            }
+            String normalizedSource = normalizeEvidenceSource(question.getEvidenceSource());
+            if (!normalizedSource.equals(question.getEvidenceSource())) {
+                logger.warn("AI question evidence source normalized, schema=interview-questions, path=questions[{}].evidenceSource, value={}, normalized={}",
+                        index, question.getEvidenceSource(), normalizedSource);
+                question.setEvidenceSource(normalizedSource);
+            }
+            question.setSourceNote(normalizeSourceNote(question.getSourceNote(), normalizedSource));
+        }
+    }
+
+    /**
+     * 将模型输出的问题来源归一化到允许枚举。
+     */
+    private String normalizeEvidenceSource(String evidenceSource) {
+        if (evidenceSource == null || evidenceSource.isBlank()) {
+            return CURRENT_RESUME_FACT;
+        }
+
+        String normalized = evidenceSource.trim().toUpperCase(Locale.ROOT).replace('-', '_').replace(' ', '_');
+        if (ALLOWED_EVIDENCE_SOURCES.contains(normalized)) {
+            return normalized;
+        }
+        return EVIDENCE_SOURCE_ALIASES.getOrDefault(
+                normalized,
+                EVIDENCE_SOURCE_ALIASES.getOrDefault(evidenceSource.trim(), CURRENT_RESUME_FACT)
+        );
+    }
+
+    /**
+     * 生成或裁剪问题来源说明，避免数据库和页面展示被长文本撑开。
+     */
+    private String normalizeSourceNote(String sourceNote, String evidenceSource) {
+        String normalizedNote = sourceNote == null || sourceNote.isBlank()
+                ? defaultSourceNote(evidenceSource)
+                : sourceNote.trim();
+        if (normalizedNote.length() <= MAX_SOURCE_NOTE_CHARS) {
+            return normalizedNote;
+        }
+        return normalizedNote.substring(0, MAX_SOURCE_NOTE_CHARS);
+    }
+
+    /**
+     * 根据来源类型给出默认中文说明。
+     */
+    private String defaultSourceNote(String evidenceSource) {
+        if (SIMILAR_RESUME_REFERENCE.equals(evidenceSource)) {
+            return "参考相似简历片段设计追问";
+        }
+        return "基于当前简历事实设计追问";
     }
 
     private int clampScore(String schemaName,

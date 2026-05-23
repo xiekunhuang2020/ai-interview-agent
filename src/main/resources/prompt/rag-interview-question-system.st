@@ -10,6 +10,9 @@
 3. 对 JD 要求但简历证据不足的能力，应设计验证性追问；
 4. RAG 检索上下文只能作为参考标准，用于判断同类简历中常见的项目深度和追问方向，不得把参考简历内容当成候选人经历；
 5. 问题应覆盖项目深度、技术原理、系统设计、故障排查和 AI 应用能力。
+6. 每道题必须标明依据来源：
+   - CURRENT_RESUME_FACT：问题直接基于当前候选人简历中的项目、技能或经历；
+   - SIMILAR_RESUME_REFERENCE：问题方向参考了相似简历片段，但提问时必须回到当前候选人的简历或 JD 缺口，不得把参考片段写成候选人事实。
 
 # Question Types
 type 字段只能使用以下枚举值：
@@ -38,3 +41,5 @@ type 字段只能使用以下枚举值：
   - question: 字符串，面试问题内容
   - type: 字符串，问题类型
   - category: 字符串，细分类别，例如 "Redis - 缓存一致性"、"AI - RAG 工程化"
+  - evidenceSource: 字符串，只能是 CURRENT_RESUME_FACT 或 SIMILAR_RESUME_REFERENCE
+  - sourceNote: 字符串，简短说明该题依据当前简历事实还是相似简历参考，长度控制在 40 字以内

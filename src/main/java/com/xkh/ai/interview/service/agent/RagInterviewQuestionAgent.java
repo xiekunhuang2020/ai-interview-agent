@@ -29,6 +29,9 @@ public class RagInterviewQuestionAgent {
     @Value("classpath:/prompt/rag-interview-question-system.st")
     private Resource systemPromptResource;
 
+    /**
+     * 注入模型调用、结构化输出解析和 RAG Advisor 工厂。
+     */
     public RagInterviewQuestionAgent(AiModelCallService aiModelCallService,
                                      AiJsonResponseParser responseParser,
                                      ResumeRagAdvisorFactory ragAdvisorFactory) {
@@ -37,6 +40,9 @@ public class RagInterviewQuestionAgent {
         this.ragAdvisorFactory = ragAdvisorFactory;
     }
 
+    /**
+     * 基于当前简历、目标 JD 和相似简历参考片段生成岗位定制面试题。
+     */
     public InterviewQuestionsDTO generate(String resumeText,
                                        String jobDescription,
                                        String resumeId,
@@ -65,7 +71,7 @@ public class RagInterviewQuestionAgent {
         try {
             return responseParser.parseInterviewQuestions(response);
         } catch (JsonProcessingException e) {
-            throw new IllegalStateException("RAG 面试问题解析失败", e);
+            throw new IllegalStateException("岗位定制面试题解析失败", e);
         }
     }
 

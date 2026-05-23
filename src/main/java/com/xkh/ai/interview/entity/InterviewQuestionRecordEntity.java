@@ -26,6 +26,10 @@ public class InterviewQuestionRecordEntity {
 
     private String questionText;
 
+    private String evidenceSource;
+
+    private String sourceNote;
+
     @TableField(fill = FieldFill.INSERT)
     private LocalDateTime createTime;
 

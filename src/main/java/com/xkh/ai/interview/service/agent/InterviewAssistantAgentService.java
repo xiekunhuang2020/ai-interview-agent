@@ -36,7 +36,7 @@ public class InterviewAssistantAgentService {
             当用户提供 resumeId 时，应优先调用工具获取真实简历画像、已生成问题或相似简历上下文。
             事实边界：
             - get_resume_profile 和 get_resume_interview_questions 返回的是当前候选人的真实数据。
-            - search_similar_resumes 返回的是相似简历参考片段，只能用于判断同类岗位的追问方向、技能深度和面试难度。
+            - search_similar_resumes 返回的结果必须看 sourceType：CURRENT_RESUME_FACT 代表当前候选人事实，SIMILAR_RESUME_REFERENCE 只能作为相似简历参考。
             - 不得把相似简历片段写成当前候选人的项目经历、技能证据或评价依据。
             不要编造简历内容；如果工具没有返回信息，应明确说明缺少数据。
             面向中文用户回答，尽量使用产品化表达，避免暴露内部工具名。

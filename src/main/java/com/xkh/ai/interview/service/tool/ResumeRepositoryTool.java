@@ -198,6 +198,8 @@ public class ResumeRepositoryTool {
             record.setQuestionText(question.getQuestion());
             record.setQuestionType(question.getType());
             record.setCategory(question.getCategory());
+            record.setEvidenceSource(question.getEvidenceSource());
+            record.setSourceNote(question.getSourceNote());
             interviewQuestionRecordMapper.insert(record);
         }
     }
@@ -338,7 +340,9 @@ public class ResumeRepositoryTool {
                     .map(record -> new InterviewQuestionsDTO.Question(
                             record.getQuestionText(),
                             record.getQuestionType(),
-                            record.getCategory()
+                            record.getCategory(),
+                            record.getEvidenceSource(),
+                            record.getSourceNote()
                     ))
                     .toList();
             return InterviewQuestionsDTO.builder().questions(questions).build();

@@ -82,7 +82,7 @@ public class ResumeVectorTool {
     }
 
     /**
-     * 清洗简历文本中的多余空白，保留换行边界用于后续识别简历段落。
+     * 清洗简历文本中的多余空白，保留换行边界帮助文本切片维持语义连续性。
      */
     private String cleanResumeText(String resumeText) {
         if (resumeText == null) {
@@ -106,6 +106,7 @@ public class ResumeVectorTool {
         metadata.put("resumeId", StringUtils.defaultString(resumeId));
         metadata.put("fileName", StringUtils.defaultString(fileName));
         metadata.put("indexedAt", indexedAt);
+        metadata.put("sourceType", "CURRENT_RESUME_FACT");
         return metadata;
     }
 }

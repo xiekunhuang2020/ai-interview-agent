@@ -81,6 +81,7 @@ public class ResumeRagAdvisorFactory {
                         ## RAG 检索上下文
                         以下内容来自向量检索，仅用于参考同类简历的项目深度、技能证据和追问方向。
                         不得把这些参考内容当成当前候选人的真实经历。
+                        如果基于这些片段设计问题，输出 evidenceSource 必须标为 SIMILAR_RESUME_REFERENCE。
 
                         {context}
                         """))
@@ -89,7 +90,7 @@ public class ResumeRagAdvisorFactory {
     }
 
     /**
-     * 格式化检索到的 Document，给模型明确标注参考片段来源和段落。
+     * 格式化检索到的 Document，给模型明确标注参考片段来源和引用类型。
      */
     private String formatDocuments(List<Document> documents) {
         StringBuilder context = new StringBuilder();
@@ -100,6 +101,8 @@ public class ResumeRagAdvisorFactory {
             Object chunkIndex = document.getMetadata().get("chunkIndex");
             Object chunkCount = document.getMetadata().get("chunkCount");
             context.append("参考片段 ").append(i + 1).append("：\n");
+            context.append("referenceType: SIMILAR_RESUME_REFERENCE\n");
+            context.append("referenceName: 相似简历参考\n");
             if (resumeId != null) {
                 context.append("resumeId: ").append(resumeId).append("\n");
             }

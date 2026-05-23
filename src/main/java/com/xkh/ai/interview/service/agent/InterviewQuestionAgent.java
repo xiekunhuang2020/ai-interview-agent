@@ -27,11 +27,17 @@ public class InterviewQuestionAgent {
     @Value("classpath:/prompt/interview-question-system.st")
     private Resource systemPromptResource;
 
+    /**
+     * 注入模型调用服务和结构化输出解析器。
+     */
     public InterviewQuestionAgent(AiModelCallService aiModelCallService, AiJsonResponseParser responseParser) {
         this.aiModelCallService = aiModelCallService;
         this.responseParser = responseParser;
     }
 
+    /**
+     * 基于当前候选人简历生成基础面试题。
+     */
     public InterviewQuestionsDTO generate(String resumeText) {
         logger.info("InterviewQuestionAgent starts, resumeTextLength={}", resumeText.length());
 

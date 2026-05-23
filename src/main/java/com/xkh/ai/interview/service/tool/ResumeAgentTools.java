@@ -84,18 +84,19 @@ public class ResumeAgentTools {
     }
 
     /**
-     * 根据岗位 JD 或技能关键词检索相似简历片段，返回可溯源的裁剪结果。
+     * 根据岗位 JD 或技能关键词检索相似简历片段，返回带来源类型的裁剪结果。
      */
-    @Tool(name = "search_similar_resumes", description = "只读工具。根据岗位 JD、技能关键词或面试关注点检索相似简历片段；返回的是裁剪后的参考片段，不代表当前候选人经历。")
+    @Tool(name = "search_similar_resumes", description = "只读工具。根据岗位 JD、技能关键词或面试关注点检索相似简历片段；返回 sourceType=CURRENT_RESUME_FACT 时才代表当前候选人，sourceType=SIMILAR_RESUME_REFERENCE 时只能作为参考。")
     public List<SimilarResumeToolResult> searchSimilarResumes(
             @ToolParam(required = true, description = "检索文本，推荐传入岗位 JD 或核心技能要求。") String queryText,
-            @ToolParam(required = false, description = "返回数量，范围 1-10，默认 5。") Integer topK) {
+            @ToolParam(required = false, description = "返回数量，范围 1-10，默认 5。") Integer topK,
+            @ToolParam(required = false, description = "当前候选人的 resumeId，用于标记检索结果是否来自当前候选人。") String currentResumeId) {
         if (StringUtils.isBlank(queryText)) {
             throw new IllegalArgumentException("queryText 不能为空");
         }
 
         return resumeVectorTool.search(queryText, normalizeTopK(topK)).stream()
-                .map(this::toSearchResult)
+                .map(document -> toSearchResult(document, currentResumeId))
                 .toList();
     }
 
@@ -116,16 +117,32 @@ public class ResumeAgentTools {
     /**
      * 将向量检索返回的 Document 转为模型工具可读的相似简历片段。
      */
-    private SimilarResumeToolResult toSearchResult(Document document) {
+    private SimilarResumeToolResult toSearchResult(Document document, String currentResumeId) {
         Object resumeId = document.getMetadata().get("resumeId");
         Object fileName = document.getMetadata().get("fileName");
+        String sourceResumeId = resumeId == null ? "" : resumeId.toString();
+        String sourceType = StringUtils.equals(sourceResumeId, currentResumeId)
+                ? "CURRENT_RESUME_FACT"
+                : "SIMILAR_RESUME_REFERENCE";
         return new SimilarResumeToolResult(
-                resumeId == null ? "" : resumeId.toString(),
+                sourceType,
+                sourceName(sourceType),
+                sourceResumeId,
                 fileName == null ? "" : fileName.toString(),
                 metadataInteger(document, "chunkIndex"),
                 metadataInteger(document, "chunkCount"),
                 truncate(document.getText(), MAX_SEARCH_SNIPPET_CHARS)
         );
+    }
+
+    /**
+     * 将来源枚举转成中文名称，方便模型和审计记录直接阅读。
+     */
+    private String sourceName(String sourceType) {
+        if ("CURRENT_RESUME_FACT".equals(sourceType)) {
+            return "当前简历事实";
+        }
+        return "相似简历参考";
     }
 
     /**
@@ -222,6 +239,8 @@ public class ResumeAgentTools {
     }
 
     public record SimilarResumeToolResult(
+            String sourceType,
+            String sourceName,
             String resumeId,
             String fileName,
             Integer chunkIndex,

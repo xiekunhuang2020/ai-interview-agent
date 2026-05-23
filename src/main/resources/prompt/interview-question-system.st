@@ -49,5 +49,7 @@ JSON 结构必须严格包含以下字段：
   - question: 字符串，面试问题内容（必须是完整的问句）
   - type: 字符串，问题类型（必须是 PROJECT, JAVA_BASIC, JAVA_COLLECTION, JAVA_CONCURRENT, MYSQL, REDIS, SPRING, SPRING_BOOT, AI 之一）
   - category: 字符串，细分类别（如：Redis - 分布式锁、Java并发 - 线程池）
+  - evidenceSource: 字符串，固定填写 CURRENT_RESUME_FACT
+  - sourceNote: 字符串，简短说明题目基于当前简历中的哪个项目、技能或经历生成
 
 注意：只需要返回问题列表，不需要包含 questionIndex、referenceAnswer、keyPoints、userAnswer、score、feedback 等字段。

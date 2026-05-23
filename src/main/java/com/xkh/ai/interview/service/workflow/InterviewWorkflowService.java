@@ -167,7 +167,7 @@ public class InterviewWorkflowService {
     }
 
     /**
-     * 结合目标岗位 JD 和相似简历召回结果，生成岗位增强面试题。
+     * 结合目标岗位 JD 和相似简历召回结果，生成岗位定制面试题。
      */
     public InterviewQuestionsDTO generateRagInterviewQuestions(String resumeId, String jobDescription, int topK) {
         if (StringUtils.isBlank(jobDescription)) {
