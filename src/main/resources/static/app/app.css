@@ -1004,6 +1004,11 @@ p {
     overflow-wrap: anywhere;
 }
 
+.failure-list p {
+    margin-bottom: 10px;
+    font-size: 13px;
+}
+
 .failure-list span {
     display: block;
     margin-top: 6px;

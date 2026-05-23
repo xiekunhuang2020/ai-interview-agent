@@ -142,6 +142,7 @@ jd-match -> jd-match-v2026-05-17-01
 - attemptCount（兼容早期外层重试审计；当前模型侧重试由 Spring AI 管理）
 - latencyMs
 - errorMessage
+- errorType
 - createTime
 
 审计写入失败不会影响主业务流程。
@@ -190,6 +191,7 @@ AI_AGENT_AUDIT_MAX_MESSAGE_CONTENT_LENGTH=4000
 ```text
 success = 0
 fallbackUsed = 0
+errorType = TIMEOUT / RATE_LIMIT / MODEL_ERROR / EMPTY_RESPONSE / UNKNOWN
 ```
 
 当前项目不再生成结构合法但没有真实模型结果的兜底 JSON，避免把失败包装成“可继续使用的结果”。
@@ -198,7 +200,7 @@ fallbackUsed = 0
 
 `/api/audit/prompt-metrics` 基于最近的模型调用审计记录，按 operation 和 Prompt 版本聚合 totalCalls、successRate、failedCalls、avgLatencyMs 和 maxLatencyMs。`avgAttemptCount` 保留用于兼容早期外层重试审计。
 
-`/audit/prompt-dashboard` 提供一个轻量看板页面，用于查看 Prompt 版本指标和失败原因分布。
+`/audit/prompt-dashboard` 提供一个轻量看板页面，用于查看 Prompt 版本指标和按 errorType 聚合的失败原因分布。
 
 ### 工具
 

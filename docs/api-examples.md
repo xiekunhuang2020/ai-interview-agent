@@ -115,4 +115,5 @@ mysql --default-character-set=utf8mb4 -uroot -p ai_interview < sql/migration-v4-
 mysql --default-character-set=utf8mb4 -uroot -p ai_interview < sql/migration-v5-core-result-tables.sql
 mysql --default-character-set=utf8mb4 -uroot -p ai_interview < sql/migration-v6-clean-resume-info-json-columns.sql
 mysql --default-character-set=utf8mb4 -uroot -p ai_interview < sql/migration-v7-question-source.sql
+mysql --default-character-set=utf8mb4 -uroot -p ai_interview < sql/migration-v8-ai-model-error-type.sql
 ```

@@ -77,7 +77,8 @@
                 <div class="panel-header"><div><h2>失败原因</h2><p>{{ audit.failures.length }} 类</p></div></div>
                 <div class="failure-list">
                     <article v-for="item in audit.failures" v-bind:key="item.reason">
-                        <strong>{{ item.reason }}</strong>
+                        <strong>{{ errorTypeText(item.errorType) }}</strong>
+                        <p class="muted">{{ item.reason }}</p>
                         <div class="bar-track"><div class="bar-fill danger" v-bind:style="{ width: clamp(item.percentage) + '%' }"></div></div>
                         <span>{{ item.count }} 次 / {{ round(item.percentage) }}%</span>
                     </article>
@@ -94,7 +95,7 @@
                     <div class="log-row" v-for="item in audit.modelCalls" v-bind:key="item.id">
                         <span>{{ shortTime(item.createTime) }}</span>
                         <span>{{ operationNameText(item.operationName) }}</span>
-                        <span v-bind:class="item.success === 1 ? 'ok-text' : 'bad-text'">{{ item.success === 1 ? '成功' : '失败' }}</span>
+                        <span v-bind:class="item.success === 1 ? 'ok-text' : 'bad-text'">{{ item.success === 1 ? '成功' : '失败' }}<template v-if="item.success !== 1 && item.errorType"> / {{ errorTypeText(item.errorType) }}</template></span>
                         <span>{{ formatLatency(item.latencyMs) }}</span>
                         <span class="mono">{{ item.traceId }}</span>
                     </div>

@@ -35,7 +35,7 @@ Agent 和普通 ChatBot 的区别在哪里？
 | 6 | 增加 RAG 召回评估集 | 已做 |
 | 7 | 增加引用来源，抑制幻觉 | 已做 |
 | 8 | 将结构化输出规则迁移到 DTO 注解 | 已做 |
-| 9 | 增加模型调用错误分类 | 没做 |
+| 9 | 增加模型调用错误分类 | 已做 |
 | 10 | 做一套 Demo 数据集和演示脚本 | 还需优化 |
 | 11 | 增加效果指标 | 还需优化 |
 | 12 | 增加 Prompt/RAG Evaluation Harness | 没做 |
@@ -347,7 +347,7 @@ SIMILAR_RESUME_REFERENCE
 
 ### 9. 增加模型调用错误分类
 
-**状态：没做**
+**状态：已做**
 
 **现状问题**
 
@@ -371,14 +371,29 @@ UNKNOWN
 
 **改造内容**
 
-- `ai_model_call_log` 增加 `error_type`。
-- 审计看板按 errorType 聚合。
-- 保留原始 errorMessage 便于排查。
+- `ai_model_call_log` 已增加 `error_type`。
+- 已新增 `migration-v8-ai-model-error-type.sql`。
+- `AiModelCallAuditRecorder` 写入失败审计时会自动分类：
+
+```text
+TIMEOUT
+RATE_LIMIT
+MODEL_ERROR
+STRUCTURED_OUTPUT_ERROR
+VALIDATION_ERROR
+EMPTY_RESPONSE
+UNKNOWN
+```
+
+- 运营看板“失败原因”已改为按 `errorType` 聚合，并保留一条错误文本样例用于排查。
+- 最近模型调用记录会展示失败类型。
+- 原始 `errorMessage` 继续保留，便于定位具体异常。
 
 **验收标准**
 
 - 失败原因看板能显示错误类型分布。
-- 面试时能讲清楚不同错误怎么处理。
+- 模型空响应会被识别为 `EMPTY_RESPONSE`，不再继续进入结构化解析。
+- `mvn -q -DskipTests compile` 通过。
 
 **面试可讲**
 

@@ -542,6 +542,18 @@ function createInterviewApp() {
                 };
                 return map[operationName] || '其他调用';
             },
+            errorTypeText(errorType) {
+                const map = {
+                    TIMEOUT: '调用超时',
+                    RATE_LIMIT: '限流或额度不足',
+                    MODEL_ERROR: '模型服务错误',
+                    STRUCTURED_OUTPUT_ERROR: '结构化输出错误',
+                    VALIDATION_ERROR: '业务校验错误',
+                    EMPTY_RESPONSE: '模型空响应',
+                    UNKNOWN: '未知错误'
+                };
+                return map[errorType] || '未知错误';
+            },
             agentNameText(agentName) {
                 const map = {
                     'interview-assistant': '面试顾问',
