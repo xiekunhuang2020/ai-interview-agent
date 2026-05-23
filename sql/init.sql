@@ -114,11 +114,13 @@ CREATE TABLE IF NOT EXISTS ai_model_call_log (
     attempt_count   INT             NOT NULL DEFAULT 1 COMMENT '实际尝试次数',
     latency_ms      BIGINT          NOT NULL DEFAULT 0 COMMENT '总耗时毫秒',
     error_message   VARCHAR(1024)   DEFAULT NULL COMMENT '错误信息',
+    error_type      VARCHAR(64)     DEFAULT NULL COMMENT '错误类型',
     create_time     DATETIME        DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
     INDEX idx_trace_id (trace_id),
     INDEX idx_operation_create_time (operation_name, create_time),
     INDEX idx_prompt_version_create_time (prompt_version, create_time),
-    INDEX idx_success_create_time (success, create_time)
+    INDEX idx_success_create_time (success, create_time),
+    INDEX idx_error_type_create_time (error_type, create_time)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='AI模型调用审计表';
 
 -- Agent 对话消息审计表
