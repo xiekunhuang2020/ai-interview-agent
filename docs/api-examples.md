@@ -1,5 +1,22 @@
 # API 示例
 
+## 一键演示脚本
+
+脚本会自动完成上传简历、岗位匹配、生成岗位定制题、提交固定答案和 RAG 召回评估。
+
+```powershell
+cd C:\code\AIStudy\ai-interview-agent
+powershell -ExecutionPolicy Bypass -File scripts/demo-flow.ps1
+```
+
+切换演示样例：
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts/demo-flow.ps1 `
+  -ResumePath samples/platform-backend-resume.txt `
+  -JobDescriptionPath samples/java-backend-performance-jd.txt
+```
+
 ## 上传简历并生成分析
 
 Windows PowerShell 里请使用 `curl.exe`，不要直接写 `curl`，因为 `curl` 可能会被解析成 `Invoke-WebRequest`。下面命令需要在项目根目录执行。

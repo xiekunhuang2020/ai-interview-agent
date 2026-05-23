@@ -181,17 +181,35 @@ http://localhost:8080
 - [API 示例](docs/api-examples.md)
 - [面试备注](docs/interview-notes.md)
 
+## Demo 数据集
+
+样例文件统一放在 [samples](samples)：
+
+- 简历：`java-backend-resume.txt`、`ai-application-resume.txt`、`platform-backend-resume.txt`
+- 岗位：`java-ai-agent-jd.txt`、`java-backend-performance-jd.txt`、`fullstack-ai-product-jd.txt`
+- 答案：`interview-answers-demo.json`
+
+一键演示脚本：
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts/demo-flow.ps1
+```
+
+切换样例：
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts/demo-flow.ps1 `
+  -ResumePath samples/ai-application-resume.txt `
+  -JobDescriptionPath samples/fullstack-ai-product-jd.txt
+```
+
 ## 展示流程
 
-1. 打开首页，上传 `samples/java-backend-resume.txt`。
-2. 查看简历评分、优势和优化建议。
-3. 使用 `samples/java-ai-agent-jd.txt` 调用岗位匹配接口，查看岗位匹配度。
-4. 调用“根据岗位生成面试题”接口，生成岗位定制化面试问题。
-5. 填写答案并提交。
-6. 查看面试评估报告、分类得分和参考答案。
-7. 打开 AI 求职顾问页面，围绕当前简历进行追问。
-8. 打开 `/audit/prompt-dashboard` 查看 Prompt 效果评估看板。
-9. 调用 `/api/evaluation/rag-recall?topK=5` 查看 RAG 召回评估结果。
+1. 启动后端服务，确认本地 MySQL、Redis、Milvus 可用。
+2. 执行 `scripts/demo-flow.ps1`，自动完成上传简历、岗位匹配、生成面试题、提交答案和 RAG 召回评估。
+3. 打开脚本输出的简历分析、岗位匹配、模拟面试和复盘结果地址。
+4. 打开脚本输出的 AI 求职顾问地址，围绕当前简历继续追问。
+5. 打开 `/audit/prompt-dashboard` 查看 Prompt 指标、最近模型调用和失败原因分布。
 
 ## 简历可写亮点
 
@@ -213,4 +231,4 @@ AI 求职顾问｜Java 21 / Spring Boot / Spring AI Alibaba / DashScope / Milvus
 ## 后续规划
 
 - 增加 Prompt 评估看板的时间范围筛选。
-- 补充 Demo 数据集和 Prompt/RAG 评测脚本。
+- 补充 Prompt/RAG Evaluation Harness，用固定样例做版本回归。

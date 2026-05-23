@@ -36,7 +36,7 @@ Agent 和普通 ChatBot 的区别在哪里？
 | 7 | 增加引用来源，抑制幻觉 | 已做 |
 | 8 | 将结构化输出规则迁移到 DTO 注解 | 已做 |
 | 9 | 增加模型调用错误分类 | 已做 |
-| 10 | 做一套 Demo 数据集和演示脚本 | 还需优化 |
+| 10 | 做一套 Demo 数据集和演示脚本 | 已做 |
 | 11 | 增加效果指标 | 还需优化 |
 | 12 | 增加 Prompt/RAG Evaluation Harness | 没做 |
 | 13 | 增加结构化输出失败诊断与自动修复闭环 | 没做 |
@@ -308,7 +308,7 @@ SIMILAR_RESUME_REFERENCE
 
 ### 8. 将结构化输出规则迁移到 DTO 注解
 
-**状态：还需优化**
+**状态：已做**
 
 **现状问题**
 
@@ -403,7 +403,7 @@ UNKNOWN
 
 ### 10. 做一套 Demo 数据集和演示脚本
 
-**状态：还需优化**
+**状态：已做**
 
 **现状问题**
 
@@ -415,12 +415,18 @@ UNKNOWN
 
 **改造内容**
 
-- `samples` 下准备：
-  - 3 份简历
-  - 3 份 JD
-  - 1 份标准答案样例
-- README 增加演示步骤。
-- 页面预置“填入样例 JD”。
+- `samples` 下已准备 3 份简历：
+  - `java-backend-resume.txt`
+  - `ai-application-resume.txt`
+  - `platform-backend-resume.txt`
+- `samples` 下已准备 3 份 JD：
+  - `java-ai-agent-jd.txt`
+  - `java-backend-performance-jd.txt`
+  - `fullstack-ai-product-jd.txt`
+- 已新增 `samples/interview-answers-demo.json`，用于固定提交答案。
+- 已新增 `scripts/demo-flow.ps1`，自动串起上传简历、岗位匹配、岗位出题、提交答案和 RAG 召回评估。
+- README 和 API 示例已补充脚本用法。
+- 页面已支持“填入样例 JD”。
 
 **验收标准**
 
