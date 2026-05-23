@@ -209,7 +209,7 @@ powershell -ExecutionPolicy Bypass -File scripts/demo-flow.ps1 `
 2. 执行 `scripts/demo-flow.ps1`，自动完成上传简历、岗位匹配、生成面试题、提交答案和 RAG 召回评估。
 3. 打开脚本输出的简历分析、岗位匹配、模拟面试和复盘结果地址。
 4. 打开脚本输出的 AI 求职顾问地址，围绕当前简历继续追问。
-5. 打开 `/audit/prompt-dashboard` 查看 Prompt 指标、最近模型调用和失败原因分布。
+5. 打开 `/audit/prompt-dashboard` 查看效果指标、提示词指标、最近模型调用和失败原因分布。
 
 ## 简历可写亮点
 

@@ -14,7 +14,7 @@
         <header class="topbar">
             <div>
                 <p class="eyebrow">06 / 运营看板</p>
-                <h1>模型调用与顾问对话审计</h1>
+                <h1>模型效果与调用审计</h1>
             </div>
             <div class="top-actions">
                 <a class="ghost-button" href="/">首页</a>
@@ -31,7 +31,7 @@
                 <div class="panel-header">
                     <div>
                         <h2>筛选条件</h2>
-                        <p>用于排查提示词版本效果、模型失败原因和响应耗时。</p>
+                        <p>用于排查提示词版本效果、模型失败原因、响应耗时和向量召回质量。</p>
                     </div>
                 </div>
                 <div class="filter-grid">
@@ -54,8 +54,28 @@
                         样本量
                         <input type="number" min="1" max="5000" v-model.number="audit.limit">
                     </label>
+                    <label>
+                        召回数量
+                        <input type="number" min="1" max="20" v-model.number="audit.ragTopK">
+                    </label>
                 </div>
             </div>
+
+            <section class="effect-strip wide-panel">
+                <div class="effect-header">
+                    <div>
+                        <h2>效果指标</h2>
+                        <p>来自模型调用审计和向量召回评估，刷新后按当前筛选条件重新统计。</p>
+                    </div>
+                </div>
+                <div class="effect-grid">
+                    <article class="effect-item" v-for="card in opsEffectCards" v-bind:key="card.label">
+                        <span>{{ card.label }}</span>
+                        <strong>{{ card.value }}</strong>
+                        <p>{{ card.note }}</p>
+                    </article>
+                </div>
+            </section>
 
             <div class="panel">
                 <div class="panel-header"><div><h2>提示词指标</h2><p>{{ audit.metrics.length }} 组</p></div></div>

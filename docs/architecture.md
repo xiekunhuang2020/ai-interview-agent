@@ -200,7 +200,7 @@ errorType = TIMEOUT / RATE_LIMIT / MODEL_ERROR / EMPTY_RESPONSE / UNKNOWN
 
 `/api/audit/prompt-metrics` 基于最近的模型调用审计记录，按 operation 和 Prompt 版本聚合 totalCalls、successRate、failedCalls、avgLatencyMs 和 maxLatencyMs。`avgAttemptCount` 保留用于兼容早期外层重试审计。
 
-`/audit/prompt-dashboard` 提供一个轻量看板页面，用于查看 Prompt 版本指标和按 errorType 聚合的失败原因分布。
+`/audit/prompt-dashboard` 提供一个轻量看板页面，用于查看效果指标、Prompt 版本指标和按 errorType 聚合的失败原因分布。效果指标来自模型调用审计和 RAG 召回评估，覆盖调用样本量、成功率、平均耗时、失败次数、向量召回命中率、简历解析耗时、岗位匹配耗时和出题成功率。
 
 ### 工具
 

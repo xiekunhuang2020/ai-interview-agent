@@ -41,10 +41,13 @@ function createInterviewApp() {
                     operationName: '',
                     promptVersion: '',
                     limit: 1000,
+                    ragTopK: 5,
                     metrics: [],
                     failures: [],
                     modelCalls: [],
-                    agentMessages: []
+                    agentMessages: [],
+                    ragRecall: null,
+                    ragError: ''
                 },
                 loading: {
                     upload: false,
@@ -100,6 +103,69 @@ function createInterviewApp() {
             },
             unansweredCount() {
                 return Math.max(0, this.questions.length - this.answeredCount);
+            },
+            opsEffectCards() {
+                const metrics = this.safeList(this.audit.metrics);
+                const failures = this.safeList(this.audit.failures);
+                const totalCalls = metrics.reduce((sum, item) => sum + Number(item.totalCalls || 0), 0);
+                const successCalls = metrics.reduce((sum, item) => sum + Number(item.successCalls || 0), 0);
+                const failedCalls = metrics.reduce((sum, item) => sum + Number(item.failedCalls || 0), 0);
+                const totalLatency = metrics.reduce((sum, item) => {
+                    return sum + Number(item.avgLatencyMs || 0) * Number(item.totalCalls || 0);
+                }, 0);
+                const avgLatency = totalCalls ? totalLatency / totalCalls : null;
+                const successRate = totalCalls ? successCalls * 100 / totalCalls : null;
+                const structuredFailures = failures
+                    .filter((item) => item.errorType === 'STRUCTURED_OUTPUT_ERROR' || item.errorType === 'VALIDATION_ERROR')
+                    .reduce((sum, item) => sum + Number(item.count || 0), 0);
+                const resumeMetric = metrics.find((item) => item.operationName === 'resume-analysis');
+                const jdMetric = metrics.find((item) => item.operationName === 'jd-match');
+                const questionMetric = metrics.find((item) => item.operationName === 'rag-interview-question-generation')
+                    || metrics.find((item) => item.operationName === 'interview-question-generation');
+                const ragRecall = this.audit.ragRecall;
+
+                return [
+                    {
+                        label: '模型调用样本',
+                        value: `${totalCalls} 次`,
+                        note: `最近 ${this.audit.limit || 1000} 条审计`
+                    },
+                    {
+                        label: '模型调用成功率',
+                        value: successRate === null ? '--' : `${this.round(successRate)}%`,
+                        note: `${successCalls} 次成功 / ${failedCalls} 次失败`
+                    },
+                    {
+                        label: '平均模型耗时',
+                        value: this.formatLatency(avgLatency),
+                        note: '按调用次数加权统计'
+                    },
+                    {
+                        label: '模型失败次数',
+                        value: `${failedCalls} 次`,
+                        note: structuredFailures ? `结构化相关 ${structuredFailures} 次` : '暂无结构化失败记录'
+                    },
+                    {
+                        label: '向量召回命中率',
+                        value: ragRecall ? `${this.round(Number(ragRecall.hitRate || 0) * 100)}%` : '--',
+                        note: ragRecall ? `评估样例 ${ragRecall.totalCases || 0} 条` : (this.audit.ragError || '暂无召回评估')
+                    },
+                    {
+                        label: '简历解析耗时',
+                        value: resumeMetric ? this.formatLatency(resumeMetric.avgLatencyMs) : '--',
+                        note: resumeMetric ? `成功率 ${this.round(resumeMetric.successRate)}%` : '暂无样本'
+                    },
+                    {
+                        label: '岗位匹配耗时',
+                        value: jdMetric ? this.formatLatency(jdMetric.avgLatencyMs) : '--',
+                        note: jdMetric ? `成功率 ${this.round(jdMetric.successRate)}%` : '暂无样本'
+                    },
+                    {
+                        label: '出题成功率',
+                        value: questionMetric ? `${this.round(questionMetric.successRate)}%` : '--',
+                        note: questionMetric ? `均耗时 ${this.formatLatency(questionMetric.avgLatencyMs)}` : '暂无样本'
+                    }
+                ];
             }
         },
         mounted() {
@@ -502,6 +568,15 @@ function createInterviewApp() {
                     this.audit.failures = this.safeList(failures);
                     this.audit.modelCalls = this.safeList(modelCalls);
                     this.audit.agentMessages = this.safeList(agentMessages);
+                    this.audit.ragError = '';
+                    try {
+                        const topK = Math.max(1, Math.min(Number(this.audit.ragTopK || 5), 20));
+                        this.audit.ragTopK = topK;
+                        this.audit.ragRecall = await fetchJson(`/api/evaluation/rag-recall?topK=${topK}`);
+                    } catch (ragError) {
+                        this.audit.ragRecall = null;
+                        this.audit.ragError = ragError.message;
+                    }
                 } catch (error) {
                     this.globalError = error.message;
                 } finally {
