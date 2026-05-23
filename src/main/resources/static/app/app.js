@@ -585,6 +585,19 @@ function createInterviewApp() {
                 };
                 return map[type] || type || '问题';
             },
+            sourceName(source) {
+                const map = {
+                    CURRENT_RESUME_FACT: '当前简历事实',
+                    SIMILAR_RESUME_REFERENCE: '相似简历参考'
+                };
+                return map[source] || '当前简历事实';
+            },
+            sourceClass(source) {
+                return {
+                    'source-badge': true,
+                    'reference': source === 'SIMILAR_RESUME_REFERENCE'
+                };
+            },
             shortTime(value) {
                 if (!value) {
                     return '--';

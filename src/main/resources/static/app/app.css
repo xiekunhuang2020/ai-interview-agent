@@ -764,6 +764,37 @@ p {
     font-size: 13px;
 }
 
+.question-source {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+    color: var(--muted);
+    font-size: 13px;
+}
+
+.source-badge {
+    min-height: 24px;
+    border-radius: 6px;
+    padding: 2px 8px;
+    display: inline-flex;
+    align-items: center;
+    background: #edf5f1;
+    color: var(--brand-strong);
+    font-weight: 800;
+}
+
+.source-badge.reference {
+    background: #f7f1e8;
+    color: #7a4c13;
+}
+
+.question-source small {
+    min-width: 0;
+    line-height: 1.5;
+    overflow-wrap: anywhere;
+}
+
 .question-panel textarea {
     width: 100%;
     min-height: 136px;
