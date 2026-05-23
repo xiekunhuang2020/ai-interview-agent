@@ -8,9 +8,9 @@ AI 求职顾问是一个面向程序员求职和技术面试训练场景的 AI �
 - 简历评分：基于大模型从项目深度、技能匹配、内容完整性、结构清晰度和表达专业性进行多维度评分。
 - 基础面试题生成：根据简历中出现的项目和技术栈生成定制化面试题。
 - 岗位匹配分析：基于目标岗位说明输出匹配分、能力证据、缺失技能和面试追问方向。
-- 岗位定制面试题：结合目标岗位说明、候选人简历和向量检索上下文生成更贴近投递岗位的问题。
+- 岗位定制面试题：结合目标岗位说明、候选人简历和向量检索上下文生成更贴近投递岗位的问题，并标明题目来源。
 - 答案评估：结合简历背景和候选人回答，输出逐题评分、分类得分、优势、不足和参考答案。
-- RAG 基础能力：将简历写入 Milvus 向量库，支持基于 JD 或关键词的相似简历检索。
+- RAG 基础能力：将简历切片写入 Milvus 向量库，支持相似简历检索和本地召回评估。
 - 会话存储：使用 MySQL 持久化简历、问题和评估结果，使用 Redis 缓存热点面试会话。
 - 模型调用治理：基于 Spring AI `ChatClient` 统一模型调用入口，模型侧重试和退避交给 `spring.ai.retry`，业务层只保留 Prompt 版本、调用审计、异常映射、结构化输出强校验和 traceId 日志追踪。
 - 调用审计：记录每次大模型调用的 operation、Prompt 版本、traceId、耗时、成功状态和失败原因。
@@ -156,7 +156,7 @@ docker compose exec redis redis-cli ping
 curl http://localhost:9091/healthz
 ```
 
-`sql/init.sql` 会在 MySQL 数据卷首次初始化时自动执行。若本地已有旧数据卷，需要补齐新表结构并清理旧字段，请按顺序执行 `sql/migration-v2-ai-model-call-log.sql`、`sql/migration-v3-agent-conversation-message.sql`、`sql/migration-v4-interview-session.sql`、`sql/migration-v5-core-result-tables.sql` 和 `sql/migration-v6-clean-resume-info-json-columns.sql`。
+`sql/init.sql` 会在 MySQL 数据卷首次初始化时自动执行。若本地已有旧数据卷，需要补齐新表结构并清理旧字段，请按顺序执行 `sql/migration-v2-ai-model-call-log.sql`、`sql/migration-v3-agent-conversation-message.sql`、`sql/migration-v4-interview-session.sql`、`sql/migration-v5-core-result-tables.sql`、`sql/migration-v6-clean-resume-info-json-columns.sql` 和 `sql/migration-v7-question-source.sql`。
 
 ### 3. 启动应用
 
@@ -191,6 +191,7 @@ http://localhost:8080
 6. 查看面试评估报告、分类得分和参考答案。
 7. 打开 AI 求职顾问页面，围绕当前简历进行追问。
 8. 打开 `/audit/prompt-dashboard` 查看 Prompt 效果评估看板。
+9. 调用 `/api/evaluation/rag-recall?topK=5` 查看 RAG 召回评估结果。
 
 ## 简历可写亮点
 

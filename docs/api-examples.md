@@ -2,10 +2,11 @@
 
 ## 上传简历并生成分析
 
+Windows PowerShell 里请使用 `curl.exe`，不要直接写 `curl`，因为 `curl` 可能会被解析成 `Invoke-WebRequest`。下面命令需要在项目根目录执行。
+
 ```bash
-curl -X POST http://localhost:8080/api/resume/upload \
-  -H "X-Trace-Id: trace-resume-upload-001" \
-  -F "file=@samples/java-backend-resume.txt"
+cd C:\code\AIStudy\ai-interview-agent
+curl.exe -X POST http://localhost:8080/api/resume/upload -H "X-Trace-Id: trace-resume-upload-001" -F "file=@samples/java-backend-resume.txt"
 ```
 
 响应：
@@ -61,7 +62,15 @@ curl -X POST http://localhost:8080/api/interview/{resumeId}/rag-questions \
   -d "{\"jobDescription\":\"Java AI 应用开发工程师，要求 Spring Boot、Spring AI、RAG、Milvus、Redis、工程化经验\", \"topK\": 5}"
 ```
 
-该接口对应页面里的“根据岗位生成面试题”。服务端会先用目标岗位说明检索向量库中的相似简历片段，再结合候选人简历生成岗位定制化面试题，并保存到当前面试会话。这里的 RAG 是技术实现方式，用户侧不需要理解“增强题”这类技术词。
+该接口对应页面里的“根据岗位生成面试题”。服务端会先用目标岗位说明检索向量库中的相似简历片段，再结合候选人简历生成岗位定制化面试题，并保存到当前面试会话。这里的 RAG 是技术实现方式，用户侧不需要理解底层检索细节。
+
+## 运行 RAG 召回评估集
+
+```bash
+curl "http://localhost:8080/api/evaluation/rag-recall?topK=5"
+```
+
+运行前先上传 `samples/java-backend-resume.txt`，让 Milvus 中有可召回的样例数据。响应会包含 TopK 命中率、平均召回耗时、每条样例命中的关键词和未命中样例列表。
 
 ## 查询模型调用审计
 
@@ -100,9 +109,10 @@ http://localhost:8080/audit/prompt-dashboard
 如果本地数据库是在审计能力补齐前创建的，需要按顺序手动执行：
 
 ```bash
-mysql -uroot -p ai_interview < sql/migration-v2-ai-model-call-log.sql
-mysql -uroot -p ai_interview < sql/migration-v3-agent-conversation-message.sql
-mysql -uroot -p ai_interview < sql/migration-v4-interview-session.sql
-mysql -uroot -p ai_interview < sql/migration-v5-core-result-tables.sql
-mysql -uroot -p ai_interview < sql/migration-v6-clean-resume-info-json-columns.sql
+mysql --default-character-set=utf8mb4 -uroot -p ai_interview < sql/migration-v2-ai-model-call-log.sql
+mysql --default-character-set=utf8mb4 -uroot -p ai_interview < sql/migration-v3-agent-conversation-message.sql
+mysql --default-character-set=utf8mb4 -uroot -p ai_interview < sql/migration-v4-interview-session.sql
+mysql --default-character-set=utf8mb4 -uroot -p ai_interview < sql/migration-v5-core-result-tables.sql
+mysql --default-character-set=utf8mb4 -uroot -p ai_interview < sql/migration-v6-clean-resume-info-json-columns.sql
+mysql --default-character-set=utf8mb4 -uroot -p ai_interview < sql/migration-v7-question-source.sql
 ```
