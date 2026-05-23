@@ -3,8 +3,10 @@ package com.xkh.ai.interview.dto;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Pattern;
+import jakarta.validation.constraints.Size;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -21,31 +23,39 @@ public class JobDescriptionMatchResultDTO {
     @Min(0)
     @Max(100)
     private Integer overallScore;
-    @NotNull
+    @NotBlank
     @Pattern(regexp = "高度匹配|较匹配|一般匹配|匹配度较低")
     private String matchLevel;
-    @NotNull
+    @NotBlank
+    @Size(max = 2000)
     private String summary;
     @Valid
     @NotNull
+    @Size(max = 20)
     private List<@Valid SkillMatch> matchedSkills;
     @Valid
     @NotNull
+    @Size(max = 20)
     private List<@Valid SkillGap> missingSkills;
     @NotNull
-    private List<@NotNull String> interviewFocus;
+    @Size(max = 20)
+    private List<@NotBlank String> interviewFocus;
     @NotNull
-    private List<@NotNull String> risks;
+    @Size(max = 20)
+    private List<@NotBlank String> risks;
     @NotNull
-    private List<@NotNull String> learningSuggestions;
+    @Size(max = 20)
+    private List<@NotBlank String> learningSuggestions;
 
     @Data
     @NoArgsConstructor
     @AllArgsConstructor
     public static class SkillMatch {
-        @NotNull
+        @NotBlank
+        @Size(max = 128)
         private String skill;
-        @NotNull
+        @NotBlank
+        @Size(max = 1000)
         private String evidence;
         @NotNull
         @Min(0)
@@ -57,12 +67,14 @@ public class JobDescriptionMatchResultDTO {
     @NoArgsConstructor
     @AllArgsConstructor
     public static class SkillGap {
-        @NotNull
+        @NotBlank
+        @Size(max = 128)
         private String skill;
-        @NotNull
+        @NotBlank
         @Pattern(regexp = "高|中|低")
         private String importance;
-        @NotNull
+        @NotBlank
+        @Size(max = 1000)
         private String suggestion;
     }
 }

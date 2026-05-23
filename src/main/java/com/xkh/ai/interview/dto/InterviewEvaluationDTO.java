@@ -3,7 +3,9 @@ package com.xkh.ai.interview.dto;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Size;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -23,7 +25,8 @@ public class InterviewEvaluationDTO {
     /**
      * 面试会话 ID
      */
-    @NotNull
+    @NotBlank
+    @Size(max = 128)
     private String sessionId;
     
     /**
@@ -59,20 +62,23 @@ public class InterviewEvaluationDTO {
     /**
      * 整体反馈
      */
-    @NotNull
+    @NotBlank
+    @Size(max = 4000)
     private String overallFeedback;
     
     /**
      * 优势列表
      */
     @NotNull
-    private List<@NotNull String> strengths;
+    @Size(max = 20)
+    private List<@NotBlank String> strengths;
     
     /**
      * 改进建议列表
      */
     @NotNull
-    private List<@NotNull String> improvements;
+    @Size(max = 20)
+    private List<@NotBlank String> improvements;
     
     /**
      * 参考答案列表
@@ -85,7 +91,8 @@ public class InterviewEvaluationDTO {
     @NoArgsConstructor
     @AllArgsConstructor
     public static class CategoryScore {
-        @NotNull
+        @NotBlank
+        @Size(max = 128)
         private String category;
         @NotNull
         @Min(0)
@@ -105,17 +112,21 @@ public class InterviewEvaluationDTO {
         @Min(0)
         @Max(200)
         private Integer questionIndex;
-        @NotNull
+        @NotBlank
+        @Size(max = 1000)
         private String question;
-        @NotNull
+        @NotBlank
+        @Size(max = 128)
         private String category;
-        @NotNull
+        @NotBlank
+        @Size(max = 4000)
         private String userAnswer;
         @NotNull
         @Min(0)
         @Max(100)
         private Integer score;
-        @NotNull
+        @NotBlank
+        @Size(max = 4000)
         private String feedback;
     }
 
@@ -127,12 +138,15 @@ public class InterviewEvaluationDTO {
         @Min(0)
         @Max(200)
         private Integer questionIndex;
-        @NotNull
+        @NotBlank
+        @Size(max = 1000)
         private String question;
-        @NotNull
+        @NotBlank
+        @Size(max = 4000)
         private String referenceAnswer;
         @NotNull
-        private List<@NotNull String> keyPoints;
+        @Size(max = 20)
+        private List<@NotBlank String> keyPoints;
     }
 }
 

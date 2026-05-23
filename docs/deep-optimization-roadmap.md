@@ -34,7 +34,7 @@ Agent 和普通 ChatBot 的区别在哪里？
 | 5 | 建设标准化向量入库流程 | 还需优化 |
 | 6 | 增加 RAG 召回评估集 | 已做 |
 | 7 | 增加引用来源，抑制幻觉 | 已做 |
-| 8 | 将结构化输出规则迁移到 DTO 注解 | 还需优化 |
+| 8 | 将结构化输出规则迁移到 DTO 注解 | 已做 |
 | 9 | 增加模型调用错误分类 | 没做 |
 | 10 | 做一套 Demo 数据集和演示脚本 | 还需优化 |
 | 11 | 增加效果指标 | 还需优化 |
@@ -196,7 +196,7 @@ jd_match_result
 
 ### 5. 建设标准化向量入库流程
 
-**状态：还需优化**
+**状态：已做**
 
 **现状问题**
 
@@ -320,23 +320,26 @@ SIMILAR_RESUME_REFERENCE
 
 **改造内容**
 
-- 检查 `ResumeScoreResultDTO`、`InterviewQuestionsDTO`、`JobDescriptionMatchResultDTO`、`InterviewEvaluationDTO`。
-- 用注解表达：
+- 已检查并改造 `ResumeScoreResultDTO`、`InterviewQuestionsDTO`、`JobDescriptionMatchResultDTO`、`InterviewEvaluationDTO`。
+- 已用注解表达：
   - 必填
   - 长度
   - 分数范围
   - 枚举正则
   - 嵌套对象校验
-- Parser 只做：
+- `ResumeScoreResultDTO.ScoreDetail` 自己裁剪评分维度范围，避免模型偶发输出 10 分制外的值。
+- `InterviewQuestionsDTO.Question` 自己归一化题目类型和来源类型，兼容 `SYSTEM_DESIGN`、`RAG`、中文来源等模型别名。
+- `AiJsonResponseParser` 已收敛为通用职责：
   - JSON 提取
   - 调用官方 Converter
   - 调用 Validator
-  - 少量业务归一化
+  - 格式化校验错误
 
 **验收标准**
 
 - 大部分校验能从 DTO 注解看懂。
-- Parser 代码明显变薄。
+- Parser 不再维护各业务 DTO 的字段范围、枚举表和手工 if 校验。
+- `mvn -q -DskipTests compile` 通过。
 
 **面试可讲**
 
