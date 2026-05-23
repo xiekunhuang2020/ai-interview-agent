@@ -2,6 +2,7 @@ package com.xkh.ai.interview.service.llm;
 
 import com.alibaba.cloud.ai.dashscope.chat.DashScopeChatOptions;
 import com.xkh.ai.interview.service.audit.AiModelCallAuditRecorder;
+import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.ai.chat.client.ChatClient;
@@ -52,16 +53,19 @@ public class AiModelCallService {
         long start = System.currentTimeMillis();
         try {
             String text = doCall(prompt, advisors);
+            if (StringUtils.isBlank(text)) {
+                throw new IllegalStateException("AI 模型返回空内容");
+            }
             long latencyMs = System.currentTimeMillis() - start;
             logger.info("AI model call succeeded, operation={}, promptVersion={}, latencyMs={}",
                     operationName, promptVersion, latencyMs);
-            auditRecorder.record(operationName, promptVersion, true, 1, latencyMs, null);
+            auditRecorder.record(operationName, promptVersion, true, 1, latencyMs, (String) null);
             return text;
         } catch (RuntimeException e) {
             long latencyMs = System.currentTimeMillis() - start;
             logger.warn("AI model call failed after Spring AI retry, operation={}, promptVersion={}, latencyMs={}, error={}",
                     operationName, promptVersion, latencyMs, e.getMessage());
-            auditRecorder.record(operationName, promptVersion, false, 1, latencyMs, e.getMessage());
+            auditRecorder.record(operationName, promptVersion, false, 1, latencyMs, e);
             throw new AiModelCallException("AI 模型调用失败，operation=" + operationName, e);
         }
     }

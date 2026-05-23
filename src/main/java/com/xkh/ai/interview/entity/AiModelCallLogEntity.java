@@ -31,6 +31,8 @@ public class AiModelCallLogEntity {
 
     private String errorMessage;
 
+    private String errorType;
+
     @TableField(fill = com.baomidou.mybatisplus.annotation.FieldFill.INSERT)
     private LocalDateTime createTime;
 }

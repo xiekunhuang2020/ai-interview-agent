@@ -74,7 +74,7 @@ public class AiModelCallAuditQueryService {
         List<AiModelCallLogEntity> logs = aiModelCallLogMapper.selectList(wrapper);
         long totalFailures = logs.size();
         Map<String, List<AiModelCallLogEntity>> groupedLogs = logs.stream()
-                .collect(Collectors.groupingBy(this::failureReasonKey));
+                .collect(Collectors.groupingBy(this::failureTypeKey));
 
         return groupedLogs.entrySet().stream()
                 .map(entry -> toFailureReason(entry.getKey(), entry.getValue(), totalFailures))
@@ -119,15 +119,26 @@ public class AiModelCallAuditQueryService {
     /**
      * 将同一失败原因下的日志转换为失败原因分布 DTO。
      */
-    private PromptFailureReasonResultDTO toFailureReason(String reason, List<AiModelCallLogEntity> logs, long totalFailures) {
+    private PromptFailureReasonResultDTO toFailureReason(String errorType, List<AiModelCallLogEntity> logs, long totalFailures) {
         AiModelCallLogEntity sample = logs.get(0);
         return PromptFailureReasonResultDTO.builder()
                 .operationName(sample.getOperationName())
                 .promptVersion(sample.getPromptVersion())
-                .reason(reason)
+                .errorType(errorType)
+                .reason(failureReasonKey(sample))
                 .count((long) logs.size())
                 .percentage(rate(logs.size(), totalFailures))
                 .build();
+    }
+
+    /**
+     * 生成失败类型聚合键，优先使用审计表中的标准化 errorType。
+     */
+    private String failureTypeKey(AiModelCallLogEntity log) {
+        if (StringUtils.isBlank(log.getErrorType())) {
+            return "UNKNOWN";
+        }
+        return log.getErrorType();
     }
 
     /**
