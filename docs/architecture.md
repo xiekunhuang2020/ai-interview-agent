@@ -101,6 +101,8 @@ AI 顾问可调用的工具集中在 `ResumeAgentTools`，只暴露查询类能�
 
 上传、保存、向量写入等副作用操作不暴露给模型直接调用，避免模型自主执行不可控写操作。模型可见工具返回的是裁剪后的摘要或片段：简历画像只返回有限优势/建议和文本片段，面试问题最多返回前 10 题，相似简历返回 `snippet` 而不是完整简历原文。顾问系统提示进一步区分事实来源：画像和问题工具是当前候选人的真实数据，相似简历工具只能作为同类岗位追问方向参考。
 
+AI 顾问长对话使用 Spring AI 官方 `MessageWindowChatMemory` 保存最近消息窗口。超过配置阈值后，系统调用模型生成会话摘要，后续 Prompt 使用“摘要 + 最近消息 + 当前问题”的组合，避免把完整历史无限拼接进上下文。摘要模型调用会进入 `ai_model_call_log`，摘要文本会写入 `agent_conversation_message` 供运营看板排查。
+
 ### Model Call Service
 
 `AiModelCallService` 是模型调用业务适配层，底层统一使用 Spring AI `ChatClient`，避免每个模型任务分散处理 Prompt 版本、审计和异常映射。

@@ -786,7 +786,8 @@ function createInterviewApp() {
                     'interview-question-generation': '面试题生成',
                     'rag-interview-question-generation': '岗位定制出题',
                     'answer-evaluation': '回答评估',
-                    'interview-assistant-stream': 'AI 顾问流式对话'
+                    'interview-assistant-stream': 'AI 顾问流式对话',
+                    'interview-assistant-summary': '顾问摘要压缩'
                 };
                 return map[operationName] || '其他调用';
             },
@@ -805,7 +806,9 @@ function createInterviewApp() {
             agentNameText(agentName) {
                 const map = {
                     'interview-assistant': '面试顾问',
-                    'InterviewAssistantAgentService': '面试顾问'
+                    'InterviewAssistantAgentService': '面试顾问',
+                    'interview_assistant_stream_agent': 'AI 顾问',
+                    'interview_assistant_summary_agent': '摘要压缩'
                 };
                 return map[agentName] || '顾问';
             },

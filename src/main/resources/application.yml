@@ -71,6 +71,12 @@ server:
 
 ai-interview:
   agent:
+    memory:
+      max-messages: ${AI_AGENT_MEMORY_MAX_MESSAGES:10}
+    summary:
+      enabled: ${AI_AGENT_SUMMARY_ENABLED:true}
+      trigger-messages: ${AI_AGENT_SUMMARY_TRIGGER_MESSAGES:8}
+      keep-recent-messages: ${AI_AGENT_SUMMARY_KEEP_RECENT_MESSAGES:4}
     audit:
       enabled: ${AI_AGENT_AUDIT_ENABLED:true}
       log-message-content: ${AI_AGENT_AUDIT_LOG_MESSAGE_CONTENT:true}
@@ -93,6 +99,7 @@ ai-interview:
       rag-interview-question-generation: ${AI_BUDGET_RAG_INTERVIEW_QUESTION_INPUT_TOKENS:4000}
       answer-evaluation: ${AI_BUDGET_ANSWER_EVALUATION_INPUT_TOKENS:4000}
       interview-assistant-stream: ${AI_BUDGET_INTERVIEW_ASSISTANT_INPUT_TOKENS:2500}
+      interview-assistant-summary: ${AI_BUDGET_INTERVIEW_ASSISTANT_SUMMARY_INPUT_TOKENS:1800}
   prompt:
     versions:
       resume-analysis: resume-analysis-v2026-05-17-01
@@ -101,6 +108,7 @@ ai-interview:
       jd-match: jd-match-v2026-05-17-01
       rag-interview-question-generation: rag-question-v2026-05-17-01
       interview-assistant-stream: assistant-stream-v2026-05-24-01
+      interview-assistant-summary: assistant-summary-v2026-05-24-01
 
 mybatis-plus:
   mapper-locations: classpath*:/mapper/**/*.xml

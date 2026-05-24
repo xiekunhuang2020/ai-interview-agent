@@ -274,6 +274,7 @@ public class PromptContextBudgetService {
         budgets.put("rag-interview-question-generation", 4000);
         budgets.put("answer-evaluation", 4000);
         budgets.put("interview-assistant-stream", 2500);
+        budgets.put("interview-assistant-summary", 1800);
         return budgets;
     }
 
