@@ -3,6 +3,8 @@ package com.xkh.ai.interview.service.llm;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.ai.chat.messages.Message;
 import org.springframework.ai.document.Document;
+import org.springframework.ai.tokenizer.JTokkitTokenCountEstimator;
+import org.springframework.ai.tokenizer.TokenCountEstimator;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.stereotype.Service;
 
@@ -16,65 +18,100 @@ import java.util.regex.Pattern;
 public class PromptContextBudgetService {
 
     private static final Pattern TRUNCATED_PATTERN = Pattern.compile("\\.\\.\\.\\[truncated, removed (\\d+) chars]");
-
-    private boolean enabled = true;
-    private int resumeMaxChars = 9000;
-    private int jdMaxChars = 3500;
-    private int answerMaxChars = 3000;
-    private int assistantUserMessageMaxChars = 2000;
-    private int ragDocumentMaxChars = 1000;
-    private int ragTotalMaxChars = 4500;
-    private int toolResumeSnippetMaxChars = 800;
-    private int toolSearchSnippetMaxChars = 700;
-    private int toolQuestionMaxChars = 500;
+    private static final int TRUNCATED_MARKER_TOKEN_RESERVE = 24;
 
     /**
-     * 按简历预算裁剪文本，避免完整长简历无限进入 Prompt。
+     * 是否启用上下文预算控制，关闭后仅保留原文。
+     */
+    private boolean enabled = true;
+    /**
+     * 单次简历全文进入 Prompt 的最大估算 Token 数。
+     */
+    private int resumeMaxTokens = 2800;
+    /**
+     * 单次岗位 JD 进入 Prompt 的最大估算 Token 数。
+     */
+    private int jdMaxTokens = 1200;
+    /**
+     * 候选人单个回答进入评估 Prompt 的最大估算 Token 数。
+     */
+    private int answerMaxTokens = 1000;
+    /**
+     * AI 顾问单轮用户输入的最大估算 Token 数。
+     */
+    private int assistantUserMessageMaxTokens = 700;
+    /**
+     * RAG 单个召回文档进入 Prompt 的最大估算 Token 数。
+     */
+    private int ragDocumentMaxTokens = 350;
+    /**
+     * RAG 全部召回上下文进入 Prompt 的最大估算 Token 数。
+     */
+    private int ragTotalMaxTokens = 1400;
+    /**
+     * 工具返回简历画像片段的最大估算 Token 数。
+     */
+    private int toolResumeSnippetMaxTokens = 260;
+    /**
+     * 工具返回相似简历片段的最大估算 Token 数。
+     */
+    private int toolSearchSnippetMaxTokens = 230;
+    /**
+     * 工具返回单道面试题文本的最大估算 Token 数。
+     */
+    private int toolQuestionMaxTokens = 160;
+    /**
+     * Spring AI 官方 Token 估算器，用于把字符预算升级为 Token 预算。
+     */
+    private final TokenCountEstimator tokenCountEstimator = new JTokkitTokenCountEstimator();
+
+    /**
+     * 按简历 Token 预算裁剪文本，避免完整长简历无限进入 Prompt。
      */
     public String limitResumeText(String text) {
-        return limit(text, resumeMaxChars);
+        return limitHeadAndTail(text, resumeMaxTokens);
     }
 
     /**
-     * 按岗位说明预算裁剪文本，控制 JD 输入长度。
+     * 按岗位说明 Token 预算裁剪文本，控制 JD 输入长度。
      */
     public String limitJobDescription(String text) {
-        return limit(text, jdMaxChars);
+        return limit(text, jdMaxTokens);
     }
 
     /**
-     * 按回答预算裁剪候选人答案，避免单个长答案撑大评估 Prompt。
+     * 按回答 Token 预算裁剪候选人答案，避免单个长答案撑大评估 Prompt。
      */
     public String limitAnswer(String text) {
-        return limit(text, answerMaxChars);
+        return limit(text, answerMaxTokens);
     }
 
     /**
-     * 按 AI 顾问单轮输入预算裁剪用户问题。
+     * 按 AI 顾问单轮输入 Token 预算裁剪用户问题。
      */
     public String limitAssistantUserMessage(String text) {
-        return limit(text, assistantUserMessageMaxChars);
+        return limit(text, assistantUserMessageMaxTokens);
     }
 
     /**
-     * 按工具画像预算裁剪简历片段。
+     * 按工具画像 Token 预算裁剪简历片段。
      */
     public String limitToolResumeSnippet(String text) {
-        return limit(text, toolResumeSnippetMaxChars);
+        return limit(text, toolResumeSnippetMaxTokens);
     }
 
     /**
-     * 按工具检索预算裁剪相似简历片段。
+     * 按工具检索 Token 预算裁剪相似简历片段。
      */
     public String limitToolSearchSnippet(String text) {
-        return limit(text, toolSearchSnippetMaxChars);
+        return limit(text, toolSearchSnippetMaxTokens);
     }
 
     /**
-     * 按工具问题预算裁剪面试题文本。
+     * 按工具问题 Token 预算裁剪面试题文本。
      */
     public String limitToolQuestion(String text) {
-        return limit(text, toolQuestionMaxChars);
+        return limit(text, toolQuestionMaxTokens);
     }
 
     /**
@@ -85,13 +122,13 @@ public class PromptContextBudgetService {
             return documents == null ? List.of() : documents;
         }
         List<Document> limitedDocuments = new ArrayList<>();
-        int remainingChars = Math.max(0, ragTotalMaxChars);
+        int remainingTokens = Math.max(0, ragTotalMaxTokens);
         for (Document document : documents) {
-            if (document == null || remainingChars <= 0) {
+            if (document == null || remainingTokens <= 0) {
                 break;
             }
-            String limitedText = limit(document.getText(), Math.min(ragDocumentMaxChars, remainingChars));
-            remainingChars -= limitedText.length();
+            String limitedText = limit(document.getText(), Math.min(ragDocumentMaxTokens, remainingTokens));
+            remainingTokens -= estimateTokens(limitedText);
             limitedDocuments.add(new Document(limitedText, document.getMetadata()));
         }
         return limitedDocuments;
@@ -118,15 +155,82 @@ public class PromptContextBudgetService {
     }
 
     /**
-     * 按字符预算裁剪文本，并保留可统计的裁剪标记。
+     * 按 Token 预算裁剪文本，并保留可统计的裁剪标记。
      */
-    private String limit(String text, int maxChars) {
+    private String limit(String text, int maxTokens) {
         String safeText = StringUtils.defaultString(text);
-        if (!enabled || maxChars <= 0 || safeText.length() <= maxChars) {
+        if (!enabled || maxTokens <= 0 || estimateTokens(safeText) <= maxTokens) {
             return safeText;
         }
-        int removedChars = safeText.length() - maxChars;
-        return safeText.substring(0, maxChars) + "\n...[truncated, removed " + removedChars + " chars]";
+        int contentTokenBudget = Math.max(1, maxTokens - TRUNCATED_MARKER_TOKEN_RESERVE);
+        int endIndex = findMaxEndIndex(safeText, contentTokenBudget);
+        int removedChars = safeText.length() - endIndex;
+        return StringUtils.stripEnd(safeText.substring(0, endIndex), null)
+                + "\n...[truncated, removed " + removedChars + " chars]";
+    }
+
+    /**
+     * 简历超预算时保留开头和结尾，降低项目经历或教育经历在后半段被整段丢失的概率。
+     */
+    private String limitHeadAndTail(String text, int maxTokens) {
+        String safeText = StringUtils.defaultString(text);
+        if (!enabled || maxTokens <= 0 || estimateTokens(safeText) <= maxTokens) {
+            return safeText;
+        }
+        int contentTokenBudget = Math.max(2, maxTokens - TRUNCATED_MARKER_TOKEN_RESERVE);
+        int headTokenBudget = Math.max(1, (int) Math.ceil(contentTokenBudget * 0.65D));
+        int tailTokenBudget = Math.max(1, contentTokenBudget - headTokenBudget);
+        int headEndIndex = findMaxEndIndex(safeText, headTokenBudget);
+        int tailStartIndex = findMinStartIndex(safeText, tailTokenBudget);
+        if (headEndIndex >= tailStartIndex) {
+            return limit(safeText, maxTokens);
+        }
+
+        String head = StringUtils.stripEnd(safeText.substring(0, headEndIndex), null);
+        String tail = StringUtils.stripStart(safeText.substring(tailStartIndex), null);
+        int removedChars = tailStartIndex - headEndIndex;
+        return head + "\n...[truncated, removed " + removedChars + " chars]\n" + tail;
+    }
+
+    /**
+     * 使用 Spring AI 官方 TokenCountEstimator 估算文本 Token 数。
+     */
+    private int estimateTokens(String text) {
+        return tokenCountEstimator.estimate(StringUtils.defaultString(text));
+    }
+
+    /**
+     * 二分查找指定 Token 预算内能保留的最大字符位置。
+     */
+    private int findMaxEndIndex(String text, int maxTokens) {
+        int low = 0;
+        int high = text.length();
+        while (low < high) {
+            int mid = (low + high + 1) / 2;
+            if (estimateTokens(text.substring(0, mid)) <= maxTokens) {
+                low = mid;
+            } else {
+                high = mid - 1;
+            }
+        }
+        return low;
+    }
+
+    /**
+     * 二分查找指定 Token 预算内能保留的最早结尾片段起点。
+     */
+    private int findMinStartIndex(String text, int maxTokens) {
+        int low = 0;
+        int high = text.length();
+        while (low < high) {
+            int mid = (low + high) / 2;
+            if (estimateTokens(text.substring(mid)) <= maxTokens) {
+                high = mid;
+            } else {
+                low = mid + 1;
+            }
+        }
+        return low;
     }
 
     /**
@@ -149,76 +253,76 @@ public class PromptContextBudgetService {
         this.enabled = enabled;
     }
 
-    public int getResumeMaxChars() {
-        return resumeMaxChars;
+    public int getResumeMaxTokens() {
+        return resumeMaxTokens;
     }
 
-    public void setResumeMaxChars(int resumeMaxChars) {
-        this.resumeMaxChars = resumeMaxChars;
+    public void setResumeMaxTokens(int resumeMaxTokens) {
+        this.resumeMaxTokens = resumeMaxTokens;
     }
 
-    public int getJdMaxChars() {
-        return jdMaxChars;
+    public int getJdMaxTokens() {
+        return jdMaxTokens;
     }
 
-    public void setJdMaxChars(int jdMaxChars) {
-        this.jdMaxChars = jdMaxChars;
+    public void setJdMaxTokens(int jdMaxTokens) {
+        this.jdMaxTokens = jdMaxTokens;
     }
 
-    public int getAnswerMaxChars() {
-        return answerMaxChars;
+    public int getAnswerMaxTokens() {
+        return answerMaxTokens;
     }
 
-    public void setAnswerMaxChars(int answerMaxChars) {
-        this.answerMaxChars = answerMaxChars;
+    public void setAnswerMaxTokens(int answerMaxTokens) {
+        this.answerMaxTokens = answerMaxTokens;
     }
 
-    public int getAssistantUserMessageMaxChars() {
-        return assistantUserMessageMaxChars;
+    public int getAssistantUserMessageMaxTokens() {
+        return assistantUserMessageMaxTokens;
     }
 
-    public void setAssistantUserMessageMaxChars(int assistantUserMessageMaxChars) {
-        this.assistantUserMessageMaxChars = assistantUserMessageMaxChars;
+    public void setAssistantUserMessageMaxTokens(int assistantUserMessageMaxTokens) {
+        this.assistantUserMessageMaxTokens = assistantUserMessageMaxTokens;
     }
 
-    public int getRagDocumentMaxChars() {
-        return ragDocumentMaxChars;
+    public int getRagDocumentMaxTokens() {
+        return ragDocumentMaxTokens;
     }
 
-    public void setRagDocumentMaxChars(int ragDocumentMaxChars) {
-        this.ragDocumentMaxChars = ragDocumentMaxChars;
+    public void setRagDocumentMaxTokens(int ragDocumentMaxTokens) {
+        this.ragDocumentMaxTokens = ragDocumentMaxTokens;
     }
 
-    public int getRagTotalMaxChars() {
-        return ragTotalMaxChars;
+    public int getRagTotalMaxTokens() {
+        return ragTotalMaxTokens;
     }
 
-    public void setRagTotalMaxChars(int ragTotalMaxChars) {
-        this.ragTotalMaxChars = ragTotalMaxChars;
+    public void setRagTotalMaxTokens(int ragTotalMaxTokens) {
+        this.ragTotalMaxTokens = ragTotalMaxTokens;
     }
 
-    public int getToolResumeSnippetMaxChars() {
-        return toolResumeSnippetMaxChars;
+    public int getToolResumeSnippetMaxTokens() {
+        return toolResumeSnippetMaxTokens;
     }
 
-    public void setToolResumeSnippetMaxChars(int toolResumeSnippetMaxChars) {
-        this.toolResumeSnippetMaxChars = toolResumeSnippetMaxChars;
+    public void setToolResumeSnippetMaxTokens(int toolResumeSnippetMaxTokens) {
+        this.toolResumeSnippetMaxTokens = toolResumeSnippetMaxTokens;
     }
 
-    public int getToolSearchSnippetMaxChars() {
-        return toolSearchSnippetMaxChars;
+    public int getToolSearchSnippetMaxTokens() {
+        return toolSearchSnippetMaxTokens;
     }
 
-    public void setToolSearchSnippetMaxChars(int toolSearchSnippetMaxChars) {
-        this.toolSearchSnippetMaxChars = toolSearchSnippetMaxChars;
+    public void setToolSearchSnippetMaxTokens(int toolSearchSnippetMaxTokens) {
+        this.toolSearchSnippetMaxTokens = toolSearchSnippetMaxTokens;
     }
 
-    public int getToolQuestionMaxChars() {
-        return toolQuestionMaxChars;
+    public int getToolQuestionMaxTokens() {
+        return toolQuestionMaxTokens;
     }
 
-    public void setToolQuestionMaxChars(int toolQuestionMaxChars) {
-        this.toolQuestionMaxChars = toolQuestionMaxChars;
+    public void setToolQuestionMaxTokens(int toolQuestionMaxTokens) {
+        this.toolQuestionMaxTokens = toolQuestionMaxTokens;
     }
 
     public record ContextUsage(Integer promptChars, Integer clippedChars, boolean clipped) {
