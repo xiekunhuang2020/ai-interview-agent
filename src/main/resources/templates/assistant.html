@@ -39,7 +39,7 @@
 
                 <div class="message-list" ref="messageList">
                     <div class="message" v-for="message in chatMessages" v-bind:key="message.id" v-bind:class="message.role">
-                        <div class="message-role">{{ message.role === 'user' ? '客户' : '顾问' }}</div>
+                        <div class="message-role">{{ chatRoleName(message.role) }}</div>
                         <p>{{ message.content }}</p>
                     </div>
                     <div class="empty-chat" v-if="!chatMessages.length">

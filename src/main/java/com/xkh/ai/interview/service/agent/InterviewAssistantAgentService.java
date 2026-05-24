@@ -4,10 +4,13 @@ import com.alibaba.cloud.ai.dashscope.chat.DashScopeChatOptions;
 import com.xkh.ai.interview.dto.AgentChatRequestDTO;
 import com.xkh.ai.interview.service.audit.AiModelCallAuditRecorder;
 import com.xkh.ai.interview.service.audit.AgentConversationAuditRecorder;
+import com.xkh.ai.interview.service.llm.AiModelCallService;
 import com.xkh.ai.interview.service.llm.PromptContextBudgetService;
 import com.xkh.ai.interview.service.llm.PromptVersionRegistry;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.ai.chat.client.ChatClient;
+import org.springframework.ai.chat.memory.ChatMemory;
+import org.springframework.ai.chat.memory.MessageWindowChatMemory;
 import org.springframework.ai.chat.messages.AssistantMessage;
 import org.springframework.ai.chat.messages.Message;
 import org.springframework.ai.chat.messages.SystemMessage;
@@ -16,14 +19,13 @@ import org.springframework.ai.chat.model.ChatResponse;
 import org.springframework.ai.chat.prompt.Prompt;
 import org.springframework.ai.tool.ToolCallbackProvider;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.codec.ServerSentEvent;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
-import java.util.ArrayDeque;
 import java.util.ArrayList;
-import java.util.Deque;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -34,9 +36,10 @@ import java.util.concurrent.atomic.AtomicReference;
 @Service
 public class InterviewAssistantAgentService {
 
-    private static final int MAX_HISTORY_MESSAGES = 10;
     private static final String STREAM_AGENT_NAME = "interview_assistant_stream_agent";
+    private static final String SUMMARY_AGENT_NAME = "interview_assistant_summary_agent";
     private static final String OPERATION_NAME = "interview-assistant-stream";
+    private static final String SUMMARY_OPERATION_NAME = "interview-assistant-summary";
     private static final String INTERVIEW_ASSISTANT_INSTRUCTION = """
             你是一个 AI 求职顾问，负责围绕候选人简历进行分析、追问设计和面试辅导。
             当用户提供 resumeId 时，应优先调用工具获取真实简历画像、已生成问题或相似简历上下文。
@@ -48,27 +51,51 @@ public class InterviewAssistantAgentService {
             面向中文用户回答，尽量使用产品化表达，避免暴露内部工具名。
             回答应聚焦 Java 后端、Spring Boot、MySQL、Redis、系统设计和智能体工程化。
             """;
+    private static final String SUMMARY_INSTRUCTION = """
+            你是 AI 求职顾问的会话摘要器，只负责压缩历史对话。
+            摘要必须忠于原文，不新增事实，不扩展用户经历。
+            只保留用户目标、已确认事实、关键建议、待跟进事项和明显偏好。
+            使用中文，控制在 300 字以内。
+            """;
 
     private final ChatClient chatClient;
+    private final ChatMemory chatMemory;
     private final ToolCallbackProvider resumeToolCallbackProvider;
     private final AgentConversationAuditRecorder conversationAuditRecorder;
     private final AiModelCallAuditRecorder modelCallAuditRecorder;
+    private final AiModelCallService aiModelCallService;
     private final PromptContextBudgetService contextBudgetService;
     private final PromptVersionRegistry promptVersionRegistry;
-    private final ConcurrentMap<String, Deque<Message>> conversationHistory = new ConcurrentHashMap<>();
+    private final ConcurrentMap<String, String> conversationSummaries = new ConcurrentHashMap<>();
+    private final ConcurrentMap<String, Integer> summarizedMessageCounts = new ConcurrentHashMap<>();
+    private final boolean summaryEnabled;
+    private final int summaryTriggerMessages;
+    private final int summaryKeepRecentMessages;
 
     public InterviewAssistantAgentService(ChatClient.Builder chatClientBuilder,
                                           @Qualifier("resumeToolCallbackProvider") ToolCallbackProvider resumeToolCallbackProvider,
                                           AgentConversationAuditRecorder conversationAuditRecorder,
                                           AiModelCallAuditRecorder modelCallAuditRecorder,
+                                          AiModelCallService aiModelCallService,
                                           PromptContextBudgetService contextBudgetService,
-                                          PromptVersionRegistry promptVersionRegistry) {
+                                          PromptVersionRegistry promptVersionRegistry,
+                                          @Value("${ai-interview.agent.memory.max-messages:10}") int maxMemoryMessages,
+                                          @Value("${ai-interview.agent.summary.enabled:true}") boolean summaryEnabled,
+                                          @Value("${ai-interview.agent.summary.trigger-messages:8}") int summaryTriggerMessages,
+                                          @Value("${ai-interview.agent.summary.keep-recent-messages:4}") int summaryKeepRecentMessages) {
         this.chatClient = chatClientBuilder.build();
+        this.chatMemory = MessageWindowChatMemory.builder()
+                .maxMessages(Math.max(2, maxMemoryMessages))
+                .build();
         this.resumeToolCallbackProvider = resumeToolCallbackProvider;
         this.conversationAuditRecorder = conversationAuditRecorder;
         this.modelCallAuditRecorder = modelCallAuditRecorder;
+        this.aiModelCallService = aiModelCallService;
         this.contextBudgetService = contextBudgetService;
         this.promptVersionRegistry = promptVersionRegistry;
+        this.summaryEnabled = summaryEnabled;
+        this.summaryTriggerMessages = Math.max(2, summaryTriggerMessages);
+        this.summaryKeepRecentMessages = Math.max(0, summaryKeepRecentMessages);
     }
 
     /**
@@ -121,11 +148,15 @@ public class InterviewAssistantAgentService {
                 long latencyMs = System.currentTimeMillis() - start;
                 String finalAnswer = answer.toString();
                 rememberConversation(conversationId, new UserMessage(limitedMessage), new AssistantMessage(finalAnswer));
+                boolean summaryCompressed = summarizeConversationIfNeeded(conversationId, turnId);
                 conversationAuditRecorder.recordAssistantMessage(
                         conversationId, turnId, STREAM_AGENT_NAME, finalAnswer, true, latencyMs, null);
                 modelCallAuditRecorder.record(OPERATION_NAME, promptVersion, true, 1, latencyMs,
                         (String) null, usageRef.get(), contextUsage);
-                return sse("done", Map.of("latencyMs", latencyMs));
+                return sse("done", Map.of(
+                        "latencyMs", latencyMs,
+                        "summaryCompressed", summaryCompressed
+                ));
             });
 
             return Flux.concat(meta, deltas, done)
@@ -182,26 +213,135 @@ public class InterviewAssistantAgentService {
     private List<Message> buildStreamingMessages(String conversationId, String message) {
         List<Message> messages = new ArrayList<>();
         messages.add(new SystemMessage(INTERVIEW_ASSISTANT_INSTRUCTION));
-        Deque<Message> history = conversationHistory.get(conversationId);
-        if (history != null) {
-            messages.addAll(history);
+        String summary = conversationSummaries.get(conversationId);
+        if (StringUtils.isNotBlank(summary)) {
+            messages.add(new SystemMessage("## 已压缩会话摘要\n" + summary));
         }
+        messages.addAll(chatMemory.get(conversationId));
         messages.add(new UserMessage(message));
         return messages;
     }
 
     /**
-     * 保存最近几轮对话，避免长对话时把上下文无限塞给模型。
+     * 使用 Spring AI 官方 ChatMemory 保存最近几轮对话，避免手写会话窗口。
      */
     private void rememberConversation(String conversationId, Message userMessage, Message assistantMessage) {
-        Deque<Message> history = conversationHistory.computeIfAbsent(conversationId, key -> new ArrayDeque<>());
-        synchronized (history) {
-            history.addLast(userMessage);
-            history.addLast(assistantMessage);
-            while (history.size() > MAX_HISTORY_MESSAGES) {
-                history.removeFirst();
-            }
+        chatMemory.add(conversationId, List.of(userMessage, assistantMessage));
+    }
+
+    /**
+     * 历史消息达到阈值后生成摘要，并只保留最近几条原文消息。
+     */
+    private boolean summarizeConversationIfNeeded(String conversationId, String turnId) {
+        if (!summaryEnabled) {
+            return false;
         }
+        List<Message> history = chatMemory.get(conversationId);
+        int currentMessageCount = history.size();
+        int lastSummarizedCount = summarizedMessageCounts.getOrDefault(conversationId, 0);
+        if (currentMessageCount < summaryTriggerMessages || currentMessageCount <= lastSummarizedCount) {
+            return false;
+        }
+
+        long start = System.currentTimeMillis();
+        try {
+            String summary = generateConversationSummary(conversationId, history);
+            if (StringUtils.isBlank(summary)) {
+                return false;
+            }
+            conversationSummaries.put(conversationId, summary);
+            summarizedMessageCounts.put(conversationId, Math.min(summaryKeepRecentMessages, currentMessageCount));
+            keepRecentMessages(conversationId, history);
+            conversationAuditRecorder.recordAssistantMessage(
+                    conversationId,
+                    turnId,
+                    SUMMARY_AGENT_NAME,
+                    summary,
+                    true,
+                    System.currentTimeMillis() - start,
+                    null
+            );
+            return true;
+        } catch (RuntimeException e) {
+            conversationAuditRecorder.recordAssistantMessage(
+                    conversationId,
+                    turnId,
+                    SUMMARY_AGENT_NAME,
+                    null,
+                    false,
+                    System.currentTimeMillis() - start,
+                    e.getMessage()
+            );
+            return false;
+        }
+    }
+
+    /**
+     * 调用大模型把历史对话压缩成摘要，调用审计由统一模型服务记录。
+     */
+    private String generateConversationSummary(String conversationId, List<Message> history) {
+        List<Message> messages = List.of(
+                new SystemMessage(SUMMARY_INSTRUCTION),
+                new UserMessage(buildSummaryPrompt(conversationSummaries.get(conversationId), history))
+        );
+        return aiModelCallService.call(SUMMARY_OPERATION_NAME, messages, 0.2);
+    }
+
+    /**
+     * 组装摘要模型输入，包含上一版摘要和本次需要压缩的最近历史。
+     */
+    private String buildSummaryPrompt(String previousSummary, List<Message> history) {
+        return """
+                请基于以下信息生成新的会话摘要。
+
+                ## 上一版摘要
+                %s
+
+                ## 最近对话
+                %s
+                """.formatted(
+                StringUtils.defaultIfBlank(previousSummary, "无"),
+                formatHistory(history)
+        );
+    }
+
+    /**
+     * 将消息历史格式化为摘要模型可读的角色文本。
+     */
+    private String formatHistory(List<Message> history) {
+        List<String> lines = new ArrayList<>();
+        for (Message message : history) {
+            if (message == null || StringUtils.isBlank(message.getText())) {
+                continue;
+            }
+            lines.add(roleName(message) + "：" + message.getText());
+        }
+        return String.join("\n\n", lines);
+    }
+
+    /**
+     * 摘要完成后清空旧窗口，只保留最近几条原文消息用于承接下一轮对话。
+     */
+    private void keepRecentMessages(String conversationId, List<Message> history) {
+        chatMemory.clear(conversationId);
+        if (summaryKeepRecentMessages <= 0 || history.isEmpty()) {
+            return;
+        }
+        int fromIndex = Math.max(0, history.size() - summaryKeepRecentMessages);
+        chatMemory.add(conversationId, history.subList(fromIndex, history.size()));
+    }
+
+    /**
+     * 将 Spring AI Message 类型转换为摘要里更易读的中文角色名。
+     */
+    private String roleName(Message message) {
+        if (message instanceof UserMessage) {
+            return "用户";
+        }
+        if (message instanceof AssistantMessage) {
+            return "顾问";
+        }
+        return "系统";
     }
 
     /**

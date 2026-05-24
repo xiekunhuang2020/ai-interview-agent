@@ -511,9 +511,10 @@ function createInterviewApp() {
                     source.addEventListener('delta', (event) => {
                         this.handleAssistantStreamPayload('delta', event.data, assistantMessage);
                     });
-                    source.addEventListener('done', async () => {
+                    source.addEventListener('done', async (event) => {
                         completed = true;
                         source.close();
+                        this.handleAssistantStreamPayload('done', event.data, assistantMessage);
                         await this.waitAssistantTypingDone();
                         resolve();
                     });
@@ -539,6 +540,8 @@ function createInterviewApp() {
                     assistantMessage.turnId = payload.turnId || '';
                 } else if (eventName === 'delta') {
                     this.enqueueAssistantDelta(assistantMessage, payload.content || '');
+                } else if (eventName === 'done' && payload.summaryCompressed) {
+                    this.appendAssistantSystemNotice('较早的对话已经压缩成摘要，后续回答会结合摘要和最近消息继续推进。');
                 }
             },
             consumeSseBuffer(buffer, assistantMessage, flush = false) {
@@ -566,10 +569,20 @@ function createInterviewApp() {
                 const rawData = dataLines.join('\n');
                 if (eventName === 'meta' || eventName === 'delta') {
                     this.handleAssistantStreamPayload(eventName, rawData, assistantMessage);
+                } else if (eventName === 'done') {
+                    this.handleAssistantStreamPayload(eventName, rawData, assistantMessage);
                 } else if (eventName === 'error') {
                     const payload = rawData ? JSON.parse(rawData) : {};
                     throw new Error(payload.message || '顾问回答失败。');
                 }
+            },
+            appendAssistantSystemNotice(content) {
+                this.chatMessages.push({
+                    id: `notice-${Date.now()}-${Math.random()}`,
+                    role: 'system',
+                    content
+                });
+                this.scrollChatToBottom();
             },
             enqueueAssistantDelta(assistantMessage, content) {
                 if (!content) {
@@ -824,6 +837,14 @@ function createInterviewApp() {
                     TOOL: '工具'
                 };
                 return map[role] || '其他';
+            },
+            chatRoleName(role) {
+                const map = {
+                    user: '客户',
+                    assistant: '顾问',
+                    system: '系统'
+                };
+                return map[role] || '消息';
             },
             priorityClass(priority) {
                 if (priority === '高') {

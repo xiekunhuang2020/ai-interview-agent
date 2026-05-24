@@ -937,6 +937,18 @@ p {
     justify-self: start;
 }
 
+.message.system {
+    justify-self: center;
+    max-width: 92%;
+    background: #fff8e5;
+    border-color: #ead69b;
+    color: #624a00;
+}
+
+.message.system .message-role {
+    color: #8a6500;
+}
+
 .message-role {
     color: var(--muted);
     font-size: 12px;
