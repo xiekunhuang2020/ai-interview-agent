@@ -210,6 +210,7 @@ powershell -ExecutionPolicy Bypass -File scripts/demo-flow.ps1 `
 3. 打开脚本输出的简历分析、岗位匹配、模拟面试和复盘结果地址。
 4. 打开脚本输出的 AI 求职顾问地址，围绕当前简历继续追问。
 5. 打开 `/audit/prompt-dashboard` 查看效果指标、提示词指标、最近模型调用和失败原因分布。
+6. 在运营看板点击“运行评测”，回放固定样例集，查看结构化输出、事实一致性和上下文相关性结果。
 
 ## 简历可写亮点
 
@@ -231,4 +232,4 @@ AI 求职顾问｜Java 21 / Spring Boot / Spring AI Alibaba / DashScope / Milvus
 ## 后续规划
 
 - 增加 Prompt 评估看板的时间范围筛选。
-- 补充 Prompt/RAG Evaluation Harness，用固定样例做版本回归。
+- 增加结构化输出失败诊断与自动修复闭环。
