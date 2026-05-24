@@ -21,6 +21,8 @@ public class AiModelCallLogEntity {
 
     private String promptVersion;
 
+    private String modelName;
+
     private Integer success;
 
     private Integer fallbackUsed;
@@ -28,6 +30,12 @@ public class AiModelCallLogEntity {
     private Integer attemptCount;
 
     private Long latencyMs;
+
+    private Integer inputTokens;
+
+    private Integer outputTokens;
+
+    private Integer totalTokens;
 
     private String errorMessage;
 
