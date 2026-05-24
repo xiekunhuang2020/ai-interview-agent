@@ -147,6 +147,10 @@ jd-match -> jd-match-v2026-05-17-01
 - inputTokens
 - outputTokens
 - totalTokens
+- inputTokenBudget
+- inputTokenOverBudget
+- budgetExceeded
+- budgetUncovered
 - promptChars
 - contextClipped
 - clippedChars
@@ -156,7 +160,7 @@ jd-match -> jd-match-v2026-05-17-01
 
 审计写入失败不会影响主业务流程。
 
-上下文预算控制由 `PromptContextBudgetService` 负责。它使用 Spring AI 官方 `TokenCountEstimator` / `JTokkitTokenCountEstimator` 估算输入 Token，再按不同场景限制简历、JD、回答、AI 顾问输入、工具返回和 RAG 上下文。简历超预算时保留开头和结尾，降低后半段项目经历整体丢失的概率。RAG 召回内容通过 Spring AI 官方 `DocumentPostProcessor` 进入预算控制，不在业务层手写 RAG 注入流程。
+上下文预算控制由 `PromptContextBudgetService` 负责。它使用 Spring AI 官方 `TokenCountEstimator` / `JTokkitTokenCountEstimator` 估算输入 Token，再按不同场景限制简历、JD、回答、AI 顾问输入、工具返回和 RAG 上下文。简历超预算时保留开头和结尾，降低后半段项目经历整体丢失的概率。RAG 召回内容通过 Spring AI 官方 `DocumentPostProcessor` 进入预算控制，不在业务层手写 RAG 注入流程。每条模型调用还会记录 operation 级输入 Token 目标预算和真实 usage 的超出情况，用来发现“超预算但未裁剪”的策略空白。
 
 `interview_session` 记录每份简历当前所在的业务阶段：
 

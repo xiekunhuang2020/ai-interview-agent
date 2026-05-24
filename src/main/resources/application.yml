@@ -86,6 +86,13 @@ ai-interview:
     tool-resume-snippet-max-tokens: ${AI_CONTEXT_TOOL_RESUME_SNIPPET_MAX_TOKENS:260}
     tool-search-snippet-max-tokens: ${AI_CONTEXT_TOOL_SEARCH_SNIPPET_MAX_TOKENS:230}
     tool-question-max-tokens: ${AI_CONTEXT_TOOL_QUESTION_MAX_TOKENS:160}
+    operation-input-token-budgets:
+      resume-analysis: ${AI_BUDGET_RESUME_ANALYSIS_INPUT_TOKENS:3000}
+      jd-match: ${AI_BUDGET_JD_MATCH_INPUT_TOKENS:3500}
+      interview-question-generation: ${AI_BUDGET_INTERVIEW_QUESTION_INPUT_TOKENS:4000}
+      rag-interview-question-generation: ${AI_BUDGET_RAG_INTERVIEW_QUESTION_INPUT_TOKENS:4000}
+      answer-evaluation: ${AI_BUDGET_ANSWER_EVALUATION_INPUT_TOKENS:4000}
+      interview-assistant-stream: ${AI_BUDGET_INTERVIEW_ASSISTANT_INPUT_TOKENS:2500}
   prompt:
     versions:
       resume-analysis: resume-analysis-v2026-05-17-01

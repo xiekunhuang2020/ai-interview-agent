@@ -88,7 +88,7 @@ Prompt 明确要求相似简历只能作为追问方向参考，不能当成当�
 
 ### 6. 模型调用审计
 
-`ai_model_call_log` 记录每次模型调用的 operation、Prompt 版本、模型名称、traceId、耗时、Token 用量、Prompt 字符数、裁剪字符数、成功状态、错误类型和失败原因。运营看板支持按场景和 Prompt 版本查看：
+`ai_model_call_log` 记录每次模型调用的 operation、Prompt 版本、模型名称、traceId、耗时、Token 用量、输入预算、超预算状态、Prompt 字符数、裁剪字符数、成功状态、错误类型和失败原因。运营看板支持按场景和 Prompt 版本查看：
 
 - 模型调用样本量
 - 调用模型名称
@@ -96,6 +96,7 @@ Prompt 明确要求相似简历只能作为追问方向参考，不能当成当�
 - 平均耗时
 - 输入 Token、输出 Token、总 Token 与平均 Token
 - 平均输入长度、上下文裁剪次数、累计减少字符数和最近调用裁剪状态
+- 输入预算超出次数、累计超出 Token 和超预算未覆盖次数
 - 失败原因分布
 - 结构化失败样例
 - 最近模型调用日志
@@ -172,7 +173,7 @@ docker compose up -d
 
 依赖包括 MySQL、Redis、Milvus、etcd、MinIO。首次启动会自动执行 `sql/init.sql`。
 
-若已有旧数据卷，需要按顺序执行 `sql/migration-v2` 到 `sql/migration-v10`。
+若已有旧数据卷，需要按顺序执行 `sql/migration-v2` 到 `sql/migration-v11`。
 
 ### 3. 启动后端
 
