@@ -109,10 +109,14 @@ CREATE TABLE IF NOT EXISTS ai_model_call_log (
     trace_id        VARCHAR(64)     DEFAULT NULL COMMENT '请求追踪ID',
     operation_name  VARCHAR(128)    NOT NULL COMMENT '模型调用场景',
     prompt_version  VARCHAR(128)    NOT NULL COMMENT 'Prompt版本',
+    model_name      VARCHAR(128)    DEFAULT NULL COMMENT '模型名称',
     success         TINYINT         NOT NULL DEFAULT 0 COMMENT '是否成功 0-失败 1-成功',
     fallback_used   TINYINT         NOT NULL DEFAULT 0 COMMENT '是否使用降级结果 0-否 1-是',
     attempt_count   INT             NOT NULL DEFAULT 1 COMMENT '实际尝试次数',
     latency_ms      BIGINT          NOT NULL DEFAULT 0 COMMENT '总耗时毫秒',
+    input_tokens    INT             DEFAULT NULL COMMENT '输入token数',
+    output_tokens   INT             DEFAULT NULL COMMENT '输出token数',
+    total_tokens    INT             DEFAULT NULL COMMENT '总token数',
     error_message   VARCHAR(1024)   DEFAULT NULL COMMENT '错误信息',
     error_type      VARCHAR(64)     DEFAULT NULL COMMENT '错误类型',
     create_time     DATETIME        DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
@@ -120,6 +124,7 @@ CREATE TABLE IF NOT EXISTS ai_model_call_log (
     INDEX idx_operation_create_time (operation_name, create_time),
     INDEX idx_prompt_version_create_time (prompt_version, create_time),
     INDEX idx_success_create_time (success, create_time),
+    INDEX idx_model_name_create_time (model_name, create_time),
     INDEX idx_error_type_create_time (error_type, create_time)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='AI模型调用审计表';
 

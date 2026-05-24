@@ -139,10 +139,14 @@ jd-match -> jd-match-v2026-05-17-01
 - traceId
 - operationName
 - promptVersion
+- modelName
 - success
 - fallbackUsed（历史兼容字段，当前固定写 0，不再作为业务指标展示）
 - attemptCount（兼容早期外层重试审计；当前模型侧重试由 Spring AI 管理）
 - latencyMs
+- inputTokens
+- outputTokens
+- totalTokens
 - errorMessage
 - errorType
 - createTime
