@@ -11,6 +11,7 @@ import org.springframework.stereotype.Service;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
+import java.util.LinkedHashSet;
 import java.util.stream.Collectors;
 
 @Service
@@ -41,7 +42,7 @@ public class AiModelCallAuditQueryService {
     }
 
     /**
-     * 按 operationName 和 Prompt 版本聚合调用次数、成功率、失败数和耗时指标。
+     * 按 operationName 和 Prompt 版本聚合调用次数、成功率、失败数、耗时和 Token 用量指标。
      */
     public List<PromptMetricsResultDTO> listPromptMetrics(String operationName, String promptVersion, int limit) {
         int safeLimit = Math.max(1, Math.min(limit, 5000));
@@ -120,11 +121,24 @@ public class AiModelCallAuditQueryService {
                 .mapToInt(log -> log.getAttemptCount() == null ? 0 : log.getAttemptCount())
                 .average()
                 .orElse(0D);
+        String modelNames = modelNamesOf(logs);
+        long tokenSampleCalls = logs.stream().filter(this::hasTokenUsage).count();
+        long totalInputTokens = logs.stream()
+                .mapToLong(log -> log.getInputTokens() == null ? 0L : log.getInputTokens())
+                .sum();
+        long totalOutputTokens = logs.stream()
+                .mapToLong(log -> log.getOutputTokens() == null ? 0L : log.getOutputTokens())
+                .sum();
+        long totalTokens = logs.stream()
+                .mapToLong(this::tokenTotalOf)
+                .sum();
+        double avgTotalTokens = tokenSampleCalls == 0 ? 0D : totalTokens * 1D / tokenSampleCalls;
 
         AiModelCallLogEntity sample = logs.get(0);
         return PromptMetricsResultDTO.builder()
                 .operationName(sample.getOperationName())
                 .promptVersion(sample.getPromptVersion())
+                .modelNames(modelNames)
                 .totalCalls(totalCalls)
                 .successCalls(successCalls)
                 .failedCalls(failedCalls)
@@ -132,7 +146,44 @@ public class AiModelCallAuditQueryService {
                 .avgLatencyMs(round(avgLatencyMs))
                 .maxLatencyMs(maxLatencyMs)
                 .avgAttemptCount(round(avgAttemptCount))
+                .tokenSampleCalls(tokenSampleCalls)
+                .totalInputTokens(totalInputTokens)
+                .totalOutputTokens(totalOutputTokens)
+                .totalTokens(totalTokens)
+                .avgTotalTokens(round(avgTotalTokens))
                 .build();
+    }
+
+    /**
+     * 聚合同一组调用出现过的模型名称，方便看板识别是否发生模型切换。
+     */
+    private String modelNamesOf(List<AiModelCallLogEntity> logs) {
+        LinkedHashSet<String> modelNames = logs.stream()
+                .map(AiModelCallLogEntity::getModelName)
+                .filter(StringUtils::isNotBlank)
+                .collect(Collectors.toCollection(LinkedHashSet::new));
+        if (modelNames.isEmpty()) {
+            return null;
+        }
+        return String.join(" / ", modelNames);
+    }
+
+    /**
+     * 判断日志是否已经记录模型返回的 Token 用量。
+     */
+    private boolean hasTokenUsage(AiModelCallLogEntity log) {
+        return log.getInputTokens() != null || log.getOutputTokens() != null || log.getTotalTokens() != null;
+    }
+
+    /**
+     * 获取单次调用总 Token，优先使用官方返回的 totalTokens，缺失时用输入和输出相加兜底。
+     */
+    private long tokenTotalOf(AiModelCallLogEntity log) {
+        if (log.getTotalTokens() != null) {
+            return log.getTotalTokens();
+        }
+        return (log.getInputTokens() == null ? 0L : log.getInputTokens())
+                + (log.getOutputTokens() == null ? 0L : log.getOutputTokens());
     }
 
     /**

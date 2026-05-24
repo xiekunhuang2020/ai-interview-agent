@@ -32,6 +32,12 @@ public class AiModelCallAuditRecorder {
     private final AiModelCallLogMapper aiModelCallLogMapper;
 
     /**
+     * 模型调用返回的官方 token usage，用于后续成本观测。
+     */
+    public record ModelUsage(String modelName, Integer inputTokens, Integer outputTokens, Integer totalTokens) {
+    }
+
+    /**
      * 注入模型调用审计表 Mapper，用于把每次模型调用结果写入数据库。
      */
     public AiModelCallAuditRecorder(AiModelCallLogMapper aiModelCallLogMapper) {
@@ -48,7 +54,21 @@ public class AiModelCallAuditRecorder {
                        int attemptCount,
                        long latencyMs,
                        String errorMessage) {
-        record(operationName, promptVersion, success, attemptCount, latencyMs, errorMessage, null);
+        record(operationName, promptVersion, success, attemptCount, latencyMs, errorMessage, null, null);
+    }
+
+    /**
+     * 记录一次带官方 token usage 的模型调用审计。
+     */
+    @Transactional
+    public void record(String operationName,
+                       String promptVersion,
+                       boolean success,
+                       int attemptCount,
+                       long latencyMs,
+                       String errorMessage,
+                       ModelUsage usage) {
+        record(operationName, promptVersion, success, attemptCount, latencyMs, errorMessage, null, usage);
     }
 
     /**
@@ -66,6 +86,21 @@ public class AiModelCallAuditRecorder {
     }
 
     /**
+     * 记录一次带异常和官方 token usage 的模型调用审计。
+     */
+    @Transactional
+    public void record(String operationName,
+                       String promptVersion,
+                       boolean success,
+                       int attemptCount,
+                       long latencyMs,
+                       Throwable error,
+                       ModelUsage usage) {
+        record(operationName, promptVersion, success, attemptCount, latencyMs,
+                error == null ? null : error.getMessage(), error, usage);
+    }
+
+    /**
      * 写入模型调用审计记录，内部统一处理错误文本裁剪和错误类型分类。
      */
     private void record(String operationName,
@@ -75,11 +110,26 @@ public class AiModelCallAuditRecorder {
                         long latencyMs,
                         String errorMessage,
                         Throwable error) {
+        record(operationName, promptVersion, success, attemptCount, latencyMs, errorMessage, error, null);
+    }
+
+    /**
+     * 写入模型调用审计记录，附带 token usage、错误文本裁剪和错误类型分类。
+     */
+    private void record(String operationName,
+                        String promptVersion,
+                        boolean success,
+                        int attemptCount,
+                        long latencyMs,
+                        String errorMessage,
+                        Throwable error,
+                        ModelUsage usage) {
         try {
             AiModelCallLogEntity log = new AiModelCallLogEntity();
             log.setTraceId(MDC.get(RequestTraceFilter.TRACE_ID_KEY));
             log.setOperationName(operationName);
             log.setPromptVersion(promptVersion);
+            fillUsage(log, usage);
             log.setSuccess(success ? 1 : 0);
             log.setFallbackUsed(0);
             log.setAttemptCount(attemptCount);
@@ -91,6 +141,19 @@ public class AiModelCallAuditRecorder {
             logger.warn("Failed to record AI model call audit, operation={}, error={}",
                     operationName, e.getMessage());
         }
+    }
+
+    /**
+     * 将官方 usage 写入审计实体，usage 为空时保持兼容旧记录。
+     */
+    private void fillUsage(AiModelCallLogEntity log, ModelUsage usage) {
+        if (usage == null) {
+            return;
+        }
+        log.setModelName(usage.modelName());
+        log.setInputTokens(usage.inputTokens());
+        log.setOutputTokens(usage.outputTokens());
+        log.setTotalTokens(usage.totalTokens());
     }
 
     /**
