@@ -2,6 +2,7 @@ package com.xkh.ai.interview.service.agent;
 
 import com.xkh.ai.interview.dto.InterviewQuestionsDTO;
 import com.xkh.ai.interview.service.llm.AiModelCallService;
+import com.xkh.ai.interview.service.llm.PromptContextBudgetService;
 import com.xkh.ai.interview.service.rag.ResumeRagAdvisorFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -23,6 +24,7 @@ public class RagInterviewQuestionAgent {
 
     private final AiModelCallService aiModelCallService;
     private final ResumeRagAdvisorFactory ragAdvisorFactory;
+    private final PromptContextBudgetService contextBudgetService;
 
     @Value("classpath:/prompt/rag-interview-question-system.st")
     private Resource systemPromptResource;
@@ -31,9 +33,11 @@ public class RagInterviewQuestionAgent {
      * 注入统一模型调用服务和 RAG Advisor 工厂。
      */
     public RagInterviewQuestionAgent(AiModelCallService aiModelCallService,
-                                     ResumeRagAdvisorFactory ragAdvisorFactory) {
+                                     ResumeRagAdvisorFactory ragAdvisorFactory,
+                                     PromptContextBudgetService contextBudgetService) {
         this.aiModelCallService = aiModelCallService;
         this.ragAdvisorFactory = ragAdvisorFactory;
+        this.contextBudgetService = contextBudgetService;
     }
 
     /**
@@ -56,7 +60,10 @@ public class RagInterviewQuestionAgent {
 
                 ## 目标岗位 JD
                 %s
-                """.formatted(resumeText, jobDescription)));
+                """.formatted(
+                        contextBudgetService.limitResumeText(resumeText),
+                        contextBudgetService.limitJobDescription(jobDescription)
+                )));
 
         return aiModelCallService.callEntity(
                 OPERATION_NAME,

@@ -3,6 +3,7 @@ package com.xkh.ai.interview.service.agent;
 import com.xkh.ai.interview.dto.InterviewEvaluationDTO;
 import com.xkh.ai.interview.dto.InterviewQuestionsDTO;
 import com.xkh.ai.interview.service.llm.AiModelCallService;
+import com.xkh.ai.interview.service.llm.PromptContextBudgetService;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -24,6 +25,7 @@ public class AnswerEvaluationAgent {
     private static final String OPERATION_NAME = "answer-evaluation";
 
     private final AiModelCallService aiModelCallService;
+    private final PromptContextBudgetService contextBudgetService;
 
     @Value("classpath:/prompt/interview-evaluation-system.st")
     private Resource systemPromptResource;
@@ -31,8 +33,10 @@ public class AnswerEvaluationAgent {
     /**
      * 注入统一模型调用服务，回答评估结果由 Spring AI 官方 entity 转为 DTO。
      */
-    public AnswerEvaluationAgent(AiModelCallService aiModelCallService) {
+    public AnswerEvaluationAgent(AiModelCallService aiModelCallService,
+                                 PromptContextBudgetService contextBudgetService) {
         this.aiModelCallService = aiModelCallService;
+        this.contextBudgetService = contextBudgetService;
     }
 
     /**
@@ -55,7 +59,9 @@ public class AnswerEvaluationAgent {
         StringBuilder qaText = new StringBuilder();
         for (int i = 0; i < questions.getQuestions().size(); i++) {
             InterviewQuestionsDTO.Question question = questions.getQuestions().get(i);
-            String answer = StringUtils.isBlank(answers.get(i)) ? "未作答" : answers.get(i);
+            String answer = StringUtils.isBlank(answers.get(i))
+                    ? "未作答"
+                    : contextBudgetService.limitAnswer(answers.get(i));
             qaText.append("问题 %d [%s]: %s\n".formatted(i + 1, question.getType(), question.getQuestion()));
             qaText.append("候选人回答：%s\n\n".formatted(answer));
         }
@@ -68,7 +74,7 @@ public class AnswerEvaluationAgent {
 
                 ## 面试问答
                 %s
-                """.formatted(resumeText, qaText);
+                """.formatted(contextBudgetService.limitResumeText(resumeText), qaText);
     }
 
 }

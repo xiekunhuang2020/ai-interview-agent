@@ -37,6 +37,7 @@ public class AiModelCallService {
     private final ChatClient chatClient;
     private final PromptVersionRegistry promptVersionRegistry;
     private final AiModelCallAuditRecorder auditRecorder;
+    private final PromptContextBudgetService contextBudgetService;
     private final Validator validator;
 
     /**
@@ -46,10 +47,12 @@ public class AiModelCallService {
     public AiModelCallService(ChatClient.Builder chatClientBuilder,
                               PromptVersionRegistry promptVersionRegistry,
                               AiModelCallAuditRecorder auditRecorder,
+                              PromptContextBudgetService contextBudgetService,
                               Validator validator) {
         this.chatClient = chatClientBuilder.build();
         this.promptVersionRegistry = promptVersionRegistry;
         this.auditRecorder = auditRecorder;
+        this.contextBudgetService = contextBudgetService;
         this.validator = validator;
     }
 
@@ -70,6 +73,7 @@ public class AiModelCallService {
                 .build());
 
         long start = System.currentTimeMillis();
+        PromptContextBudgetService.ContextUsage contextUsage = contextBudgetService.contextUsageOf(messages);
         try {
             ChatResponse response = doCall(prompt, advisors);
             String text = contentOf(response);
@@ -80,13 +84,13 @@ public class AiModelCallService {
             logger.info("AI model call succeeded, operation={}, promptVersion={}, latencyMs={}",
                     operationName, promptVersion, latencyMs);
             auditRecorder.record(operationName, promptVersion, true, 1, latencyMs,
-                    (String) null, auditRecorder.usageOf(response));
+                    (String) null, auditRecorder.usageOf(response), contextUsage);
             return text;
         } catch (RuntimeException e) {
             long latencyMs = System.currentTimeMillis() - start;
             logger.warn("AI model call failed after Spring AI retry, operation={}, promptVersion={}, latencyMs={}, error={}",
                     operationName, promptVersion, latencyMs, e.getMessage());
-            auditRecorder.record(operationName, promptVersion, false, 1, latencyMs, e);
+            auditRecorder.record(operationName, promptVersion, false, 1, latencyMs, e, null, contextUsage);
             throw new AiModelCallException("AI 模型调用失败，operation=" + operationName, e);
         }
     }
@@ -117,6 +121,7 @@ public class AiModelCallService {
 
         long start = System.currentTimeMillis();
         AiModelCallAuditRecorder.ModelUsage usage = null;
+        PromptContextBudgetService.ContextUsage contextUsage = contextBudgetService.contextUsageOf(messages);
         try {
             ResponseEntity<ChatResponse, T> responseEntity =
                     doCallEntity(prompt, withStructuredOutputAdvisor(advisors, targetType), targetType);
@@ -126,19 +131,19 @@ public class AiModelCallService {
             long latencyMs = System.currentTimeMillis() - start;
             logger.info("AI structured call succeeded, operation={}, promptVersion={}, targetType={}, latencyMs={}",
                     operationName, promptVersion, targetType.getSimpleName(), latencyMs);
-            auditRecorder.record(operationName, promptVersion, true, 1, latencyMs, (String) null, usage);
+            auditRecorder.record(operationName, promptVersion, true, 1, latencyMs, (String) null, usage, contextUsage);
             return result;
         } catch (AiStructuredOutputException e) {
             long latencyMs = System.currentTimeMillis() - start;
             logger.warn("AI structured output failed, operation={}, promptVersion={}, targetType={}, latencyMs={}, error={}",
                     operationName, promptVersion, targetType.getSimpleName(), latencyMs, e.getMessage());
-            auditRecorder.record(operationName, promptVersion, false, 1, latencyMs, e, usage);
+            auditRecorder.record(operationName, promptVersion, false, 1, latencyMs, e, usage, contextUsage);
             throw e;
         } catch (RuntimeException e) {
             long latencyMs = System.currentTimeMillis() - start;
             logger.warn("AI model call failed after Spring AI retry, operation={}, promptVersion={}, latencyMs={}, error={}",
                     operationName, promptVersion, latencyMs, e.getMessage());
-            auditRecorder.record(operationName, promptVersion, false, 1, latencyMs, e);
+            auditRecorder.record(operationName, promptVersion, false, 1, latencyMs, e, null, contextUsage);
             throw new AiModelCallException("AI 模型调用失败，operation=" + operationName, e);
         }
     }

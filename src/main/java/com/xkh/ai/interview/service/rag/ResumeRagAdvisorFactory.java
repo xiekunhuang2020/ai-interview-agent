@@ -1,5 +1,6 @@
 package com.xkh.ai.interview.service.rag;
 
+import com.xkh.ai.interview.service.llm.PromptContextBudgetService;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.ai.chat.client.advisor.api.Advisor;
 import org.springframework.ai.chat.prompt.PromptTemplate;
@@ -19,15 +20,16 @@ import java.util.List;
 @Component
 public class ResumeRagAdvisorFactory {
 
-    private static final int MAX_CONTEXT_CHARS_PER_RESUME = 1200;
-
     private final VectorStore vectorStore;
+    private final PromptContextBudgetService contextBudgetService;
 
     /**
      * 注入 Spring AI VectorStore，后续由官方 RAG Advisor 完成检索增强。
      */
-    public ResumeRagAdvisorFactory(VectorStore vectorStore) {
+    public ResumeRagAdvisorFactory(VectorStore vectorStore,
+                                   PromptContextBudgetService contextBudgetService) {
         this.vectorStore = vectorStore;
+        this.contextBudgetService = contextBudgetService;
     }
 
     /**
@@ -37,6 +39,7 @@ public class ResumeRagAdvisorFactory {
         return RetrievalAugmentationAdvisor.builder()
                 .queryTransformers(createRetrievalQueryTransformer(retrievalQuery))
                 .documentRetriever(createDocumentRetriever(excludedResumeId, topK))
+                .documentPostProcessors((query, documents) -> contextBudgetService.limitRagDocuments(documents))
                 .queryAugmenter(createQueryAugmenter())
                 .build();
     }
@@ -112,19 +115,9 @@ public class ResumeRagAdvisorFactory {
             if (chunkIndex != null && chunkCount != null) {
                 context.append("chunk: ").append(chunkIndex).append("/").append(chunkCount).append("\n");
             }
-            context.append(truncate(document.getText())).append("\n\n");
+            context.append(document.getText()).append("\n\n");
         }
         return context.toString();
-    }
-
-    /**
-     * 裁剪单个 RAG 片段，避免参考上下文过长。
-     */
-    private String truncate(String text) {
-        if (text == null || text.length() <= MAX_CONTEXT_CHARS_PER_RESUME) {
-            return text == null ? "" : text;
-        }
-        return text.substring(0, MAX_CONTEXT_CHARS_PER_RESUME) + "\n...[truncated]";
     }
 
     /**

@@ -3,6 +3,7 @@ package com.xkh.ai.interview.service.tool;
 import com.xkh.ai.interview.dto.InterviewEvaluationDTO;
 import com.xkh.ai.interview.dto.ResumeDataDTO;
 import com.xkh.ai.interview.dto.ResumeScoreResultDTO;
+import com.xkh.ai.interview.service.llm.PromptContextBudgetService;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.ai.document.Document;
 import org.springframework.ai.tool.annotation.Tool;
@@ -18,19 +19,20 @@ public class ResumeAgentTools {
     private static final int MAX_TOP_K = 10;
     private static final int MAX_PROFILE_LIST_SIZE = 5;
     private static final int MAX_QUESTION_COUNT = 10;
-    private static final int MAX_QUESTION_CHARS = 500;
-    private static final int MAX_RESUME_SNIPPET_CHARS = 800;
-    private static final int MAX_SEARCH_SNIPPET_CHARS = 700;
 
     private final ResumeRepositoryTool resumeRepositoryTool;
     private final ResumeVectorTool resumeVectorTool;
+    private final PromptContextBudgetService contextBudgetService;
 
     /**
      * 注入简历存储和向量检索工具，为 AI 顾问暴露只读查询能力。
      */
-    public ResumeAgentTools(ResumeRepositoryTool resumeRepositoryTool, ResumeVectorTool resumeVectorTool) {
+    public ResumeAgentTools(ResumeRepositoryTool resumeRepositoryTool,
+                            ResumeVectorTool resumeVectorTool,
+                            PromptContextBudgetService contextBudgetService) {
         this.resumeRepositoryTool = resumeRepositoryTool;
         this.resumeVectorTool = resumeVectorTool;
+        this.contextBudgetService = contextBudgetService;
     }
 
     /**
@@ -53,7 +55,7 @@ public class ResumeAgentTools {
                         && !resumeData.getQuestions().getQuestions().isEmpty(),
                 evaluation == null ? null : evaluation.getOverallScore(),
                 evaluation == null ? "" : evaluation.getOverallFeedback(),
-                truncate(resumeData.getResumeText(), MAX_RESUME_SNIPPET_CHARS)
+                contextBudgetService.limitToolResumeSnippet(resumeData.getResumeText())
         );
     }
 
@@ -70,7 +72,7 @@ public class ResumeAgentTools {
         List<QuestionToolItem> questions = resumeData.getQuestions().getQuestions().stream()
                 .limit(MAX_QUESTION_COUNT)
                 .map(question -> new QuestionToolItem(
-                        truncate(question.getQuestion(), MAX_QUESTION_CHARS),
+                        contextBudgetService.limitToolQuestion(question.getQuestion()),
                         nullToEmpty(question.getType()),
                         nullToEmpty(question.getCategory())
                 ))
@@ -131,7 +133,7 @@ public class ResumeAgentTools {
                 fileName == null ? "" : fileName.toString(),
                 metadataInteger(document, "chunkIndex"),
                 metadataInteger(document, "chunkCount"),
-                truncate(document.getText(), MAX_SEARCH_SNIPPET_CHARS)
+                contextBudgetService.limitToolSearchSnippet(document.getText())
         );
     }
 
@@ -185,16 +187,6 @@ public class ResumeAgentTools {
      */
     private String nullToEmpty(String value) {
         return value == null ? "" : value;
-    }
-
-    /**
-     * 裁剪长文本，避免工具返回过长内容挤占模型上下文窗口。
-     */
-    private String truncate(String text, int maxChars) {
-        if (text == null || text.length() <= maxChars) {
-            return text == null ? "" : text;
-        }
-        return text.substring(0, maxChars) + "\n...[truncated]";
     }
 
     /**

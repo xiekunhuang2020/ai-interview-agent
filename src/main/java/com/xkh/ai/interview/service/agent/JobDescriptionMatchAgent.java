@@ -2,6 +2,7 @@ package com.xkh.ai.interview.service.agent;
 
 import com.xkh.ai.interview.dto.JobDescriptionMatchResultDTO;
 import com.xkh.ai.interview.service.llm.AiModelCallService;
+import com.xkh.ai.interview.service.llm.PromptContextBudgetService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.ai.chat.messages.Message;
@@ -21,6 +22,7 @@ public class JobDescriptionMatchAgent {
     private static final String OPERATION_NAME = "jd-match";
 
     private final AiModelCallService aiModelCallService;
+    private final PromptContextBudgetService contextBudgetService;
 
     @Value("classpath:/prompt/jd-match-system.st")
     private Resource systemPromptResource;
@@ -28,8 +30,10 @@ public class JobDescriptionMatchAgent {
     /**
      * 注入统一模型调用服务，岗位匹配结果由 Spring AI 官方 entity 转为 DTO。
      */
-    public JobDescriptionMatchAgent(AiModelCallService aiModelCallService) {
+    public JobDescriptionMatchAgent(AiModelCallService aiModelCallService,
+                                    PromptContextBudgetService contextBudgetService) {
         this.aiModelCallService = aiModelCallService;
+        this.contextBudgetService = contextBudgetService;
     }
 
     /**
@@ -49,7 +53,10 @@ public class JobDescriptionMatchAgent {
 
                 ## 岗位 JD
                 %s
-                """.formatted(resumeText, jobDescription)));
+                """.formatted(
+                        contextBudgetService.limitResumeText(resumeText),
+                        contextBudgetService.limitJobDescription(jobDescription)
+                )));
 
         return aiModelCallService.callEntity(OPERATION_NAME, messages, 0.5, JobDescriptionMatchResultDTO.class);
     }

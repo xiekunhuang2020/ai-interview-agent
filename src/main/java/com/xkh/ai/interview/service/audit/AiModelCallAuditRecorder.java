@@ -4,6 +4,7 @@ import com.xkh.ai.interview.entity.AiModelCallLogEntity;
 import com.xkh.ai.interview.mapper.AiModelCallLogMapper;
 import com.xkh.ai.interview.config.RequestTraceFilter;
 import com.xkh.ai.interview.service.llm.AiStructuredOutputException;
+import com.xkh.ai.interview.service.llm.PromptContextBudgetService;
 import jakarta.validation.ValidationException;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
@@ -80,7 +81,7 @@ public class AiModelCallAuditRecorder {
                        int attemptCount,
                        long latencyMs,
                        String errorMessage) {
-        record(operationName, promptVersion, success, attemptCount, latencyMs, errorMessage, null, null);
+        record(operationName, promptVersion, success, attemptCount, latencyMs, errorMessage, (Throwable) null);
     }
 
     /**
@@ -94,7 +95,22 @@ public class AiModelCallAuditRecorder {
                        long latencyMs,
                        String errorMessage,
                        ModelUsage usage) {
-        record(operationName, promptVersion, success, attemptCount, latencyMs, errorMessage, null, usage);
+        record(operationName, promptVersion, success, attemptCount, latencyMs, errorMessage, null, usage, null);
+    }
+
+    /**
+     * 记录一次带官方 token usage 和上下文预算统计的模型调用审计。
+     */
+    @Transactional
+    public void record(String operationName,
+                       String promptVersion,
+                       boolean success,
+                       int attemptCount,
+                       long latencyMs,
+                       String errorMessage,
+                       ModelUsage usage,
+                       PromptContextBudgetService.ContextUsage contextUsage) {
+        record(operationName, promptVersion, success, attemptCount, latencyMs, errorMessage, null, usage, contextUsage);
     }
 
     /**
@@ -123,7 +139,23 @@ public class AiModelCallAuditRecorder {
                        Throwable error,
                        ModelUsage usage) {
         record(operationName, promptVersion, success, attemptCount, latencyMs,
-                error == null ? null : error.getMessage(), error, usage);
+                error == null ? null : error.getMessage(), error, usage, null);
+    }
+
+    /**
+     * 记录一次失败模型调用审计，并保留上下文预算统计。
+     */
+    @Transactional
+    public void record(String operationName,
+                       String promptVersion,
+                       boolean success,
+                       int attemptCount,
+                       long latencyMs,
+                       Throwable error,
+                       ModelUsage usage,
+                       PromptContextBudgetService.ContextUsage contextUsage) {
+        record(operationName, promptVersion, success, attemptCount, latencyMs,
+                error == null ? null : error.getMessage(), error, usage, contextUsage);
     }
 
     /**
@@ -136,7 +168,7 @@ public class AiModelCallAuditRecorder {
                         long latencyMs,
                         String errorMessage,
                         Throwable error) {
-        record(operationName, promptVersion, success, attemptCount, latencyMs, errorMessage, error, null);
+        record(operationName, promptVersion, success, attemptCount, latencyMs, errorMessage, error, null, null);
     }
 
     /**
@@ -149,13 +181,15 @@ public class AiModelCallAuditRecorder {
                         long latencyMs,
                         String errorMessage,
                         Throwable error,
-                        ModelUsage usage) {
+                        ModelUsage usage,
+                        PromptContextBudgetService.ContextUsage contextUsage) {
         try {
             AiModelCallLogEntity log = new AiModelCallLogEntity();
             log.setTraceId(MDC.get(RequestTraceFilter.TRACE_ID_KEY));
             log.setOperationName(operationName);
             log.setPromptVersion(promptVersion);
             fillUsage(log, usage);
+            fillContextUsage(log, contextUsage);
             log.setSuccess(success ? 1 : 0);
             log.setFallbackUsed(0);
             log.setAttemptCount(attemptCount);
@@ -180,6 +214,18 @@ public class AiModelCallAuditRecorder {
         log.setInputTokens(usage.inputTokens());
         log.setOutputTokens(usage.outputTokens());
         log.setTotalTokens(usage.totalTokens());
+    }
+
+    /**
+     * 将上下文预算统计写入审计实体，便于看板观察 Prompt 长度和裁剪次数。
+     */
+    private void fillContextUsage(AiModelCallLogEntity log, PromptContextBudgetService.ContextUsage contextUsage) {
+        if (contextUsage == null) {
+            return;
+        }
+        log.setPromptChars(contextUsage.promptChars());
+        log.setClippedChars(contextUsage.clippedChars());
+        log.setContextClipped(contextUsage.clipped() ? 1 : 0);
     }
 
     /**

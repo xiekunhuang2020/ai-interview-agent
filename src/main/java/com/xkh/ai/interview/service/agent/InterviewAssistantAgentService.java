@@ -4,6 +4,7 @@ import com.alibaba.cloud.ai.dashscope.chat.DashScopeChatOptions;
 import com.xkh.ai.interview.dto.AgentChatRequestDTO;
 import com.xkh.ai.interview.service.audit.AiModelCallAuditRecorder;
 import com.xkh.ai.interview.service.audit.AgentConversationAuditRecorder;
+import com.xkh.ai.interview.service.llm.PromptContextBudgetService;
 import com.xkh.ai.interview.service.llm.PromptVersionRegistry;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.ai.chat.client.ChatClient;
@@ -52,6 +53,7 @@ public class InterviewAssistantAgentService {
     private final ToolCallbackProvider resumeToolCallbackProvider;
     private final AgentConversationAuditRecorder conversationAuditRecorder;
     private final AiModelCallAuditRecorder modelCallAuditRecorder;
+    private final PromptContextBudgetService contextBudgetService;
     private final PromptVersionRegistry promptVersionRegistry;
     private final ConcurrentMap<String, Deque<Message>> conversationHistory = new ConcurrentHashMap<>();
 
@@ -59,11 +61,13 @@ public class InterviewAssistantAgentService {
                                           @Qualifier("resumeToolCallbackProvider") ToolCallbackProvider resumeToolCallbackProvider,
                                           AgentConversationAuditRecorder conversationAuditRecorder,
                                           AiModelCallAuditRecorder modelCallAuditRecorder,
+                                          PromptContextBudgetService contextBudgetService,
                                           PromptVersionRegistry promptVersionRegistry) {
         this.chatClient = chatClientBuilder.build();
         this.resumeToolCallbackProvider = resumeToolCallbackProvider;
         this.conversationAuditRecorder = conversationAuditRecorder;
         this.modelCallAuditRecorder = modelCallAuditRecorder;
+        this.contextBudgetService = contextBudgetService;
         this.promptVersionRegistry = promptVersionRegistry;
     }
 
@@ -91,7 +95,10 @@ public class InterviewAssistantAgentService {
             StringBuilder answer = new StringBuilder();
             String promptVersion = promptVersionRegistry.versionOf(OPERATION_NAME);
             AtomicReference<AiModelCallAuditRecorder.ModelUsage> usageRef = new AtomicReference<>();
-            Prompt prompt = new Prompt(buildStreamingMessages(conversationId, message),
+            String limitedMessage = contextBudgetService.limitAssistantUserMessage(message);
+            List<Message> messages = buildStreamingMessages(conversationId, limitedMessage);
+            PromptContextBudgetService.ContextUsage contextUsage = contextBudgetService.contextUsageOf(messages);
+            Prompt prompt = new Prompt(messages,
                     DashScopeChatOptions.builder()
                             .temperature(0.4)
                             .build());
@@ -113,11 +120,11 @@ public class InterviewAssistantAgentService {
             Mono<ServerSentEvent<Map<String, Object>>> done = Mono.fromSupplier(() -> {
                 long latencyMs = System.currentTimeMillis() - start;
                 String finalAnswer = answer.toString();
-                rememberConversation(conversationId, new UserMessage(message), new AssistantMessage(finalAnswer));
+                rememberConversation(conversationId, new UserMessage(limitedMessage), new AssistantMessage(finalAnswer));
                 conversationAuditRecorder.recordAssistantMessage(
                         conversationId, turnId, STREAM_AGENT_NAME, finalAnswer, true, latencyMs, null);
                 modelCallAuditRecorder.record(OPERATION_NAME, promptVersion, true, 1, latencyMs,
-                        (String) null, usageRef.get());
+                        (String) null, usageRef.get(), contextUsage);
                 return sse("done", Map.of("latencyMs", latencyMs));
             });
 
@@ -125,7 +132,7 @@ public class InterviewAssistantAgentService {
                     .onErrorResume(e -> {
                         recordFailedAssistantMessage(conversationId, turnId, STREAM_AGENT_NAME, start, e);
                         modelCallAuditRecorder.record(OPERATION_NAME, promptVersion, false, 1,
-                                System.currentTimeMillis() - start, e, usageRef.get());
+                                System.currentTimeMillis() - start, e, usageRef.get(), contextUsage);
                         return Flux.just(sse("error", Map.of("message", "顾问回答失败：" + e.getMessage())));
                     });
         });

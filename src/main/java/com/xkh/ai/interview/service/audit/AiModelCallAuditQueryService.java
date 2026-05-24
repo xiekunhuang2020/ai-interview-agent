@@ -133,6 +133,17 @@ public class AiModelCallAuditQueryService {
                 .mapToLong(this::tokenTotalOf)
                 .sum();
         double avgTotalTokens = tokenSampleCalls == 0 ? 0D : totalTokens * 1D / tokenSampleCalls;
+        long contextSampleCalls = logs.stream().filter(log -> log.getPromptChars() != null).count();
+        long clippedCalls = logs.stream()
+                .filter(log -> Integer.valueOf(1).equals(log.getContextClipped()))
+                .count();
+        long totalPromptChars = logs.stream()
+                .mapToLong(log -> log.getPromptChars() == null ? 0L : log.getPromptChars())
+                .sum();
+        long totalClippedChars = logs.stream()
+                .mapToLong(log -> log.getClippedChars() == null ? 0L : log.getClippedChars())
+                .sum();
+        double avgPromptChars = contextSampleCalls == 0 ? 0D : totalPromptChars * 1D / contextSampleCalls;
 
         AiModelCallLogEntity sample = logs.get(0);
         return PromptMetricsResultDTO.builder()
@@ -151,6 +162,11 @@ public class AiModelCallAuditQueryService {
                 .totalOutputTokens(totalOutputTokens)
                 .totalTokens(totalTokens)
                 .avgTotalTokens(round(avgTotalTokens))
+                .contextSampleCalls(contextSampleCalls)
+                .clippedCalls(clippedCalls)
+                .totalPromptChars(totalPromptChars)
+                .totalClippedChars(totalClippedChars)
+                .avgPromptChars(round(avgPromptChars))
                 .build();
     }
 
