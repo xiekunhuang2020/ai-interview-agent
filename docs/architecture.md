@@ -47,6 +47,7 @@ flowchart TD
 
 项目优先体现“会用框架”，而不是“把框架能力再造一层”。
 
+- 最高优先级：新增能力、封装工具、写解析器、做基础设施前，必须先查官方方案；没有明确“官方已有 / 官方没有 / 官方不适合”的判断，不进入编码。
 - 严禁重复封装 Spring AI、Spring AI Alibaba、MyBatis-Plus、Milvus Vector Store、RedisTemplate 等官方已经提供的能力。
 - 新增代码前必须先检查官方 API 和当前依赖能力，能用框架配置、Starter、Builder、Advisor、Converter、Template 完成的，不写自研替代实现。
 - 同一能力同时存在 Spring AI 通用封装和 Spring AI Alibaba 简化封装时，按“当前场景更少业务代码、更贴近 DashScope/通义生态”的原则选择 Spring AI Alibaba。
@@ -113,7 +114,7 @@ AI 顾问可调用的工具集中在 `ResumeAgentTools`，只暴露查询类能�
 - 调用耗时日志
 - traceId 贯穿 HTTP 请求和模型调用日志
 - 模型调用最终失败后映射为 502 响应
-- 结构化输出治理：Spring AI `BeanOutputConverter` 负责 DTO 转换，Jakarta Bean Validation 负责必填、范围、枚举和级联校验
+- 结构化输出治理：Spring AI `ChatClient.entity(DTO.class)` 负责 DTO 转换，Jakarta Bean Validation 负责必填、范围、枚举和级联校验
 - Prompt 版本记录
 - 调用审计落库
 

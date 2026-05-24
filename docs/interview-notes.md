@@ -70,7 +70,7 @@ RAG 用在岗位定制面试题生成。系统用目标 JD 检索相似简历片
 
 ### 怎么治理结构化输出？
 
-模型输出先通过 Spring AI `BeanOutputConverter` 转成 DTO，再用 Jakarta Bean Validation 做必填、范围、枚举和级联校验。少量业务规则才留在解析层，例如分数归一化。
+模型输出直接通过 Spring AI `ChatClient.entity(DTO.class)` 转成 DTO，再用 Jakarta Bean Validation 做必填、范围、枚举和级联校验。少量业务规则放在 DTO setter 中做归一化，例如分数裁剪和枚举别名兼容。
 
 ## 展示前检查
 

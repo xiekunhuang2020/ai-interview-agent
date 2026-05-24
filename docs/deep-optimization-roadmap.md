@@ -43,13 +43,15 @@ Agent 和普通 ChatBot 的区别在哪里？
 
 ## 开发铁律
 
+0. 官方方案最高优先：新增能力、封装工具、写解析器、做基础设施前，必须先查 Spring AI、Spring AI Alibaba、Milvus、MyBatis-Plus、Redis 等官方能力；没有明确结论，不进入编码。
 1. 官方能力优先：Spring AI、Spring AI Alibaba、Milvus Vector Store、MyBatis-Plus、RedisTemplate 已提供的能力不重复封装。
 2. 业务代码只做业务编排、状态管理、参数校验、异常映射、审计记录和页面接口适配。
-3. 新增代码前先查当前依赖是否已有官方 API；能用配置、Builder、Advisor、Converter、Template 做的，不自研替代实现。
-4. 如果 Spring AI 和 Spring AI Alibaba 都提供同类能力，优先选择更贴近 DashScope/通义生态、代码更少且不明显增加复杂度的 Spring AI Alibaba 封装。
-5. Graph、Agent Framework、Admin 等重能力必须按项目复杂度引入；当前确定性流程能讲清楚时，不为了包装项目硬上。
-6. 简历只写已经落地的能力。没有代码、数据、页面或文档证据的点，不写到简历。
-7. 每个新增方法必须写清楚方法用途，方便后续学习和面试复盘。
+3. 新增代码前先写清楚“官方已有 / 官方没有 / 官方不适合”的判断，再决定是否写自定义实现。
+4. 能用配置、Starter、Builder、Advisor、Converter、Evaluator、Template 做的，不自研替代实现。
+5. 如果 Spring AI 和 Spring AI Alibaba 都提供同类能力，优先选择更贴近 DashScope/通义生态、代码更少且不明显增加复杂度的 Spring AI Alibaba 封装。
+6. Graph、Agent Framework、Admin 等重能力必须按项目复杂度引入；当前确定性流程能讲清楚时，不为了包装项目硬上。
+7. 简历只写已经落地的能力。没有代码、数据、页面或文档证据的点，不写到简历。
+8. 每个新增方法必须写清楚方法用途，方便后续学习和面试复盘。
 
 ## 第一阶段：先把“只是 Prompt 调用”降到最低
 
@@ -288,7 +290,7 @@ SIMILAR_RESUME_REFERENCE
 ```
 
 - `InterviewQuestionsDTO.Question` 已增加 `evidenceSource` 和 `sourceNote`。
-- `AiJsonResponseParser` 会兜底修正来源字段，防止模型漏填导致结构化失败。
+- `InterviewQuestionsDTO.Question` 会归一化来源字段，防止模型漏填或输出别名导致结构化失败。
 - `interview_question` 表已增加 `evidence_source` 和 `source_note` 字段。
 - RAG Advisor 注入的检索上下文会明确标记 `SIMILAR_RESUME_REFERENCE`。
 - AI 顾问工具 `search_similar_resumes` 返回 `sourceType` 和 `sourceName`。
@@ -312,7 +314,7 @@ SIMILAR_RESUME_REFERENCE
 
 **现状问题**
 
-如果大量规则写在 `AiJsonResponseParser` 里，容易像手工 if 校验。
+如果大量规则写在自定义 JSON parser 里，容易像手工 if 校验，也容易和 Spring AI 官方结构化输出能力重复。
 
 **优化目标**
 
@@ -329,16 +331,14 @@ SIMILAR_RESUME_REFERENCE
   - 嵌套对象校验
 - `ResumeScoreResultDTO.ScoreDetail` 自己裁剪评分维度范围，避免模型偶发输出 10 分制外的值。
 - `InterviewQuestionsDTO.Question` 自己归一化题目类型和来源类型，兼容 `SYSTEM_DESIGN`、`RAG`、中文来源等模型别名。
-- `AiJsonResponseParser` 已收敛为通用职责：
-  - JSON 提取
-  - 调用官方 Converter
-  - 调用 Validator
-  - 格式化校验错误
+- 已删除自定义 `AiJsonResponseParser`。
+- `AiModelCallService` 统一调用 Spring AI 官方 `ChatClient.entity(DTO.class)` 转换结构化结果。
+- `AiModelCallService` 只补充 Jakarta Validation、审计记录和异常映射，不再承担 JSON parser 职责。
 
 **验收标准**
 
 - 大部分校验能从 DTO 注解看懂。
-- Parser 不再维护各业务 DTO 的字段范围、枚举表和手工 if 校验。
+- 项目不再维护自定义 JSON parser，各业务 DTO 的字段范围和枚举约束由注解表达。
 - `mvn -q -DskipTests compile` 通过。
 
 **面试可讲**
@@ -536,7 +536,7 @@ Prompt 改完以后，只能靠人工体验判断好坏；RAG 生成题目是否
 AI 输出不符合 resume-score 结构：无法转换为目标 DTO
 ```
 
-这说明模型调用本身成功了，但返回内容没有稳定符合 `ResumeScoreResultDTO` 的 DTO 结构。当前 `AiJsonResponseParser` 会直接抛出 `AiStructuredOutputException`，前端只能看到通用错误，无法判断是字段缺失、类型错误、Markdown 包裹、JSON 截断，还是模型返回了额外解释文本。
+这说明模型调用本身成功了，但返回内容没有稳定符合 `ResumeScoreResultDTO` 的 DTO 结构。当前结构化转换已经改为 Spring AI 官方 `ChatClient.entity(DTO.class)`，失败会抛出 `AiStructuredOutputException`，前端能看到结构、字段、原因和 traceId。
 
 **可能原因**
 
@@ -554,8 +554,8 @@ AI 输出不符合 resume-score 结构：无法转换为目标 DTO
 
 - `AiStructuredOutputException` 已携带 `schemaName`、`fieldPath`、`failureReason`。
 - Bean Validation 失败会返回字段路径和具体约束原因，例如 `scoreDetail.expressionScore`。
-- JSON 转 DTO 失败会尽量从 Jackson 异常链中提取字段路径和转换原因。
-- 模型调用成功但结构化解析失败时，会补记一条 `STRUCTURED_OUTPUT_ERROR` 审计记录。
+- JSON 转 DTO 交给 Spring AI 官方 `ChatClient.entity(DTO.class)`，不再保留自定义 parser。
+- 结构化转换或 DTO 校验失败时，会记录 `STRUCTURED_OUTPUT_ERROR` 审计记录。
 - 前端错误提示会展示结构、字段、原因和 traceId，便于直接排查。
 
 **后续改造内容**
