@@ -147,6 +147,9 @@ jd-match -> jd-match-v2026-05-17-01
 - inputTokens
 - outputTokens
 - totalTokens
+- promptChars
+- contextClipped
+- clippedChars
 - errorMessage
 - errorType
 - createTime

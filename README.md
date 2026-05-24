@@ -88,13 +88,14 @@ Prompt 明确要求相似简历只能作为追问方向参考，不能当成当�
 
 ### 6. 模型调用审计
 
-`ai_model_call_log` 记录每次模型调用的 operation、Prompt 版本、模型名称、traceId、耗时、Token 用量、成功状态、错误类型和失败原因。运营看板支持按场景和 Prompt 版本查看：
+`ai_model_call_log` 记录每次模型调用的 operation、Prompt 版本、模型名称、traceId、耗时、Token 用量、Prompt 字符数、裁剪字符数、成功状态、错误类型和失败原因。运营看板支持按场景和 Prompt 版本查看：
 
 - 模型调用样本量
 - 调用模型名称
 - 成功率
 - 平均耗时
 - 输入 Token、输出 Token、总 Token 与平均 Token
+- 平均输入长度、上下文裁剪次数和累计减少字符数
 - 失败原因分布
 - 结构化失败样例
 - 最近模型调用日志
@@ -169,7 +170,7 @@ docker compose up -d
 
 依赖包括 MySQL、Redis、Milvus、etcd、MinIO。首次启动会自动执行 `sql/init.sql`。
 
-若已有旧数据卷，需要按顺序执行 `sql/migration-v2` 到 `sql/migration-v9`。
+若已有旧数据卷，需要按顺序执行 `sql/migration-v2` 到 `sql/migration-v10`。
 
 ### 3. 启动后端
 
@@ -215,8 +216,8 @@ powershell -ExecutionPolicy Bypass -File scripts/demo-flow.ps1
 
 后续不继续堆概念，优先围绕真实企业场景补能力：
 
-- 成本观测：已打通 Spring AI / DashScope 官方 token usage 落库，后续在运营看板按 operation 展示输入 token、输出 token、总 token 和模型名称。
-- 上下文预算：为 Prompt、RAG 上下文、AI 顾问工具返回和对话历史设置最大预算，降低 token 成本和无关上下文干扰。
+- 成本观测：已打通 Spring AI / DashScope 官方 token usage 落库，并在运营看板按 operation 展示输入 token、输出 token、总 token 和模型名称。
+- 上下文预算：已为 Prompt、RAG 上下文、AI 顾问工具返回和对话历史设置最大预算，降低 token 成本和无关上下文干扰。
 - 对话摘要：当 AI 顾问多轮对话变长时，保留“会话摘要 + 最近消息”，减少历史消息无限拼接。
 - 语音面试陪练：通过官方 ASR 能力把语音回答转写成文本，复用现有回答评估链路，并补充语速、停顿和表达完整度建议。
 - 截图 OCR：支持 JD 截图、招聘软件截图、简历截图 OCR，降低用户输入成本，再复用岗位匹配和简历诊断流程。
