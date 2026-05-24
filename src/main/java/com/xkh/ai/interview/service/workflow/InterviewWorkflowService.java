@@ -2,12 +2,14 @@ package com.xkh.ai.interview.service.workflow;
 
 import com.xkh.ai.interview.service.agent.AnswerEvaluationAgent;
 import com.xkh.ai.interview.service.agent.InterviewQuestionAgent;
+import com.xkh.ai.interview.service.agent.JobDescriptionImageOcrAgent;
 import com.xkh.ai.interview.service.agent.JobDescriptionMatchAgent;
 import com.xkh.ai.interview.service.agent.RagInterviewQuestionAgent;
 import com.xkh.ai.interview.service.agent.ResumeAnalysisAgent;
 import com.xkh.ai.interview.dto.InterviewEvaluationDTO;
 import com.xkh.ai.interview.dto.InterviewQuestionsDTO;
 import com.xkh.ai.interview.dto.InterviewSessionInfoDTO;
+import com.xkh.ai.interview.dto.JobDescriptionOcrResultDTO;
 import com.xkh.ai.interview.dto.JobDescriptionMatchResultDTO;
 import com.xkh.ai.interview.dto.ResumeDataDTO;
 import com.xkh.ai.interview.dto.ResumeUploadResultDTO;
@@ -37,6 +39,7 @@ public class InterviewWorkflowService {
     private final InterviewQuestionAgent interviewQuestionAgent;
     private final AnswerEvaluationAgent answerEvaluationAgent;
     private final JobDescriptionMatchAgent jobDescriptionMatchAgent;
+    private final JobDescriptionImageOcrAgent jobDescriptionImageOcrAgent;
     private final RagInterviewQuestionAgent ragInterviewQuestionAgent;
     private final InterviewSessionService interviewSessionService;
 
@@ -50,6 +53,7 @@ public class InterviewWorkflowService {
                                     InterviewQuestionAgent interviewQuestionAgent,
                                     AnswerEvaluationAgent answerEvaluationAgent,
                                     JobDescriptionMatchAgent jobDescriptionMatchAgent,
+                                    JobDescriptionImageOcrAgent jobDescriptionImageOcrAgent,
                                     RagInterviewQuestionAgent ragInterviewQuestionAgent,
                                     InterviewSessionService interviewSessionService) {
         this.resumeParseTool = resumeParseTool;
@@ -59,6 +63,7 @@ public class InterviewWorkflowService {
         this.interviewQuestionAgent = interviewQuestionAgent;
         this.answerEvaluationAgent = answerEvaluationAgent;
         this.jobDescriptionMatchAgent = jobDescriptionMatchAgent;
+        this.jobDescriptionImageOcrAgent = jobDescriptionImageOcrAgent;
         this.ragInterviewQuestionAgent = ragInterviewQuestionAgent;
         this.interviewSessionService = interviewSessionService;
     }
@@ -88,6 +93,14 @@ public class InterviewWorkflowService {
             interviewSessionService.markFailed(resumeId, "RESUME_ANALYSIS", e);
             throw e;
         }
+    }
+
+    /**
+     * 从招聘软件或网页截图中识别目标岗位说明，识别结果交给用户确认后再做岗位匹配。
+     */
+    public JobDescriptionOcrResultDTO extractJobDescriptionFromImage(MultipartFile file) throws IOException {
+        String jobDescription = jobDescriptionImageOcrAgent.extractJobDescription(file);
+        return new JobDescriptionOcrResultDTO(jobDescription, file.getOriginalFilename(), file.getSize());
     }
 
     /**

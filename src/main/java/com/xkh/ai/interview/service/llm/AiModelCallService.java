@@ -67,10 +67,24 @@ public class AiModelCallService {
      * 调用大模型并记录审计，advisors 由 Spring AI 官方 Advisor 机制处理。
      */
     public String call(String operationName, List<Message> messages, double temperature, List<Advisor> advisors) {
-        String promptVersion = promptVersionRegistry.versionOf(operationName);
-        Prompt prompt = new Prompt(messages, DashScopeChatOptions.builder()
+        return call(operationName, messages, DashScopeChatOptions.builder()
                 .temperature(temperature)
-                .build());
+                .build(), advisors);
+    }
+
+    /**
+     * 调用大模型并记录审计，适用于需要指定模型或多模态参数的任务。
+     */
+    public String call(String operationName, List<Message> messages, DashScopeChatOptions options) {
+        return call(operationName, messages, options, List.of());
+    }
+
+    /**
+     * 调用大模型并记录审计，支持同时指定 DashScope 参数和 Spring AI Advisor。
+     */
+    public String call(String operationName, List<Message> messages, DashScopeChatOptions options, List<Advisor> advisors) {
+        String promptVersion = promptVersionRegistry.versionOf(operationName);
+        Prompt prompt = new Prompt(messages, options == null ? DashScopeChatOptions.builder().build() : options);
 
         long start = System.currentTimeMillis();
         PromptContextBudgetService.ContextUsage contextUsage = contextBudgetService.contextUsageOf(messages);

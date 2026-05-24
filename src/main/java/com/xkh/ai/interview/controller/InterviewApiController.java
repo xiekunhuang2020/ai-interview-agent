@@ -85,6 +85,24 @@ public class InterviewApiController {
     }
 
     /**
+     * 上传岗位截图，并使用视觉模型识别岗位说明文本。
+     */
+    @PostMapping("/api/jd/ocr-image")
+    public ResponseEntity<?> extractJobDescriptionFromImage(@RequestParam("file") MultipartFile file) {
+        try {
+            return ResponseEntity.ok(interviewWorkflowService.extractJobDescriptionFromImage(file));
+        } catch (IllegalArgumentException | IllegalStateException e) {
+            return badRequest(e);
+        } catch (AiModelCallException e) {
+            return aiGatewayError(e);
+        } catch (IOException e) {
+            return serverError("岗位截图识别失败", e, "岗位截图识别失败：" + e.getMessage());
+        } catch (Exception e) {
+            return serverError("岗位截图识别失败", e, "岗位截图识别失败：" + e.getMessage());
+        }
+    }
+
+    /**
      * 查询当前简历工作台数据，包括评分、面试题和评估结果。
      */
     @GetMapping("/api/resume/{resumeId}")
