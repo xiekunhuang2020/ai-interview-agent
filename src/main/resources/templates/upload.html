@@ -69,18 +69,18 @@
                 </div>
             </div>
 
-            <div class="panel upload-panel">
-                <div class="panel-header">
-                    <div>
+            <div class="panel upload-panel jd-panel">
+                <div class="panel-header jd-panel-header">
+                    <div class="jd-panel-title">
                         <h2>目标岗位说明</h2>
                         <p>AI 会以这份岗位要求为参照，判断候选人是否适合投递。</p>
                     </div>
-                    <div class="inline-actions">
-                        <button class="ghost-button" type="button" v-on:click="fillSampleJd" v-bind:disabled="loading.upload || loading.jdOcr">填入示例</button>
-                        <button class="ghost-button" type="button" v-on:click="openJdImagePicker" v-bind:disabled="loading.upload || loading.jdOcr">
-                            {{ loading.jdOcr ? '识别中...' : '上传截图识别' }}
-                        </button>
-                    </div>
+                </div>
+                <div class="jd-toolbar">
+                    <button class="ghost-button compact-button" type="button" v-on:click="fillSampleJd" v-bind:disabled="loading.upload || loading.jdOcr">填入示例</button>
+                    <button class="ghost-button compact-button" type="button" v-on:click="openJdImagePicker" v-bind:disabled="loading.upload || loading.jdOcr">
+                        {{ loading.jdOcr ? '识别中...' : '上传截图识别' }}
+                    </button>
                 </div>
                 <input class="hidden-file-input" ref="jdImageFileInput" type="file" accept="image/png,image/jpeg,image/webp" v-on:change="handleJdImageChange">
                 <textarea class="jd-input upload-jd-input" v-model="jdText" placeholder="粘贴目标岗位说明，也可以上传招聘软件或网页截图识别。建议包含岗位职责、必备技能、加分项和业务方向。"></textarea>

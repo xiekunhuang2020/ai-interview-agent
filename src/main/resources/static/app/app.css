@@ -266,6 +266,13 @@ p {
     text-decoration: none;
 }
 
+.compact-button {
+    min-height: 36px;
+    padding: 0 14px;
+    font-size: 14px;
+    width: auto;
+}
+
 .primary-button {
     background: var(--brand);
     color: #ffffff;
@@ -378,6 +385,24 @@ p {
     margin-top: 5px;
     color: var(--muted);
     font-size: 13px;
+}
+
+.jd-panel-header {
+    display: block;
+    margin-bottom: 6px;
+}
+
+.jd-panel-title {
+    min-width: 0;
+}
+
+.jd-toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 10px;
+    margin-bottom: 2px;
+    white-space: nowrap;
 }
 
 .pill {

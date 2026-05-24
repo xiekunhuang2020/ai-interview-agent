@@ -58,11 +58,20 @@ public class AiModelCallAuditRecorder {
      * 从 Spring AI 官方 ChatResponse metadata 中读取模型名称和 token usage。
      */
     public ModelUsage usageOf(ChatResponse response) {
+        return usageOf(response, null);
+    }
+
+    /**
+     * 从 Spring AI 官方 ChatResponse metadata 中读取 token usage，并优先记录本次请求指定的模型。
+     */
+    public ModelUsage usageOf(ChatResponse response, String requestedModelName) {
+        String modelName = StringUtils.defaultIfBlank(requestedModelName, configuredModelName);
         if (response == null || response.getMetadata() == null) {
-            return null;
+            return StringUtils.isBlank(modelName) ? null : new ModelUsage(modelName, null, null, null);
         }
 
-        String modelName = StringUtils.defaultIfBlank(response.getMetadata().getModel(), configuredModelName);
+        modelName = StringUtils.defaultIfBlank(requestedModelName,
+                StringUtils.defaultIfBlank(response.getMetadata().getModel(), configuredModelName));
         Usage usage = response.getMetadata().getUsage();
         if (usage == null) {
             return StringUtils.isBlank(modelName) ? null : new ModelUsage(modelName, null, null, null);

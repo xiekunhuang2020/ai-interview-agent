@@ -98,7 +98,7 @@ public class AiModelCallService {
             logger.info("AI model call succeeded, operation={}, promptVersion={}, latencyMs={}",
                     operationName, promptVersion, latencyMs);
             auditRecorder.record(operationName, promptVersion, true, 1, latencyMs,
-                    (String) null, auditRecorder.usageOf(response), contextUsage);
+                    (String) null, auditRecorder.usageOf(response, requestedModelName(options)), contextUsage);
             return text;
         } catch (RuntimeException e) {
             long latencyMs = System.currentTimeMillis() - start;
@@ -175,6 +175,13 @@ public class AiModelCallService {
                 .advisors(advisors)
                 .call()
                 .chatResponse();
+    }
+
+    /**
+     * 读取本次请求显式指定的模型名称，让多模态调用看板展示请求模型而不是默认聊天模型。
+     */
+    private String requestedModelName(DashScopeChatOptions options) {
+        return options == null ? null : options.getModel();
     }
 
     /**
