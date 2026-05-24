@@ -4,6 +4,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.xkh.ai.interview.dto.ResumeScoreResultDTO;
 import com.xkh.ai.interview.service.llm.AiJsonResponseParser;
 import com.xkh.ai.interview.service.llm.AiModelCallService;
+import com.xkh.ai.interview.service.llm.AiStructuredOutputException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.ai.chat.messages.Message;
@@ -24,6 +25,7 @@ import java.util.Map;
 public class ResumeAnalysisAgent {
 
     private static final Logger logger = LoggerFactory.getLogger(ResumeAnalysisAgent.class);
+    private static final String OPERATION_NAME = "resume-analysis";
 
     private final AiModelCallService aiModelCallService;
     private final AiJsonResponseParser responseParser;
@@ -48,9 +50,12 @@ public class ResumeAnalysisAgent {
         PromptTemplate promptTemplate = new PromptTemplate(userPromptResource.getContentAsString(StandardCharsets.UTF_8));
         messages.add(new UserMessage(promptTemplate.render(Map.of("resumeText", resumeText))));
 
-        String response = aiModelCallService.call("resume-analysis", messages, 0.7);
+        String response = aiModelCallService.call(OPERATION_NAME, messages, 0.7);
         try {
             return responseParser.parseResumeScoreResult(response);
+        } catch (AiStructuredOutputException e) {
+            aiModelCallService.recordStructuredOutputFailure(OPERATION_NAME, e);
+            throw e;
         } catch (JsonProcessingException e) {
             throw new IllegalStateException("简历评分结果解析失败", e);
         }

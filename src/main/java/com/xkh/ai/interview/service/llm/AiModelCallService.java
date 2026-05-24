@@ -71,6 +71,14 @@ public class AiModelCallService {
     }
 
     /**
+     * 模型调用已成功但结构化解析失败时，补记一条失败审计，避免看板误判为全链路成功。
+     */
+    public void recordStructuredOutputFailure(String operationName, AiStructuredOutputException error) {
+        auditRecorder.record(operationName, promptVersionRegistry.versionOf(operationName),
+                false, 1, 0L, error);
+    }
+
+    /**
      * 按是否存在 Advisor 选择 Spring AI 调用链，避免业务层自己处理 RAG 注入细节。
      */
     private String doCall(Prompt prompt, List<Advisor> advisors) {

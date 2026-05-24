@@ -5,6 +5,7 @@ import com.xkh.ai.interview.dto.InterviewEvaluationDTO;
 import com.xkh.ai.interview.dto.InterviewQuestionsDTO;
 import com.xkh.ai.interview.service.llm.AiJsonResponseParser;
 import com.xkh.ai.interview.service.llm.AiModelCallService;
+import com.xkh.ai.interview.service.llm.AiStructuredOutputException;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -23,6 +24,7 @@ import java.util.Map;
 public class AnswerEvaluationAgent {
 
     private static final Logger logger = LoggerFactory.getLogger(AnswerEvaluationAgent.class);
+    private static final String OPERATION_NAME = "answer-evaluation";
 
     private final AiModelCallService aiModelCallService;
     private final AiJsonResponseParser responseParser;
@@ -42,9 +44,12 @@ public class AnswerEvaluationAgent {
         messages.add(new SystemMessage(systemPromptResource));
         messages.add(new UserMessage(buildUserPrompt(resumeText, questions, answers)));
 
-        String response = aiModelCallService.call("answer-evaluation", messages, 0.7);
+        String response = aiModelCallService.call(OPERATION_NAME, messages, 0.7);
         try {
             return responseParser.parseInterviewEvaluation(response);
+        } catch (AiStructuredOutputException e) {
+            aiModelCallService.recordStructuredOutputFailure(OPERATION_NAME, e);
+            throw e;
         } catch (JsonProcessingException e) {
             throw new IllegalStateException("面试评估结果解析失败", e);
         }

@@ -3,6 +3,7 @@ package com.xkh.ai.interview.controller;
 import com.xkh.ai.interview.dto.AgentChatRequestDTO;
 import com.xkh.ai.interview.dto.JobDescriptionRequestDTO;
 import com.xkh.ai.interview.dto.ResumeDataDTO;
+import com.xkh.ai.interview.config.RequestTraceFilter;
 import com.xkh.ai.interview.service.agent.InterviewAssistantAgentService;
 import com.xkh.ai.interview.service.audit.AgentConversationAuditQueryService;
 import com.xkh.ai.interview.service.audit.AiModelCallAuditQueryService;
@@ -11,8 +12,10 @@ import com.xkh.ai.interview.service.llm.AiStructuredOutputException;
 import com.xkh.ai.interview.service.rag.PromptRagEvaluationService;
 import com.xkh.ai.interview.service.rag.RagRecallEvaluationService;
 import com.xkh.ai.interview.service.workflow.InterviewWorkflowService;
+import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.slf4j.MDC;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -306,7 +309,23 @@ public class InterviewApiController {
      */
     private ResponseEntity<Map<String, String>> aiGatewayError(RuntimeException e) {
         logger.warn("AI gateway error", e);
+        if (e instanceof AiStructuredOutputException structuredOutputException) {
+            return structuredOutputError(structuredOutputException);
+        }
         return error(HttpStatus.BAD_GATEWAY, e.getMessage());
+    }
+
+    /**
+     * 返回字段级结构化输出错误，方便前端直接展示 schema、字段、原因和 traceId。
+     */
+    private ResponseEntity<Map<String, String>> structuredOutputError(AiStructuredOutputException e) {
+        Map<String, String> body = new LinkedHashMap<>();
+        body.put("error", e.getMessage());
+        putIfNotBlank(body, "schemaName", e.getSchemaName());
+        putIfNotBlank(body, "fieldPath", e.getFieldPath());
+        putIfNotBlank(body, "failureReason", e.getFailureReason());
+        putIfNotBlank(body, "traceId", MDC.get(RequestTraceFilter.TRACE_ID_KEY));
+        return ResponseEntity.status(HttpStatus.BAD_GATEWAY).body(body);
     }
 
     /**
@@ -314,6 +333,15 @@ public class InterviewApiController {
      */
     private ResponseEntity<Map<String, String>> error(HttpStatus status, String message) {
         return ResponseEntity.status(status).body(Map.of("error", message));
+    }
+
+    /**
+     * 只写入非空字段，避免错误响应里出现空字符串干扰阅读。
+     */
+    private void putIfNotBlank(Map<String, String> body, String key, String value) {
+        if (StringUtils.isNotBlank(value)) {
+            body.put(key, value);
+        }
     }
 }
 

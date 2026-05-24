@@ -4,6 +4,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.xkh.ai.interview.dto.InterviewQuestionsDTO;
 import com.xkh.ai.interview.service.llm.AiJsonResponseParser;
 import com.xkh.ai.interview.service.llm.AiModelCallService;
+import com.xkh.ai.interview.service.llm.AiStructuredOutputException;
 import com.xkh.ai.interview.service.rag.ResumeRagAdvisorFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -21,6 +22,7 @@ import java.util.List;
 public class RagInterviewQuestionAgent {
 
     private static final Logger logger = LoggerFactory.getLogger(RagInterviewQuestionAgent.class);
+    private static final String OPERATION_NAME = "rag-interview-question-generation";
 
     private final AiModelCallService aiModelCallService;
     private final AiJsonResponseParser responseParser;
@@ -63,13 +65,16 @@ public class RagInterviewQuestionAgent {
                 """.formatted(resumeText, jobDescription)));
 
         String response = aiModelCallService.call(
-                "rag-interview-question-generation",
+                OPERATION_NAME,
                 messages,
                 0.7,
                 List.of(ragAdvisorFactory.createAdvisor(resumeId, topK, jobDescription))
         );
         try {
             return responseParser.parseInterviewQuestions(response);
+        } catch (AiStructuredOutputException e) {
+            aiModelCallService.recordStructuredOutputFailure(OPERATION_NAME, e);
+            throw e;
         } catch (JsonProcessingException e) {
             throw new IllegalStateException("岗位定制面试题解析失败", e);
         }

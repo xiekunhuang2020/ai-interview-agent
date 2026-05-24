@@ -1,6 +1,7 @@
 package com.xkh.ai.interview.service.llm;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.MapperFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -85,7 +86,8 @@ public class AiJsonResponseParser {
         try {
             return converter.convert(cleanJsonResponse(json));
         } catch (RuntimeException e) {
-            throw new AiStructuredOutputException("AI 输出不符合 " + schemaName + " 结构：无法转换为目标 DTO", e);
+            StructuredOutputError error = diagnoseConversionFailure(e);
+            throw new AiStructuredOutputException(schemaName, error.fieldPath(), error.reason(), e);
         }
     }
 
@@ -94,13 +96,61 @@ public class AiJsonResponseParser {
      */
     private <T> void validateBean(T result, String schemaName) {
         if (result == null) {
-            throw new AiStructuredOutputException("AI 输出不符合 " + schemaName + " 结构：转换结果为空");
+            throw new AiStructuredOutputException(schemaName, "root", "转换结果为空", null);
         }
 
         Set<ConstraintViolation<T>> violations = validator.validate(result);
         if (!violations.isEmpty()) {
-            throw new AiStructuredOutputException("AI 输出不符合 " + schemaName + " 结构：" + formatViolations(violations));
+            ConstraintViolation<T> firstViolation = firstViolation(violations);
+            throw new AiStructuredOutputException(
+                    schemaName,
+                    firstViolation.getPropertyPath().toString(),
+                    formatViolations(violations),
+                    null
+            );
         }
+    }
+
+    /**
+     * 从 Jackson 异常链中提取字段路径和转换失败原因。
+     */
+    private StructuredOutputError diagnoseConversionFailure(Throwable error) {
+        JsonMappingException mappingException = findCause(error, JsonMappingException.class);
+        if (mappingException == null) {
+            return new StructuredOutputError("root", "无法转换为目标 DTO");
+        }
+        String fieldPath = mappingException.getPath().stream()
+                .map(reference -> reference.getFieldName() == null
+                        ? "[" + reference.getIndex() + "]"
+                        : reference.getFieldName())
+                .collect(Collectors.joining("."));
+        return new StructuredOutputError(
+                fieldPath.isBlank() ? "root" : fieldPath,
+                simplifyJsonError(mappingException.getOriginalMessage())
+        );
+    }
+
+    /**
+     * 在异常链中查找指定类型的异常。
+     */
+    private <T extends Throwable> T findCause(Throwable error, Class<T> targetType) {
+        Throwable current = error;
+        while (current != null) {
+            if (targetType.isAssignableFrom(current.getClass())) {
+                return targetType.cast(current);
+            }
+            current = current.getCause();
+        }
+        return null;
+    }
+
+    /**
+     * 取字段校验失败中的第一个错误，用于填充单独的字段路径。
+     */
+    private <T> ConstraintViolation<T> firstViolation(Set<ConstraintViolation<T>> violations) {
+        return violations.stream()
+                .min(Comparator.comparing(violation -> violation.getPropertyPath().toString()))
+                .orElseThrow();
     }
 
     /**
@@ -129,5 +179,20 @@ public class AiJsonResponseParser {
         }
 
         return cleaned.trim();
+    }
+
+    /**
+     * 裁剪 Jackson 原始异常，避免前端暴露过长的底层类型信息。
+     */
+    private String simplifyJsonError(String message) {
+        if (message == null || message.isBlank()) {
+            return "无法转换为目标 DTO";
+        }
+        int lineInfoIndex = message.indexOf(" at [Source:");
+        String simplified = lineInfoIndex > 0 ? message.substring(0, lineInfoIndex) : message;
+        return simplified.length() > 160 ? simplified.substring(0, 160) : simplified;
+    }
+
+    private record StructuredOutputError(String fieldPath, String reason) {
     }
 }

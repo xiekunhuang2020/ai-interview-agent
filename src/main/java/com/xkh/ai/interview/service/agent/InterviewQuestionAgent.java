@@ -4,6 +4,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.xkh.ai.interview.dto.InterviewQuestionsDTO;
 import com.xkh.ai.interview.service.llm.AiJsonResponseParser;
 import com.xkh.ai.interview.service.llm.AiModelCallService;
+import com.xkh.ai.interview.service.llm.AiStructuredOutputException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.ai.chat.messages.Message;
@@ -20,6 +21,7 @@ import java.util.List;
 public class InterviewQuestionAgent {
 
     private static final Logger logger = LoggerFactory.getLogger(InterviewQuestionAgent.class);
+    private static final String OPERATION_NAME = "interview-question-generation";
 
     private final AiModelCallService aiModelCallService;
     private final AiJsonResponseParser responseParser;
@@ -50,9 +52,12 @@ public class InterviewQuestionAgent {
                 %s
                 """.formatted(resumeText)));
 
-        String response = aiModelCallService.call("interview-question-generation", messages, 0.7);
+        String response = aiModelCallService.call(OPERATION_NAME, messages, 0.7);
         try {
             return responseParser.parseInterviewQuestions(response);
+        } catch (AiStructuredOutputException e) {
+            aiModelCallService.recordStructuredOutputFailure(OPERATION_NAME, e);
+            throw e;
         } catch (JsonProcessingException e) {
             throw new IllegalStateException("面试问题解析失败", e);
         }
