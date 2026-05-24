@@ -1,0 +1,13 @@
+[
+  {
+    "caseId": "ai-agent-java-001",
+    "name": "AI 应用开发岗位回放",
+    "resumeFile": "samples/ai-application-resume.txt",
+    "jobDescriptionFile": "samples/java-ai-agent-jd.txt",
+    "referenceResumeFiles": [
+      "samples/java-backend-resume.txt",
+      "samples/platform-backend-resume.txt"
+    ],
+    "topK": 5
+  }
+]

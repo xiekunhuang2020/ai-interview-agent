@@ -8,6 +8,7 @@ import com.xkh.ai.interview.service.audit.AgentConversationAuditQueryService;
 import com.xkh.ai.interview.service.audit.AiModelCallAuditQueryService;
 import com.xkh.ai.interview.service.llm.AiModelCallException;
 import com.xkh.ai.interview.service.llm.AiStructuredOutputException;
+import com.xkh.ai.interview.service.rag.PromptRagEvaluationService;
 import com.xkh.ai.interview.service.rag.RagRecallEvaluationService;
 import com.xkh.ai.interview.service.workflow.InterviewWorkflowService;
 import org.slf4j.Logger;
@@ -43,6 +44,7 @@ public class InterviewApiController {
     private final InterviewAssistantAgentService interviewAssistantAgentService;
     private final AgentConversationAuditQueryService agentConversationAuditQueryService;
     private final RagRecallEvaluationService ragRecallEvaluationService;
+    private final PromptRagEvaluationService promptRagEvaluationService;
 
     /**
      * 注入简历工作流、AI 顾问、审计查询和 RAG 评估服务。
@@ -51,12 +53,14 @@ public class InterviewApiController {
                                   AiModelCallAuditQueryService auditQueryService,
                                   InterviewAssistantAgentService interviewAssistantAgentService,
                                   AgentConversationAuditQueryService agentConversationAuditQueryService,
-                                  RagRecallEvaluationService ragRecallEvaluationService) {
+                                  RagRecallEvaluationService ragRecallEvaluationService,
+                                  PromptRagEvaluationService promptRagEvaluationService) {
         this.interviewWorkflowService = interviewWorkflowService;
         this.auditQueryService = auditQueryService;
         this.interviewAssistantAgentService = interviewAssistantAgentService;
         this.agentConversationAuditQueryService = agentConversationAuditQueryService;
         this.ragRecallEvaluationService = ragRecallEvaluationService;
+        this.promptRagEvaluationService = promptRagEvaluationService;
     }
 
     /**
@@ -253,6 +257,22 @@ public class InterviewApiController {
             return badRequest(e);
         } catch (Exception e) {
             return serverError("RAG 召回评估失败", e, "RAG 召回评估失败：" + e.getMessage());
+        }
+    }
+
+    /**
+     * 运行 Prompt/RAG 固定样例评测集，并使用 Spring AI 官方 Evaluator 输出页面报告。
+     */
+    @PostMapping("/api/evaluation/prompt-rag")
+    public ResponseEntity<?> evaluatePromptRag(@RequestParam(defaultValue = "5") int topK) {
+        try {
+            return ResponseEntity.ok(promptRagEvaluationService.evaluate(topK));
+        } catch (IllegalArgumentException | IllegalStateException e) {
+            return badRequest(e);
+        } catch (AiModelCallException | AiStructuredOutputException e) {
+            return aiGatewayError(e);
+        } catch (Exception e) {
+            return serverError("Prompt/RAG 评测失败", e, "Prompt/RAG 评测失败：" + e.getMessage());
         }
     }
 

@@ -5,6 +5,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.springframework.ai.document.Document;
 import org.springframework.ai.vectorstore.SearchRequest;
 import org.springframework.ai.vectorstore.VectorStore;
+import org.springframework.ai.vectorstore.filter.FilterExpressionBuilder;
 import org.springframework.stereotype.Component;
 
 import java.time.LocalDateTime;
@@ -44,6 +45,26 @@ public class ResumeVectorTool {
         List<Document> chunks = withChunkMetadata(textSplitter.split(sourceDocument));
         addInBatches(chunks);
         return chunks.size();
+    }
+
+    /**
+     * 先删除同一 resumeId 的旧向量，再写入新向量，用于固定评测样例回放。
+     */
+    public int replaceResume(String resumeId, String fileName, String resumeText) {
+        deleteResume(resumeId);
+        return addResume(resumeId, fileName, resumeText);
+    }
+
+    /**
+     * 按 resumeId 删除向量片段，避免评测数据重复写入 Milvus。
+     */
+    public void deleteResume(String resumeId) {
+        if (StringUtils.isBlank(resumeId)) {
+            return;
+        }
+        vectorStore.delete(new FilterExpressionBuilder()
+                .eq("resumeId", resumeId)
+                .build());
     }
 
     /**
