@@ -1125,7 +1125,7 @@ p {
 }
 
 .log-row.model-call-row {
-    grid-template-columns: 150px minmax(120px, 1fr) minmax(90px, 0.8fr) 58px minmax(150px, 1fr) 70px minmax(160px, 1fr);
+    grid-template-columns: 150px minmax(110px, 1fr) minmax(90px, 0.75fr) 58px minmax(145px, 1fr) 86px 70px minmax(160px, 1fr);
 }
 
 .log-row.structured-row {
@@ -1171,6 +1171,11 @@ p {
 
 .bad-text {
     color: var(--red);
+    font-weight: 800;
+}
+
+.warn-text {
+    color: #9a6700;
     font-weight: 800;
 }
 

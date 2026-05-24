@@ -724,6 +724,13 @@ function createInterviewApp() {
                 }
                 return `${this.round(numeric)} 字`;
             },
+            // 将上下文裁剪状态转换为最近调用列表中的短文案。
+            formatContextClipping(item) {
+                if (!item || item.contextClipped !== 1) {
+                    return '未裁剪';
+                }
+                return item.clippedChars ? `已裁 ${this.formatCharCount(item.clippedChars)}` : '已裁剪';
+            },
             sessionSummary() {
                 if (!this.session) {
                     return '暂无流程状态';
