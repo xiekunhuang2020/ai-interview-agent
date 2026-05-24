@@ -5,9 +5,30 @@ async function fetchJson(url, options = {}) {
     const text = await response.text();
     const payload = text ? JSON.parse(text) : null;
     if (!response.ok) {
-        throw new Error((payload && payload.error) || `请求失败：${response.status}`);
+        throw new Error(formatApiError(payload, response.status));
     }
     return payload;
+}
+
+// 将后端结构化错误字段拼成用户可读文案。
+function formatApiError(payload, status) {
+    if (!payload) {
+        return `请求失败：${status}`;
+    }
+    const details = [];
+    if (payload.schemaName) {
+        details.push(`结构：${payload.schemaName}`);
+    }
+    if (payload.fieldPath) {
+        details.push(`字段：${payload.fieldPath}`);
+    }
+    if (payload.failureReason) {
+        details.push(`原因：${payload.failureReason}`);
+    }
+    if (payload.traceId) {
+        details.push(`Trace：${payload.traceId}`);
+    }
+    return details.length ? `${payload.error}\n${details.join('；')}` : (payload.error || `请求失败：${status}`);
 }
 
 function createInterviewApp() {
