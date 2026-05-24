@@ -1,10 +1,7 @@
 package com.xkh.ai.interview.service.agent;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.xkh.ai.interview.dto.ResumeScoreResultDTO;
-import com.xkh.ai.interview.service.llm.AiJsonResponseParser;
 import com.xkh.ai.interview.service.llm.AiModelCallService;
-import com.xkh.ai.interview.service.llm.AiStructuredOutputException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.ai.chat.messages.Message;
@@ -28,7 +25,6 @@ public class ResumeAnalysisAgent {
     private static final String OPERATION_NAME = "resume-analysis";
 
     private final AiModelCallService aiModelCallService;
-    private final AiJsonResponseParser responseParser;
 
     @Value("classpath:/prompt/resume-analysis-system.st")
     private Resource systemPromptResource;
@@ -36,11 +32,16 @@ public class ResumeAnalysisAgent {
     @Value("classpath:/prompt/resume-analysis-user.st")
     private Resource userPromptResource;
 
-    public ResumeAnalysisAgent(AiModelCallService aiModelCallService, AiJsonResponseParser responseParser) {
+    /**
+     * 注入统一模型调用服务，结构化转换由 Spring AI ChatClient.entity 完成。
+     */
+    public ResumeAnalysisAgent(AiModelCallService aiModelCallService) {
         this.aiModelCallService = aiModelCallService;
-        this.responseParser = responseParser;
     }
 
+    /**
+     * 分析简历内容，返回评分、优势和优化建议。
+     */
     public ResumeScoreResultDTO analyze(String resumeText) throws IOException {
         logger.info("ResumeAnalysisAgent starts, resumeTextLength={}", resumeText.length());
 
@@ -50,15 +51,6 @@ public class ResumeAnalysisAgent {
         PromptTemplate promptTemplate = new PromptTemplate(userPromptResource.getContentAsString(StandardCharsets.UTF_8));
         messages.add(new UserMessage(promptTemplate.render(Map.of("resumeText", resumeText))));
 
-        String response = aiModelCallService.call(OPERATION_NAME, messages, 0.7);
-        try {
-            return responseParser.parseResumeScoreResult(response);
-        } catch (AiStructuredOutputException e) {
-            aiModelCallService.recordStructuredOutputFailure(OPERATION_NAME, e);
-            throw e;
-        } catch (JsonProcessingException e) {
-            throw new IllegalStateException("简历评分结果解析失败", e);
-        }
+        return aiModelCallService.callEntity(OPERATION_NAME, messages, 0.7, ResumeScoreResultDTO.class);
     }
 }
-

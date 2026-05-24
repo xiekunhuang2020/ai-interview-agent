@@ -129,7 +129,7 @@ public class InterviewQuestionsDTO {
         private String sourceNote = defaultSourceNote(CURRENT_RESUME_FACT);
 
         /**
-         * 兼容基础出题和历史数据的三字段构造方式，来源字段由解析器或业务层补齐。
+         * 兼容基础出题和历史数据的三字段构造方式，来源字段由 DTO 默认值补齐。
          */
         public Question(String question, String type, String category) {
             this(question, type, category, null, null);
