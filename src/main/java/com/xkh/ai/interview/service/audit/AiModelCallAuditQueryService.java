@@ -144,6 +144,16 @@ public class AiModelCallAuditQueryService {
                 .mapToLong(log -> log.getClippedChars() == null ? 0L : log.getClippedChars())
                 .sum();
         double avgPromptChars = contextSampleCalls == 0 ? 0D : totalPromptChars * 1D / contextSampleCalls;
+        long budgetSampleCalls = logs.stream().filter(log -> log.getInputTokenBudget() != null).count();
+        long budgetExceededCalls = logs.stream()
+                .filter(log -> Integer.valueOf(1).equals(log.getBudgetExceeded()))
+                .count();
+        long budgetUncoveredCalls = logs.stream()
+                .filter(log -> Integer.valueOf(1).equals(log.getBudgetUncovered()))
+                .count();
+        long totalInputTokenOverBudget = logs.stream()
+                .mapToLong(log -> log.getInputTokenOverBudget() == null ? 0L : log.getInputTokenOverBudget())
+                .sum();
 
         AiModelCallLogEntity sample = logs.get(0);
         return PromptMetricsResultDTO.builder()
@@ -167,6 +177,10 @@ public class AiModelCallAuditQueryService {
                 .totalPromptChars(totalPromptChars)
                 .totalClippedChars(totalClippedChars)
                 .avgPromptChars(round(avgPromptChars))
+                .budgetSampleCalls(budgetSampleCalls)
+                .budgetExceededCalls(budgetExceededCalls)
+                .budgetUncoveredCalls(budgetUncoveredCalls)
+                .totalInputTokenOverBudget(totalInputTokenOverBudget)
                 .build();
     }
 

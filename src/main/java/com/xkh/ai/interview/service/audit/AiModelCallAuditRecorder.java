@@ -34,6 +34,7 @@ public class AiModelCallAuditRecorder {
     private static final String ERROR_TYPE_UNKNOWN = "UNKNOWN";
 
     private final AiModelCallLogMapper aiModelCallLogMapper;
+    private final PromptContextBudgetService contextBudgetService;
     private final String configuredModelName;
 
     /**
@@ -46,8 +47,10 @@ public class AiModelCallAuditRecorder {
      * 注入模型调用审计表 Mapper，用于把每次模型调用结果写入数据库。
      */
     public AiModelCallAuditRecorder(AiModelCallLogMapper aiModelCallLogMapper,
+                                    PromptContextBudgetService contextBudgetService,
                                     @Value("${spring.ai.dashscope.chat.options.model:qwen-max}") String configuredModelName) {
         this.aiModelCallLogMapper = aiModelCallLogMapper;
+        this.contextBudgetService = contextBudgetService;
         this.configuredModelName = configuredModelName;
     }
 
@@ -190,6 +193,7 @@ public class AiModelCallAuditRecorder {
             log.setPromptVersion(promptVersion);
             fillUsage(log, usage);
             fillContextUsage(log, contextUsage);
+            fillInputBudget(log, operationName, usage, contextUsage);
             log.setSuccess(success ? 1 : 0);
             log.setFallbackUsed(0);
             log.setAttemptCount(attemptCount);
@@ -226,6 +230,28 @@ public class AiModelCallAuditRecorder {
         log.setPromptChars(contextUsage.promptChars());
         log.setClippedChars(contextUsage.clippedChars());
         log.setContextClipped(contextUsage.clipped() ? 1 : 0);
+    }
+
+    /**
+     * 根据真实输入 Token 和场景预算判断本次调用是否超预算、是否未被裁剪策略覆盖。
+     */
+    private void fillInputBudget(AiModelCallLogEntity log,
+                                 String operationName,
+                                 ModelUsage usage,
+                                 PromptContextBudgetService.ContextUsage contextUsage) {
+        Integer inputTokenBudget = contextBudgetService.inputTokenBudgetOf(operationName);
+        if (inputTokenBudget == null || inputTokenBudget <= 0) {
+            return;
+        }
+        log.setInputTokenBudget(inputTokenBudget);
+        if (usage == null || usage.inputTokens() == null) {
+            return;
+        }
+        int overBudget = Math.max(0, usage.inputTokens() - inputTokenBudget);
+        boolean clipped = contextUsage != null && contextUsage.clipped();
+        log.setInputTokenOverBudget(overBudget);
+        log.setBudgetExceeded(overBudget > 0 ? 1 : 0);
+        log.setBudgetUncovered(overBudget > 0 && !clipped ? 1 : 0);
     }
 
     /**

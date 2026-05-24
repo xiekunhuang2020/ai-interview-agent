@@ -1,5 +1,6 @@
 package com.xkh.ai.interview.service.llm;
 
+import lombok.Data;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.ai.chat.messages.Message;
 import org.springframework.ai.document.Document;
@@ -9,10 +10,13 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+@Data
 @Service
 @ConfigurationProperties(prefix = "ai-interview.context-budget")
 public class PromptContextBudgetService {
@@ -60,6 +64,10 @@ public class PromptContextBudgetService {
      * 工具返回单道面试题文本的最大估算 Token 数。
      */
     private int toolQuestionMaxTokens = 160;
+    /**
+     * 每类模型调用的目标输入 Token 预算，用于事后判断真实 usage 是否超预算。
+     */
+    private Map<String, Integer> operationInputTokenBudgets = defaultOperationInputTokenBudgets();
     /**
      * Spring AI 官方 Token 估算器，用于把字符预算升级为 Token 预算。
      */
@@ -155,6 +163,16 @@ public class PromptContextBudgetService {
     }
 
     /**
+     * 查询某个模型调用场景的目标输入 Token 预算，未配置时返回空。
+     */
+    public Integer inputTokenBudgetOf(String operationName) {
+        if (StringUtils.isBlank(operationName) || operationInputTokenBudgets == null) {
+            return null;
+        }
+        return operationInputTokenBudgets.get(operationName);
+    }
+
+    /**
      * 按 Token 预算裁剪文本，并保留可统计的裁剪标记。
      */
     private String limit(String text, int maxTokens) {
@@ -245,84 +263,18 @@ public class PromptContextBudgetService {
         return clippedChars;
     }
 
-    public boolean isEnabled() {
-        return enabled;
-    }
-
-    public void setEnabled(boolean enabled) {
-        this.enabled = enabled;
-    }
-
-    public int getResumeMaxTokens() {
-        return resumeMaxTokens;
-    }
-
-    public void setResumeMaxTokens(int resumeMaxTokens) {
-        this.resumeMaxTokens = resumeMaxTokens;
-    }
-
-    public int getJdMaxTokens() {
-        return jdMaxTokens;
-    }
-
-    public void setJdMaxTokens(int jdMaxTokens) {
-        this.jdMaxTokens = jdMaxTokens;
-    }
-
-    public int getAnswerMaxTokens() {
-        return answerMaxTokens;
-    }
-
-    public void setAnswerMaxTokens(int answerMaxTokens) {
-        this.answerMaxTokens = answerMaxTokens;
-    }
-
-    public int getAssistantUserMessageMaxTokens() {
-        return assistantUserMessageMaxTokens;
-    }
-
-    public void setAssistantUserMessageMaxTokens(int assistantUserMessageMaxTokens) {
-        this.assistantUserMessageMaxTokens = assistantUserMessageMaxTokens;
-    }
-
-    public int getRagDocumentMaxTokens() {
-        return ragDocumentMaxTokens;
-    }
-
-    public void setRagDocumentMaxTokens(int ragDocumentMaxTokens) {
-        this.ragDocumentMaxTokens = ragDocumentMaxTokens;
-    }
-
-    public int getRagTotalMaxTokens() {
-        return ragTotalMaxTokens;
-    }
-
-    public void setRagTotalMaxTokens(int ragTotalMaxTokens) {
-        this.ragTotalMaxTokens = ragTotalMaxTokens;
-    }
-
-    public int getToolResumeSnippetMaxTokens() {
-        return toolResumeSnippetMaxTokens;
-    }
-
-    public void setToolResumeSnippetMaxTokens(int toolResumeSnippetMaxTokens) {
-        this.toolResumeSnippetMaxTokens = toolResumeSnippetMaxTokens;
-    }
-
-    public int getToolSearchSnippetMaxTokens() {
-        return toolSearchSnippetMaxTokens;
-    }
-
-    public void setToolSearchSnippetMaxTokens(int toolSearchSnippetMaxTokens) {
-        this.toolSearchSnippetMaxTokens = toolSearchSnippetMaxTokens;
-    }
-
-    public int getToolQuestionMaxTokens() {
-        return toolQuestionMaxTokens;
-    }
-
-    public void setToolQuestionMaxTokens(int toolQuestionMaxTokens) {
-        this.toolQuestionMaxTokens = toolQuestionMaxTokens;
+    /**
+     * 初始化各场景的输入 Token 目标预算，后续可通过配置覆盖。
+     */
+    private Map<String, Integer> defaultOperationInputTokenBudgets() {
+        Map<String, Integer> budgets = new LinkedHashMap<>();
+        budgets.put("resume-analysis", 3000);
+        budgets.put("jd-match", 3500);
+        budgets.put("interview-question-generation", 4000);
+        budgets.put("rag-interview-question-generation", 4000);
+        budgets.put("answer-evaluation", 4000);
+        budgets.put("interview-assistant-stream", 2500);
+        return budgets;
     }
 
     public record ContextUsage(Integer promptChars, Integer clippedChars, boolean clipped) {

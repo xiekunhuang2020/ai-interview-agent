@@ -74,6 +74,26 @@ public class AiModelCallLogEntity {
     private Integer totalTokens;
 
     /**
+     * 当前调用场景配置的目标输入 Token 预算。
+     */
+    private Integer inputTokenBudget;
+
+    /**
+     * 输入 Token 超出目标预算的数量，未超出时为 0。
+     */
+    private Integer inputTokenOverBudget;
+
+    /**
+     * 输入 Token 是否超过目标预算，1 表示超出，0 表示未超出。
+     */
+    private Integer budgetExceeded;
+
+    /**
+     * 输入超预算但上下文未被裁剪，1 表示当前预算策略没有覆盖到主要消耗。
+     */
+    private Integer budgetUncovered;
+
+    /**
      * 最终发送给模型的 Prompt 字符数，用于观察上下文长度。
      */
     private Integer promptChars;

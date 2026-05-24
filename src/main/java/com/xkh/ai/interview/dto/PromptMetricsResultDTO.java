@@ -109,5 +109,25 @@ public class PromptMetricsResultDTO {
      * 有上下文样本的平均 Prompt 字符数。
      */
     private Double avgPromptChars;
+
+    /**
+     * 有输入 Token 预算的调用次数。
+     */
+    private Long budgetSampleCalls;
+
+    /**
+     * 输入 Token 超过预算的调用次数。
+     */
+    private Long budgetExceededCalls;
+
+    /**
+     * 输入超预算但未发生上下文裁剪的调用次数。
+     */
+    private Long budgetUncoveredCalls;
+
+    /**
+     * 当前分组累计输入 Token 超预算数量。
+     */
+    private Long totalInputTokenOverBudget;
 }
 
