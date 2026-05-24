@@ -46,6 +46,7 @@ spring:
       api-key: ${DASHSCOPE_API_KEY:fake-key}
       chat:
         options:
+          model: ${DASHSCOPE_CHAT_MODEL:qwen-max}
           enable-thinking: true
       embedding:
         options:
@@ -81,6 +82,7 @@ ai-interview:
       answer-evaluation: answer-evaluation-v2026-05-17-01
       jd-match: jd-match-v2026-05-17-01
       rag-interview-question-generation: rag-question-v2026-05-17-01
+      interview-assistant-stream: assistant-stream-v2026-05-24-01
 
 mybatis-plus:
   mapper-locations: classpath*:/mapper/**/*.xml

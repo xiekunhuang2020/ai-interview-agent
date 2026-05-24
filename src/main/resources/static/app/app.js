@@ -688,6 +688,13 @@ function createInterviewApp() {
                 }
                 return `${this.round(numeric)}`;
             },
+            // 将单次调用的输入、输出和总 Token 拼成审计表展示文案。
+            formatTokenBreakdown(item) {
+                if (!item || (!item.inputTokens && !item.outputTokens && !item.totalTokens)) {
+                    return '--';
+                }
+                return `入 ${this.formatTokenCount(item.inputTokens)} / 出 ${this.formatTokenCount(item.outputTokens)} / 总 ${this.formatTokenCount(item.totalTokens)}`;
+            },
             sessionSummary() {
                 if (!this.session) {
                     return '暂无流程状态';
@@ -702,7 +709,8 @@ function createInterviewApp() {
                     'jd-match': '岗位匹配',
                     'interview-question-generation': '面试题生成',
                     'rag-interview-question-generation': '岗位定制出题',
-                    'answer-evaluation': '回答评估'
+                    'answer-evaluation': '回答评估',
+                    'interview-assistant-stream': 'AI 顾问流式对话'
                 };
                 return map[operationName] || '其他调用';
             },
