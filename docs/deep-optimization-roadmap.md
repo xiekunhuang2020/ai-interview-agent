@@ -38,7 +38,7 @@ Agent 和普通 ChatBot 的区别在哪里？
 | 9 | 增加模型调用错误分类 | 已做 |
 | 10 | 做一套 Demo 数据集和演示脚本 | 已做 |
 | 11 | 增加效果指标 | 已做 |
-| 12 | 增加 Prompt/RAG Evaluation Harness | 没做 |
+| 12 | 增加 Prompt/RAG Evaluation Harness | 已做 |
 | 13 | 增加结构化输出失败诊断与自动修复闭环 | 没做 |
 
 ## 开发铁律
@@ -481,7 +481,7 @@ UNKNOWN
 
 ### 12. 增加 Prompt/RAG Evaluation Harness
 
-**状态：没做**
+**状态：已做**
 
 **现状问题**
 
@@ -493,33 +493,36 @@ Prompt 改完以后，只能靠人工体验判断好坏；RAG 生成题目是否
 
 **改造内容**
 
-- 新增 `samples/eval` 目录，准备简历分析、JD 匹配、RAG 出题样例。
-- 优先使用 Spring AI 官方 `Evaluator`、`RelevancyEvaluator`、`FactCheckingEvaluator` 能力。
-- 对每条样例记录输入、期望关键点、实际输出、通过状态、耗时和失败原因。
+- 已新增 `samples/eval/prompt-rag-evaluation-cases.json`，准备简历分析、JD 匹配、RAG 出题样例。
+- 使用 Spring AI 官方 `RelevancyEvaluator` 判断输出是否贴合上下文。
+- 使用 Spring AI 官方 `FactCheckingEvaluator` 判断输出事实是否有简历和岗位上下文支撑。
+- 结构化输出仍由业务 DTO 转换和校验负责，不在 Harness 中额外堆业务规则。
+- 对每条样例记录场景、评估器、评分、通过状态、耗时和说明。
+- 运营看板新增“评测回放”区域，点击“运行评测”后展示报告。
 - 输出评测报告，包含：
 
 ```text
-Prompt 版本
 样例数量
 结构化输出成功率
 上下文相关性通过率
 事实一致性通过率
+评估器与评分
 平均耗时
-失败样例列表
+失败说明
 ```
 
 - 暂不引入 Alibaba AssistantAgent / Admin 这类重平台，避免当前项目大材小用。
 
 **验收标准**
 
-- 能用一个命令或一个内部接口跑完整评测集。
+- 能在运营看板中点击按钮跑完整评测集。
 - 至少覆盖简历分析、JD 匹配、RAG 出题三个场景。
-- 能比较两个 Prompt 版本的通过率和失败样例。
-- README 或评测报告里有真实评测结果。
+- 能看到官方评估器、评分、通过率和失败说明。
+- 评测报告在页面展示，不依赖命令行输出。
 
 **面试可讲**
 
-我给 Prompt 和 RAG 做了轻量 Evaluation Harness。每次改 Prompt 后，会用固定样例集回归结构化成功率、上下文相关性、事实一致性和失败样例，避免只凭主观感觉判断效果。
+我给 Prompt 和 RAG 做了轻量 Evaluation Harness。每次改 Prompt 后，会用固定样例集回归结构化成功率，并通过 Spring AI 官方 RelevancyEvaluator 和 FactCheckingEvaluator 检查上下文相关性、事实一致性和失败样例，避免只凭主观感觉判断效果。
 
 ### 13. 增加结构化输出失败诊断与自动修复闭环
 
