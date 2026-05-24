@@ -77,6 +77,50 @@
                 </div>
             </section>
 
+            <section class="panel wide-panel">
+                <div class="panel-header">
+                    <div>
+                        <h2>评测回放</h2>
+                        <p>使用固定简历和岗位样例，回放简历分析、岗位匹配和 RAG 出题，并调用 Spring AI 官方评估器。</p>
+                    </div>
+                    <div class="inline-actions">
+                        <label class="compact-field">
+                            召回数量
+                            <input class="number-input" type="number" min="1" max="20" v-model.number="harness.topK">
+                        </label>
+                        <button class="primary-button" type="button" v-on:click="runPromptRagEvaluation" v-bind:disabled="loading.harness">
+                            {{ loading.harness ? '评测中...' : '运行评测' }}
+                        </button>
+                    </div>
+                </div>
+
+                <div class="effect-grid compact-effect-grid" v-if="harness.report">
+                    <article class="effect-item" v-for="card in harnessSummaryCards" v-bind:key="card.label">
+                        <span>{{ card.label }}</span>
+                        <strong>{{ card.value }}</strong>
+                        <p>{{ card.note }}</p>
+                    </article>
+                </div>
+
+                <div class="eval-table" v-if="harness.report">
+                    <div class="eval-row head">
+                        <span>样例</span><span>场景</span><span>维度</span><span>评估器</span><span>状态</span><span>评分</span><span>耗时</span><span>说明</span>
+                    </div>
+                    <div class="eval-row" v-for="check in safeList(harness.report.checks)" v-bind:key="check.caseId + check.scenario + check.dimension + check.evaluatorName">
+                        <span>{{ check.caseName }}</span>
+                        <span>{{ check.scenario }}</span>
+                        <span>{{ check.dimension }}</span>
+                        <span>{{ check.evaluatorName || '--' }}</span>
+                        <span v-bind:class="check.passed ? 'ok-text' : 'bad-text'">{{ check.passed ? '通过' : '失败' }}</span>
+                        <span>{{ check.score === null || check.score === undefined ? '--' : `${round(Number(check.score) * 100)}%` }}</span>
+                        <span>{{ formatLatency(check.latencyMs) }}</span>
+                        <span>{{ check.message || '--' }}</span>
+                    </div>
+                </div>
+
+                <p class="muted empty-line" v-if="!harness.report && !loading.harness">暂无评测结果，点击“运行评测”后查看。</p>
+            </section>
+
             <div class="panel">
                 <div class="panel-header"><div><h2>提示词指标</h2><p>{{ audit.metrics.length }} 组</p></div></div>
                 <div class="metric-table">

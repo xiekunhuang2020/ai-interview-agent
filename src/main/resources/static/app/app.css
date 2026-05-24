@@ -990,6 +990,11 @@ p {
     gap: 12px;
 }
 
+.compact-effect-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    margin-bottom: 16px;
+}
+
 .effect-item {
     min-height: 118px;
     border: 1px solid var(--line);
@@ -1019,6 +1024,41 @@ p {
     color: var(--muted);
     font-size: 12px;
     line-height: 1.5;
+}
+
+.compact-field {
+    min-width: 120px;
+    color: var(--muted);
+    font-size: 12px;
+    font-weight: 800;
+}
+
+.compact-field .number-input {
+    margin: 4px 0 0;
+}
+
+.eval-table {
+    display: grid;
+    gap: 0;
+}
+
+.eval-row {
+    display: grid;
+    grid-template-columns: minmax(120px, 1fr) 110px 110px 170px 70px 70px 90px minmax(180px, 1.6fr);
+    gap: 10px;
+    align-items: center;
+    min-height: 44px;
+    border-bottom: 1px solid var(--line);
+    font-size: 13px;
+}
+
+.eval-row.head {
+    color: var(--muted);
+    font-weight: 800;
+}
+
+.eval-row span {
+    overflow-wrap: anywhere;
 }
 
 .metric-row,
@@ -1152,6 +1192,10 @@ p {
         grid-template-columns: repeat(2, minmax(0, 1fr));
     }
 
+    .compact-effect-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
     .interview-tools {
         position: static;
     }
@@ -1187,14 +1231,16 @@ p {
     }
 
     .metric-row,
-    .log-row {
+    .log-row,
+    .eval-row {
         grid-template-columns: 1fr;
         gap: 4px;
         padding: 10px 0;
     }
 
     .metric-row.head,
-    .log-row.head {
+    .log-row.head,
+    .eval-row.head {
         display: none;
     }
 

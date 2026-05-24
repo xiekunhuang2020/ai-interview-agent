@@ -49,6 +49,10 @@ function createInterviewApp() {
                     ragRecall: null,
                     ragError: ''
                 },
+                harness: {
+                    topK: 5,
+                    report: null
+                },
                 loading: {
                     upload: false,
                     workspace: false,
@@ -56,7 +60,8 @@ function createInterviewApp() {
                     questions: false,
                     evaluation: false,
                     chat: false,
-                    ops: false
+                    ops: false,
+                    harness: false
                 },
                 uploadStage: '',
                 globalError: '',
@@ -165,6 +170,20 @@ function createInterviewApp() {
                         value: questionMetric ? `${this.round(questionMetric.successRate)}%` : '--',
                         note: questionMetric ? `均耗时 ${this.formatLatency(questionMetric.avgLatencyMs)}` : '暂无样本'
                     }
+                ];
+            },
+            harnessSummaryCards() {
+                const report = this.harness.report;
+                if (!report) {
+                    return [];
+                }
+                return [
+                    { label: '评测样例', value: `${report.totalCases || 0} 个`, note: `${report.totalChecks || 0} 个检查点` },
+                    { label: '总通过率', value: `${this.round(report.passRate)}%`, note: `${report.passedChecks || 0} 通过 / ${report.failedCheckCount || 0} 失败` },
+                    { label: '结构化成功率', value: `${this.round(report.structuredOutputSuccessRate)}%`, note: 'DTO 转换与校验' },
+                    { label: '上下文相关性', value: `${this.round(report.contextRelevancePassRate)}%`, note: '官方相关性评估' },
+                    { label: '事实一致性', value: `${this.round(report.factConsistencyPassRate)}%`, note: '官方事实核验' },
+                    { label: '平均耗时', value: this.formatLatency(report.avgLatencyMs), note: report.generatedAt || '--' }
                 ];
             }
         },
@@ -581,6 +600,21 @@ function createInterviewApp() {
                     this.globalError = error.message;
                 } finally {
                     this.loading.ops = false;
+                }
+            },
+            async runPromptRagEvaluation() {
+                this.loading.harness = true;
+                this.globalError = '';
+                try {
+                    const topK = Math.max(1, Math.min(Number(this.harness.topK || 5), 20));
+                    this.harness.topK = topK;
+                    this.harness.report = await fetchJson(`/api/evaluation/prompt-rag?topK=${topK}`, {
+                        method: 'POST'
+                    });
+                } catch (error) {
+                    this.globalError = error.message;
+                } finally {
+                    this.loading.harness = false;
                 }
             },
             safeList(value) {
