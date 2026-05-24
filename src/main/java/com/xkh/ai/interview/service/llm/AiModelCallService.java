@@ -17,7 +17,6 @@ import org.springframework.ai.chat.client.ResponseEntity;
 import org.springframework.ai.chat.client.advisor.StructuredOutputValidationAdvisor;
 import org.springframework.ai.chat.client.advisor.api.Advisor;
 import org.springframework.ai.chat.messages.Message;
-import org.springframework.ai.chat.metadata.Usage;
 import org.springframework.ai.chat.model.ChatResponse;
 import org.springframework.ai.chat.prompt.Prompt;
 import org.springframework.stereotype.Component;
@@ -80,7 +79,8 @@ public class AiModelCallService {
             long latencyMs = System.currentTimeMillis() - start;
             logger.info("AI model call succeeded, operation={}, promptVersion={}, latencyMs={}",
                     operationName, promptVersion, latencyMs);
-            auditRecorder.record(operationName, promptVersion, true, 1, latencyMs, (String) null, usageOf(response));
+            auditRecorder.record(operationName, promptVersion, true, 1, latencyMs,
+                    (String) null, auditRecorder.usageOf(response));
             return text;
         } catch (RuntimeException e) {
             long latencyMs = System.currentTimeMillis() - start;
@@ -120,7 +120,7 @@ public class AiModelCallService {
         try {
             ResponseEntity<ChatResponse, T> responseEntity =
                     doCallEntity(prompt, withStructuredOutputAdvisor(advisors, targetType), targetType);
-            usage = usageOf(responseEntity.getResponse());
+            usage = auditRecorder.usageOf(responseEntity.getResponse());
             T result = responseEntity.getEntity();
             validateEntity(result, targetType);
             long latencyMs = System.currentTimeMillis() - start;
@@ -203,41 +203,6 @@ public class AiModelCallService {
             return "";
         }
         return response.getResult().getOutput().getText();
-    }
-
-    /**
-     * 从 Spring AI 官方 ChatResponse metadata 中读取模型名称和 token usage。
-     */
-    private AiModelCallAuditRecorder.ModelUsage usageOf(ChatResponse response) {
-        if (response == null || response.getMetadata() == null) {
-            return null;
-        }
-
-        String modelName = response.getMetadata().getModel();
-        Usage usage = response.getMetadata().getUsage();
-        if (usage == null) {
-            return StringUtils.isBlank(modelName)
-                    ? null
-                    : new AiModelCallAuditRecorder.ModelUsage(modelName, null, null, null);
-        }
-
-        Integer inputTokens = usage.getPromptTokens();
-        Integer outputTokens = usage.getCompletionTokens();
-        Integer totalTokens = totalTokens(inputTokens, outputTokens, usage.getTotalTokens());
-        return new AiModelCallAuditRecorder.ModelUsage(modelName, inputTokens, outputTokens, totalTokens);
-    }
-
-    /**
-     * 读取官方 totalTokens，缺失时用输入和输出 token 做兼容计算。
-     */
-    private Integer totalTokens(Integer inputTokens, Integer outputTokens, Integer officialTotalTokens) {
-        if (officialTotalTokens != null) {
-            return officialTotalTokens;
-        }
-        if (inputTokens == null && outputTokens == null) {
-            return null;
-        }
-        return (inputTokens == null ? 0 : inputTokens) + (outputTokens == null ? 0 : outputTokens);
     }
 
     /**

@@ -9,6 +9,9 @@ import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.slf4j.MDC;
+import org.springframework.ai.chat.metadata.Usage;
+import org.springframework.ai.chat.model.ChatResponse;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -30,6 +33,7 @@ public class AiModelCallAuditRecorder {
     private static final String ERROR_TYPE_UNKNOWN = "UNKNOWN";
 
     private final AiModelCallLogMapper aiModelCallLogMapper;
+    private final String configuredModelName;
 
     /**
      * 模型调用返回的官方 token usage，用于后续成本观测。
@@ -40,8 +44,30 @@ public class AiModelCallAuditRecorder {
     /**
      * 注入模型调用审计表 Mapper，用于把每次模型调用结果写入数据库。
      */
-    public AiModelCallAuditRecorder(AiModelCallLogMapper aiModelCallLogMapper) {
+    public AiModelCallAuditRecorder(AiModelCallLogMapper aiModelCallLogMapper,
+                                    @Value("${spring.ai.dashscope.chat.options.model:qwen-max}") String configuredModelName) {
         this.aiModelCallLogMapper = aiModelCallLogMapper;
+        this.configuredModelName = configuredModelName;
+    }
+
+    /**
+     * 从 Spring AI 官方 ChatResponse metadata 中读取模型名称和 token usage。
+     */
+    public ModelUsage usageOf(ChatResponse response) {
+        if (response == null || response.getMetadata() == null) {
+            return null;
+        }
+
+        String modelName = StringUtils.defaultIfBlank(response.getMetadata().getModel(), configuredModelName);
+        Usage usage = response.getMetadata().getUsage();
+        if (usage == null) {
+            return StringUtils.isBlank(modelName) ? null : new ModelUsage(modelName, null, null, null);
+        }
+
+        Integer inputTokens = usage.getPromptTokens();
+        Integer outputTokens = usage.getCompletionTokens();
+        Integer totalTokens = totalTokens(inputTokens, outputTokens, usage.getTotalTokens());
+        return new ModelUsage(modelName, inputTokens, outputTokens, totalTokens);
     }
 
     /**
@@ -154,6 +180,19 @@ public class AiModelCallAuditRecorder {
         log.setInputTokens(usage.inputTokens());
         log.setOutputTokens(usage.outputTokens());
         log.setTotalTokens(usage.totalTokens());
+    }
+
+    /**
+     * 读取官方 totalTokens，缺失时用输入和输出 token 做兼容计算。
+     */
+    private Integer totalTokens(Integer inputTokens, Integer outputTokens, Integer officialTotalTokens) {
+        if (officialTotalTokens != null) {
+            return officialTotalTokens;
+        }
+        if (inputTokens == null && outputTokens == null) {
+            return null;
+        }
+        return (inputTokens == null ? 0 : inputTokens) + (outputTokens == null ? 0 : outputTokens);
     }
 
     /**

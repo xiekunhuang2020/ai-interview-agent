@@ -2,13 +2,16 @@ package com.xkh.ai.interview.service.agent;
 
 import com.alibaba.cloud.ai.dashscope.chat.DashScopeChatOptions;
 import com.xkh.ai.interview.dto.AgentChatRequestDTO;
+import com.xkh.ai.interview.service.audit.AiModelCallAuditRecorder;
 import com.xkh.ai.interview.service.audit.AgentConversationAuditRecorder;
+import com.xkh.ai.interview.service.llm.PromptVersionRegistry;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.chat.messages.AssistantMessage;
 import org.springframework.ai.chat.messages.Message;
 import org.springframework.ai.chat.messages.SystemMessage;
 import org.springframework.ai.chat.messages.UserMessage;
+import org.springframework.ai.chat.model.ChatResponse;
 import org.springframework.ai.chat.prompt.Prompt;
 import org.springframework.ai.tool.ToolCallbackProvider;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -25,12 +28,14 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.atomic.AtomicReference;
 
 @Service
 public class InterviewAssistantAgentService {
 
     private static final int MAX_HISTORY_MESSAGES = 10;
     private static final String STREAM_AGENT_NAME = "interview_assistant_stream_agent";
+    private static final String OPERATION_NAME = "interview-assistant-stream";
     private static final String INTERVIEW_ASSISTANT_INSTRUCTION = """
             你是一个 AI 求职顾问，负责围绕候选人简历进行分析、追问设计和面试辅导。
             当用户提供 resumeId 时，应优先调用工具获取真实简历画像、已生成问题或相似简历上下文。
@@ -46,14 +51,20 @@ public class InterviewAssistantAgentService {
     private final ChatClient chatClient;
     private final ToolCallbackProvider resumeToolCallbackProvider;
     private final AgentConversationAuditRecorder conversationAuditRecorder;
+    private final AiModelCallAuditRecorder modelCallAuditRecorder;
+    private final PromptVersionRegistry promptVersionRegistry;
     private final ConcurrentMap<String, Deque<Message>> conversationHistory = new ConcurrentHashMap<>();
 
     public InterviewAssistantAgentService(ChatClient.Builder chatClientBuilder,
                                           @Qualifier("resumeToolCallbackProvider") ToolCallbackProvider resumeToolCallbackProvider,
-                                          AgentConversationAuditRecorder conversationAuditRecorder) {
+                                          AgentConversationAuditRecorder conversationAuditRecorder,
+                                          AiModelCallAuditRecorder modelCallAuditRecorder,
+                                          PromptVersionRegistry promptVersionRegistry) {
         this.chatClient = chatClientBuilder.build();
         this.resumeToolCallbackProvider = resumeToolCallbackProvider;
         this.conversationAuditRecorder = conversationAuditRecorder;
+        this.modelCallAuditRecorder = modelCallAuditRecorder;
+        this.promptVersionRegistry = promptVersionRegistry;
     }
 
     /**
@@ -78,6 +89,8 @@ public class InterviewAssistantAgentService {
             conversationAuditRecorder.recordUserMessage(conversationId, turnId, STREAM_AGENT_NAME, message);
             long start = System.currentTimeMillis();
             StringBuilder answer = new StringBuilder();
+            String promptVersion = promptVersionRegistry.versionOf(OPERATION_NAME);
+            AtomicReference<AiModelCallAuditRecorder.ModelUsage> usageRef = new AtomicReference<>();
             Prompt prompt = new Prompt(buildStreamingMessages(conversationId, message),
                     DashScopeChatOptions.builder()
                             .temperature(0.4)
@@ -91,7 +104,9 @@ public class InterviewAssistantAgentService {
             Flux<ServerSentEvent<Map<String, Object>>> deltas = chatClient.prompt(prompt)
                     .toolCallbacks(resumeToolCallbackProvider)
                     .stream()
-                    .content()
+                    .chatResponse()
+                    .doOnNext(response -> rememberModelUsage(usageRef, response))
+                    .map(this::contentOf)
                     .filter(StringUtils::isNotBlank)
                     .doOnNext(answer::append)
                     .map(chunk -> sse("delta", Map.of("content", chunk)));
@@ -101,15 +116,57 @@ public class InterviewAssistantAgentService {
                 rememberConversation(conversationId, new UserMessage(message), new AssistantMessage(finalAnswer));
                 conversationAuditRecorder.recordAssistantMessage(
                         conversationId, turnId, STREAM_AGENT_NAME, finalAnswer, true, latencyMs, null);
+                modelCallAuditRecorder.record(OPERATION_NAME, promptVersion, true, 1, latencyMs,
+                        (String) null, usageRef.get());
                 return sse("done", Map.of("latencyMs", latencyMs));
             });
 
             return Flux.concat(meta, deltas, done)
                     .onErrorResume(e -> {
                         recordFailedAssistantMessage(conversationId, turnId, STREAM_AGENT_NAME, start, e);
+                        modelCallAuditRecorder.record(OPERATION_NAME, promptVersion, false, 1,
+                                System.currentTimeMillis() - start, e, usageRef.get());
                         return Flux.just(sse("error", Map.of("message", "顾问回答失败：" + e.getMessage())));
                     });
         });
+    }
+
+    /**
+     * 从 Spring AI 官方流式 ChatResponse 中提取文本增量。
+     */
+    private String contentOf(ChatResponse response) {
+        if (response == null || response.getResult() == null || response.getResult().getOutput() == null) {
+            return "";
+        }
+        return response.getResult().getOutput().getText();
+    }
+
+    /**
+     * 保留流式响应中最新的模型名称和 token usage，完成时写入模型调用审计。
+     */
+    private void rememberModelUsage(AtomicReference<AiModelCallAuditRecorder.ModelUsage> usageRef,
+                                    ChatResponse response) {
+        AiModelCallAuditRecorder.ModelUsage currentUsage = modelCallAuditRecorder.usageOf(response);
+        if (currentUsage == null) {
+            return;
+        }
+        usageRef.updateAndGet(previousUsage -> mergeUsage(previousUsage, currentUsage));
+    }
+
+    /**
+     * 合并流式响应分片中的 usage，避免后续分片缺字段时覆盖已有模型名或 token。
+     */
+    private AiModelCallAuditRecorder.ModelUsage mergeUsage(AiModelCallAuditRecorder.ModelUsage previousUsage,
+                                                           AiModelCallAuditRecorder.ModelUsage currentUsage) {
+        if (previousUsage == null) {
+            return currentUsage;
+        }
+        return new AiModelCallAuditRecorder.ModelUsage(
+                StringUtils.defaultIfBlank(currentUsage.modelName(), previousUsage.modelName()),
+                currentUsage.inputTokens() == null ? previousUsage.inputTokens() : currentUsage.inputTokens(),
+                currentUsage.outputTokens() == null ? previousUsage.outputTokens() : currentUsage.outputTokens(),
+                currentUsage.totalTokens() == null ? previousUsage.totalTokens() : currentUsage.totalTokens()
+        );
     }
 
     /**
