@@ -70,6 +70,8 @@ server:
   port: 8080
 
 ai-interview:
+  vision:
+    jd-ocr-model: ${DASHSCOPE_VISION_MODEL:qwen-vl-max}
   agent:
     memory:
       max-messages: ${AI_AGENT_MEMORY_MAX_MESSAGES:10}
@@ -100,6 +102,7 @@ ai-interview:
       answer-evaluation: ${AI_BUDGET_ANSWER_EVALUATION_INPUT_TOKENS:4000}
       interview-assistant-stream: ${AI_BUDGET_INTERVIEW_ASSISTANT_INPUT_TOKENS:2500}
       interview-assistant-summary: ${AI_BUDGET_INTERVIEW_ASSISTANT_SUMMARY_INPUT_TOKENS:1800}
+      jd-image-ocr: ${AI_BUDGET_JD_IMAGE_OCR_INPUT_TOKENS:1800}
   prompt:
     versions:
       resume-analysis: resume-analysis-v2026-05-17-01
@@ -109,6 +112,7 @@ ai-interview:
       rag-interview-question-generation: rag-question-v2026-05-17-01
       interview-assistant-stream: assistant-stream-v2026-05-24-01
       interview-assistant-summary: assistant-summary-v2026-05-24-01
+      jd-image-ocr: jd-image-ocr-v2026-05-24-01
 
 mybatis-plus:
   mapper-locations: classpath*:/mapper/**/*.xml
