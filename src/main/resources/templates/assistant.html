@@ -71,6 +71,7 @@
                     <div><span>简历评分</span><strong>{{ scoreResult ? scoreResult.overallScore : '--' }}</strong></div>
                     <div><span>面试题</span><strong>{{ questions.length || '--' }}</strong></div>
                     <div><span>复盘评分</span><strong>{{ evaluation ? evaluation.overallScore : '--' }}</strong></div>
+                    <div><span>会话压缩</span><strong v-bind:class="assistantSummaryCompressed ? 'ok-text' : 'muted'">{{ assistantSummaryCompressed ? '已压缩' : '未触发' }}</strong></div>
                 </div>
                 <div class="notice info compact-notice" v-if="!resumeId">
                     当前没有绑定简历，AI 顾问只能进行通用咨询。建议从某份简历页面进入顾问。

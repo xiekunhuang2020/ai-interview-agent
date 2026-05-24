@@ -45,6 +45,7 @@
                             <option value="rag-interview-question-generation">岗位定向出题</option>
                             <option value="answer-evaluation">回答评估</option>
                             <option value="interview-assistant-stream">AI 顾问流式对话</option>
+                            <option value="interview-assistant-summary">顾问摘要压缩</option>
                         </select>
                     </label>
                     <label>
@@ -207,7 +208,7 @@
                 <div class="panel-header"><div><h2>最近顾问消息</h2><p>{{ audit.agentMessages.length }} 条</p></div></div>
                 <div class="log-table">
                     <div class="log-row head">
-                        <span>时间</span><span>顾问</span><span>角色</span><span>状态</span><span>内容</span>
+                        <span>时间</span><span>来源</span><span>角色</span><span>状态</span><span>内容</span>
                     </div>
                     <div class="log-row" v-for="item in audit.agentMessages" v-bind:key="item.id">
                         <span>{{ shortTime(item.createTime) }}</span>

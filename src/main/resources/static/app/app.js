@@ -58,6 +58,7 @@ function createInterviewApp() {
                 assistantTypingTarget: null,
                 assistantTypingTimer: null,
                 assistantInputComposing: false,
+                assistantSummaryCompressed: false,
                 audit: {
                     operationName: '',
                     promptVersion: '',
@@ -163,6 +164,7 @@ function createInterviewApp() {
                 const jdMetric = metrics.find((item) => item.operationName === 'jd-match');
                 const questionMetric = metrics.find((item) => item.operationName === 'rag-interview-question-generation')
                     || metrics.find((item) => item.operationName === 'interview-question-generation');
+                const summaryMetric = metrics.find((item) => item.operationName === 'interview-assistant-summary');
                 const ragRecall = this.audit.ragRecall;
 
                 return [
@@ -215,6 +217,11 @@ function createInterviewApp() {
                         label: '策略未覆盖',
                         value: `${budgetUncoveredCalls} 次`,
                         note: budgetUncoveredCalls ? '超预算但没有发生裁剪' : '暂无未覆盖记录'
+                    },
+                    {
+                        label: '摘要压缩次数',
+                        value: `${summaryMetric ? Number(summaryMetric.totalCalls || 0) : 0} 次`,
+                        note: summaryMetric ? `均耗时 ${this.formatLatency(summaryMetric.avgLatencyMs)}` : '暂无摘要压缩记录'
                     },
                     {
                         label: '向量召回命中率',
@@ -537,10 +544,14 @@ function createInterviewApp() {
                     if (this.conversationId) {
                         localStorage.setItem('interviewAgentConversationId', this.conversationId);
                     }
+                    if (Object.prototype.hasOwnProperty.call(payload, 'summaryCompressed')) {
+                        this.assistantSummaryCompressed = Boolean(payload.summaryCompressed);
+                    }
                     assistantMessage.turnId = payload.turnId || '';
                 } else if (eventName === 'delta') {
                     this.enqueueAssistantDelta(assistantMessage, payload.content || '');
                 } else if (eventName === 'done' && payload.summaryCompressed) {
+                    this.assistantSummaryCompressed = true;
                     this.appendAssistantSystemNotice('较早的对话已经压缩成摘要，后续回答会结合摘要和最近消息继续推进。');
                 }
             },
@@ -643,6 +654,7 @@ function createInterviewApp() {
                 this.stopAssistantTyping(false);
                 this.conversationId = '';
                 this.chatMessages = [];
+                this.assistantSummaryCompressed = false;
                 localStorage.removeItem('interviewAgentConversationId');
             },
             async refreshOps() {

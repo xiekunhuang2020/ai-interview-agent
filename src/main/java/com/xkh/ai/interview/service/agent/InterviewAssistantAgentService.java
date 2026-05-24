@@ -133,7 +133,8 @@ public class InterviewAssistantAgentService {
             Flux<ServerSentEvent<Map<String, Object>>> meta = Flux.just(sse("meta", Map.of(
                     "conversationId", conversationId,
                     "turnId", turnId,
-                    "agentName", STREAM_AGENT_NAME
+                    "agentName", STREAM_AGENT_NAME,
+                    "summaryCompressed", hasConversationSummary(conversationId)
             )));
             Flux<ServerSentEvent<Map<String, Object>>> deltas = chatClient.prompt(prompt)
                     .toolCallbacks(resumeToolCallbackProvider)
@@ -220,6 +221,13 @@ public class InterviewAssistantAgentService {
         messages.addAll(chatMemory.get(conversationId));
         messages.add(new UserMessage(message));
         return messages;
+    }
+
+    /**
+     * 判断当前会话是否已经有压缩摘要，用于前端展示会话状态。
+     */
+    private boolean hasConversationSummary(String conversationId) {
+        return StringUtils.isNotBlank(conversationSummaries.get(conversationId));
     }
 
     /**
