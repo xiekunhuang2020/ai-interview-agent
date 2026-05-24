@@ -65,6 +65,7 @@ function createInterviewApp() {
                     ragTopK: 5,
                     metrics: [],
                     failures: [],
+                    structuredFailures: [],
                     modelCalls: [],
                     agentMessages: [],
                     ragRecall: null,
@@ -598,14 +599,18 @@ function createInterviewApp() {
                     if (this.audit.promptVersion.trim()) {
                         params.set('promptVersion', this.audit.promptVersion.trim());
                     }
-                    const [metrics, failures, modelCalls, agentMessages] = await Promise.all([
+                    const structuredParams = new URLSearchParams(params);
+                    structuredParams.set('limit', '10');
+                    const [metrics, failures, structuredFailures, modelCalls, agentMessages] = await Promise.all([
                         fetchJson(`/api/audit/prompt-metrics?${params.toString()}`),
                         fetchJson(`/api/audit/failure-reasons?${params.toString()}`),
+                        fetchJson(`/api/audit/structured-output-failures?${structuredParams.toString()}`),
                         fetchJson('/api/audit/model-calls?limit=20'),
                         fetchJson('/api/audit/agent-messages?limit=20')
                     ]);
                     this.audit.metrics = this.safeList(metrics);
                     this.audit.failures = this.safeList(failures);
+                    this.audit.structuredFailures = this.safeList(structuredFailures);
                     this.audit.modelCalls = this.safeList(modelCalls);
                     this.audit.agentMessages = this.safeList(agentMessages);
                     this.audit.ragError = '';

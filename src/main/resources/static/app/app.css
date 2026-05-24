@@ -1079,6 +1079,10 @@ p {
     grid-template-columns: 150px minmax(120px, 1fr) 58px 70px minmax(160px, 1fr);
 }
 
+.log-row.structured-row {
+    grid-template-columns: 150px minmax(120px, 0.8fr) 80px minmax(190px, 1fr) minmax(260px, 1.8fr);
+}
+
 .metric-row.head,
 .log-row.head {
     color: var(--muted);

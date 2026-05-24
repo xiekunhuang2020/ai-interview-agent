@@ -250,6 +250,17 @@ public class InterviewApiController {
     }
 
     /**
+     * 查询最近结构化输出失败样例，方便根据 traceId 和失败原因复盘 Prompt 问题。
+     */
+    @GetMapping("/api/audit/structured-output-failures")
+    public ResponseEntity<?> listStructuredOutputFailures(
+            @RequestParam(required = false) String operationName,
+            @RequestParam(required = false) String promptVersion,
+            @RequestParam(defaultValue = "10") int limit) {
+        return ResponseEntity.ok(auditQueryService.listStructuredOutputFailures(operationName, promptVersion, limit));
+    }
+
+    /**
      * 运行本地 RAG 召回评估集，输出 TopK 命中率、平均耗时和未命中样例。
      */
     @GetMapping("/api/evaluation/rag-recall")

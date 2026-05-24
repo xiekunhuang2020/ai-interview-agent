@@ -16,6 +16,8 @@ import java.util.stream.Collectors;
 @Service
 public class AiModelCallAuditQueryService {
 
+    private static final String ERROR_TYPE_STRUCTURED_OUTPUT_ERROR = "STRUCTURED_OUTPUT_ERROR";
+
     private final AiModelCallLogMapper aiModelCallLogMapper;
 
     /**
@@ -80,6 +82,23 @@ public class AiModelCallAuditQueryService {
                 .map(entry -> toFailureReason(entry.getKey(), entry.getValue(), totalFailures))
                 .sorted(Comparator.comparing(PromptFailureReasonResultDTO::getCount).reversed())
                 .toList();
+    }
+
+    /**
+     * 查询最近的结构化输出失败记录，用于看板沉淀可复盘的失败样例。
+     */
+    public List<AiModelCallLogEntity> listStructuredOutputFailures(String operationName,
+                                                                   String promptVersion,
+                                                                   int limit) {
+        int safeLimit = Math.max(1, Math.min(limit, 50));
+        LambdaQueryWrapper<AiModelCallLogEntity> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(StringUtils.isNotBlank(operationName), AiModelCallLogEntity::getOperationName, operationName);
+        wrapper.eq(StringUtils.isNotBlank(promptVersion), AiModelCallLogEntity::getPromptVersion, promptVersion);
+        wrapper.eq(AiModelCallLogEntity::getSuccess, 0);
+        wrapper.eq(AiModelCallLogEntity::getErrorType, ERROR_TYPE_STRUCTURED_OUTPUT_ERROR);
+        wrapper.orderByDesc(AiModelCallLogEntity::getCreateTime);
+        wrapper.last("LIMIT " + safeLimit);
+        return aiModelCallLogMapper.selectList(wrapper);
     }
 
     /**

@@ -151,6 +151,23 @@
             </div>
 
             <div class="panel wide-panel">
+                <div class="panel-header"><div><h2>结构化失败样例</h2><p>{{ audit.structuredFailures.length }} 条</p></div></div>
+                <div class="log-table">
+                    <div class="log-row structured-row head">
+                        <span>时间</span><span>调用场景</span><span>耗时</span><span>追踪编号</span><span>失败原因</span>
+                    </div>
+                    <div class="log-row structured-row" v-for="item in audit.structuredFailures" v-bind:key="item.id">
+                        <span>{{ shortTime(item.createTime) }}</span>
+                        <span>{{ operationNameText(item.operationName) }}</span>
+                        <span>{{ formatLatency(item.latencyMs) }}</span>
+                        <span class="mono">{{ item.traceId }}</span>
+                        <span>{{ item.errorMessage || '--' }}</span>
+                    </div>
+                    <p class="muted empty-line" v-if="!audit.structuredFailures.length">暂无结构化失败样例</p>
+                </div>
+            </div>
+
+            <div class="panel wide-panel">
                 <div class="panel-header"><div><h2>最近模型调用</h2><p>{{ audit.modelCalls.length }} 条</p></div></div>
                 <div class="log-table">
                     <div class="log-row head">

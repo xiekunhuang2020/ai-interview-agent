@@ -552,11 +552,13 @@ AI 输出不符合 resume-score 结构：无法转换为目标 DTO
 
 **已完成**
 
+- 官方能力判断：Spring AI 负责结构化转换和 Evaluator 评估，不负责业务失败样例持久化；失败样例沉淀复用现有审计表。
 - `AiStructuredOutputException` 已携带 `schemaName`、`fieldPath`、`failureReason`。
 - Bean Validation 失败会返回字段路径和具体约束原因，例如 `scoreDetail.expressionScore`。
 - JSON 转 DTO 交给 Spring AI 官方 `ChatClient.entity(DTO.class)`，不再保留自定义 parser。
 - 结构化转换或 DTO 校验失败时，会记录 `STRUCTURED_OUTPUT_ERROR` 审计记录。
 - 前端错误提示会展示结构、字段、原因和 traceId，便于直接排查。
+- 运营看板已增加“结构化失败样例”，复用 `ai_model_call_log` 展示最近失败记录、调用场景、traceId、耗时和失败原因。
 
 **后续改造内容**
 
