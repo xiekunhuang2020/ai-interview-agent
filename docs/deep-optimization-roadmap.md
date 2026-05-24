@@ -621,7 +621,7 @@ AI 输出不符合 resume-score 结构：无法转换为目标 DTO
 
 | 序号 | 优化项 | 当前状态 |
 | --- | --- | --- |
-| A | 模型调用成本观测 | 还需优化 |
+| A | 模型调用成本观测 | 已做 |
 | B | Prompt/RAG 上下文预算控制 | 没做 |
 | C | 顾问对话历史摘要压缩 | 没做 |
 | D | 语音面试陪练 | 没做 |
@@ -631,7 +631,7 @@ AI 输出不符合 resume-score 结构：无法转换为目标 DTO
 
 **优先级：高**
 
-**状态：还需优化**
+**状态：已做**
 
 **为什么重要**
 
@@ -643,8 +643,9 @@ AI 输出不符合 resume-score 结构：无法转换为目标 DTO
 - 已将结构化调用改为 `responseEntity`、普通调用改为 `chatResponse`，保留 `ChatResponse` metadata。
 - 已新增 `model_name`、`input_tokens`、`output_tokens`、`total_tokens` 字段，并将模型名称和 usage 写入 `ai_model_call_log`。
 - 运营看板已按 operation、Prompt 版本展示调用模型、总 Token、平均 Token 和最近模型调用 Token。
+- 运营看板已区分输入 Token、输出 Token、总 Token 和平均 Token。
+- AI 顾问 SSE 流式对话已改用 Spring AI 官方 `stream().chatResponse()` 获取 metadata，并写入模型调用审计。
 - 后续可继续补充重试放大成本和按模型单价换算的预估金额。
-- 还需补 AI 顾问 SSE 流式调用的模型名称和 token usage 记录。
 - 结合现有成功率、耗时和失败原因，形成“效果 + 稳定性 + 成本”的观测闭环。
 
 **暂不做**
@@ -749,7 +750,7 @@ AI 输出不符合 resume-score 结构：无法转换为目标 DTO
 ### 推荐推进顺序
 
 ```text
-1. 成本观测：已完成普通/结构化调用，下一步补 AI 顾问 SSE usage。
+1. 成本观测：已完成普通、结构化和 AI 顾问 SSE 流式调用。
 2. 上下文预算：给 Prompt/RAG/工具返回建立统一预算边界。
 3. JD 截图 OCR：降低用户输入成本，产品价值直观。
 4. 语音面试陪练：增强真实面试体验，复用现有评估链路。
