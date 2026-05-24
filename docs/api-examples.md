@@ -89,6 +89,22 @@ curl "http://localhost:8080/api/evaluation/rag-recall?topK=5"
 
 运行前先上传 `samples/java-backend-resume.txt`，让 Milvus 中有可召回的样例数据。响应会包含 TopK 命中率、平均召回耗时、每条样例命中的关键词和未命中样例列表。
 
+## 运行 Prompt/RAG 评测回放
+
+推荐在运营看板点击“运行评测”查看结果：
+
+```text
+http://localhost:8080/audit/prompt-dashboard
+```
+
+后端接口：
+
+```bash
+curl.exe -X POST "http://localhost:8080/api/evaluation/prompt-rag?topK=5"
+```
+
+接口会使用 `samples/eval/prompt-rag-evaluation-cases.json` 中的固定样例，回放简历分析、JD 匹配和 RAG 出题，并通过 Spring AI 官方 Evaluator 返回相关性、事实一致性、失败样例和耗时。
+
 ## 查询模型调用审计
 
 ```bash
