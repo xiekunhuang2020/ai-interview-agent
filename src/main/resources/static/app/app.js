@@ -140,7 +140,12 @@ function createInterviewApp() {
                 const totalLatency = metrics.reduce((sum, item) => {
                     return sum + Number(item.avgLatencyMs || 0) * Number(item.totalCalls || 0);
                 }, 0);
+                const tokenSampleCalls = metrics.reduce((sum, item) => sum + Number(item.tokenSampleCalls || 0), 0);
+                const totalInputTokens = metrics.reduce((sum, item) => sum + Number(item.totalInputTokens || 0), 0);
+                const totalOutputTokens = metrics.reduce((sum, item) => sum + Number(item.totalOutputTokens || 0), 0);
+                const totalTokens = metrics.reduce((sum, item) => sum + Number(item.totalTokens || 0), 0);
                 const avgLatency = totalCalls ? totalLatency / totalCalls : null;
+                const avgTotalTokens = tokenSampleCalls ? totalTokens / tokenSampleCalls : null;
                 const successRate = totalCalls ? successCalls * 100 / totalCalls : null;
                 const structuredFailures = failures
                     .filter((item) => item.errorType === 'STRUCTURED_OUTPUT_ERROR' || item.errorType === 'VALIDATION_ERROR')
@@ -171,6 +176,16 @@ function createInterviewApp() {
                         label: '模型失败次数',
                         value: `${failedCalls} 次`,
                         note: structuredFailures ? `结构化相关 ${structuredFailures} 次` : '暂无结构化失败记录'
+                    },
+                    {
+                        label: '总 Token 消耗',
+                        value: this.formatTokenCount(totalTokens),
+                        note: tokenSampleCalls ? `输入 ${this.formatTokenCount(totalInputTokens)} / 输出 ${this.formatTokenCount(totalOutputTokens)}` : '等待新调用产生用量'
+                    },
+                    {
+                        label: '平均 Token',
+                        value: this.formatTokenCount(avgTotalTokens),
+                        note: tokenSampleCalls ? `有用量样本 ${tokenSampleCalls} 次` : '旧审计记录无用量'
                     },
                     {
                         label: '向量召回命中率',
@@ -658,6 +673,20 @@ function createInterviewApp() {
                     return '--';
                 }
                 return `${this.round(value)} 毫秒`;
+            },
+            // 将 Token 数量格式化为看板上的简短数字。
+            formatTokenCount(value) {
+                if (value === null || value === undefined || value === '') {
+                    return '--';
+                }
+                const numeric = Number(value || 0);
+                if (!numeric) {
+                    return '--';
+                }
+                if (numeric >= 10000) {
+                    return `${this.round(numeric / 10000)} 万`;
+                }
+                return `${this.round(numeric)}`;
             },
             sessionSummary() {
                 if (!this.session) {

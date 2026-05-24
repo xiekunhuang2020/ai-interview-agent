@@ -125,13 +125,15 @@
                 <div class="panel-header"><div><h2>提示词指标</h2><p>{{ audit.metrics.length }} 组</p></div></div>
                 <div class="metric-table">
                     <div class="metric-row head">
-                        <span>调用场景</span><span>成功率</span><span>失败数</span><span>均耗时</span>
+                        <span>调用场景</span><span>成功率</span><span>失败数</span><span>均耗时</span><span>总 Token</span><span>均 Token</span>
                     </div>
                     <div class="metric-row" v-for="item in audit.metrics" v-bind:key="item.operationName + item.promptVersion">
                         <span>{{ operationNameText(item.operationName) }}</span>
                         <span>{{ round(item.successRate) }}%</span>
                         <span>{{ item.failedCalls || 0 }}</span>
                         <span>{{ formatLatency(item.avgLatencyMs) }}</span>
+                        <span>{{ formatTokenCount(item.totalTokens) }}</span>
+                        <span>{{ formatTokenCount(item.avgTotalTokens) }}</span>
                     </div>
                     <p class="muted empty-line" v-if="!audit.metrics.length">暂无指标数据</p>
                 </div>
@@ -170,13 +172,14 @@
             <div class="panel wide-panel">
                 <div class="panel-header"><div><h2>最近模型调用</h2><p>{{ audit.modelCalls.length }} 条</p></div></div>
                 <div class="log-table">
-                    <div class="log-row head">
-                        <span>时间</span><span>调用场景</span><span>状态</span><span>耗时</span><span>追踪编号</span>
+                    <div class="log-row model-call-row head">
+                        <span>时间</span><span>调用场景</span><span>状态</span><span>Token</span><span>耗时</span><span>追踪编号</span>
                     </div>
-                    <div class="log-row" v-for="item in audit.modelCalls" v-bind:key="item.id">
+                    <div class="log-row model-call-row" v-for="item in audit.modelCalls" v-bind:key="item.id">
                         <span>{{ shortTime(item.createTime) }}</span>
                         <span>{{ operationNameText(item.operationName) }}</span>
                         <span v-bind:class="item.success === 1 ? 'ok-text' : 'bad-text'">{{ item.success === 1 ? '成功' : '失败' }}<template v-if="item.success !== 1 && item.errorType"> / {{ errorTypeText(item.errorType) }}</template></span>
+                        <span>{{ formatTokenCount(item.totalTokens) }}</span>
                         <span>{{ formatLatency(item.latencyMs) }}</span>
                         <span class="mono">{{ item.traceId }}</span>
                     </div>

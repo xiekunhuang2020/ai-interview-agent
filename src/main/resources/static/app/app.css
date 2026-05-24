@@ -1072,11 +1072,15 @@ p {
 }
 
 .metric-row {
-    grid-template-columns: minmax(0, 1.5fr) 80px 80px 90px;
+    grid-template-columns: minmax(0, 1.5fr) 80px 80px 90px 90px 90px;
 }
 
 .log-row {
     grid-template-columns: 150px minmax(120px, 1fr) 58px 70px minmax(160px, 1fr);
+}
+
+.log-row.model-call-row {
+    grid-template-columns: 150px minmax(120px, 1fr) 58px 70px 70px minmax(160px, 1fr);
 }
 
 .log-row.structured-row {
