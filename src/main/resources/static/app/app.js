@@ -84,7 +84,8 @@ function createInterviewApp() {
                     evaluation: false,
                     chat: false,
                     ops: false,
-                    harness: false
+                    harness: false,
+                    jdOcr: false
                 },
                 uploadStage: '',
                 globalError: '',
@@ -280,6 +281,43 @@ function createInterviewApp() {
                 this.dragOver = false;
                 this.selectedFile = event.dataTransfer.files[0] || null;
                 this.globalError = '';
+            },
+            openJdImagePicker() {
+                const input = this.$refs.jdImageFileInput;
+                if (input) {
+                    input.click();
+                }
+            },
+            async handleJdImageChange(event) {
+                const file = event.target.files[0] || null;
+                if (!file) {
+                    return;
+                }
+                await this.extractJobDescriptionFromImage(file);
+                event.target.value = '';
+            },
+            async extractJobDescriptionFromImage(file) {
+                if (file.size > 10 * 1024 * 1024) {
+                    this.globalError = '截图大小不能超过 10MB。';
+                    return;
+                }
+                this.loading.jdOcr = true;
+                this.globalError = '';
+                this.globalMessage = '';
+                try {
+                    const formData = new FormData();
+                    formData.append('file', file);
+                    const payload = await fetchJson('/api/jd/ocr-image', {
+                        method: 'POST',
+                        body: formData
+                    });
+                    this.jdText = payload.jobDescription || '';
+                    this.globalMessage = '岗位截图识别完成，请检查内容后再继续。';
+                } catch (error) {
+                    this.globalError = error.message;
+                } finally {
+                    this.loading.jdOcr = false;
+                }
             },
             clearCandidate() {
                 this.selectedFile = null;
@@ -812,7 +850,8 @@ function createInterviewApp() {
                     'rag-interview-question-generation': '岗位定制出题',
                     'answer-evaluation': '回答评估',
                     'interview-assistant-stream': 'AI 顾问流式对话',
-                    'interview-assistant-summary': '顾问摘要压缩'
+                    'interview-assistant-summary': '顾问摘要压缩',
+                    'jd-image-ocr': '岗位截图识别'
                 };
                 return map[operationName] || '其他调用';
             },

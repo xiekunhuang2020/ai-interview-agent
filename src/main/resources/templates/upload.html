@@ -75,10 +75,16 @@
                         <h2>目标岗位说明</h2>
                         <p>AI 会以这份岗位要求为参照，判断候选人是否适合投递。</p>
                     </div>
-                    <button class="ghost-button" type="button" v-on:click="fillSampleJd" v-bind:disabled="loading.upload">填入示例</button>
+                    <div class="inline-actions">
+                        <button class="ghost-button" type="button" v-on:click="fillSampleJd" v-bind:disabled="loading.upload || loading.jdOcr">填入示例</button>
+                        <button class="ghost-button" type="button" v-on:click="openJdImagePicker" v-bind:disabled="loading.upload || loading.jdOcr">
+                            {{ loading.jdOcr ? '识别中...' : '上传截图识别' }}
+                        </button>
+                    </div>
                 </div>
-                <textarea class="jd-input upload-jd-input" v-model="jdText" placeholder="粘贴目标岗位说明。建议包含岗位职责、必备技能、加分项和业务方向。"></textarea>
-                <p class="field-help">匹配结果会包含总分、命中技能、缺失能力、投递风险和后续面试追问重点。</p>
+                <input class="hidden-file-input" ref="jdImageFileInput" type="file" accept="image/png,image/jpeg,image/webp" v-on:change="handleJdImageChange">
+                <textarea class="jd-input upload-jd-input" v-model="jdText" placeholder="粘贴目标岗位说明，也可以上传招聘软件或网页截图识别。建议包含岗位职责、必备技能、加分项和业务方向。"></textarea>
+                <p class="field-help">截图识别后请人工检查一遍，再继续上传简历或岗位匹配。</p>
             </div>
 
             <div class="panel outcome-panel wide-panel">

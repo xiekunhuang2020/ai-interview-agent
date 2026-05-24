@@ -428,6 +428,14 @@ p {
     pointer-events: none;
 }
 
+.hidden-file-input {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    opacity: 0;
+    pointer-events: none;
+}
+
 .drop-title {
     max-width: min(420px, 80vw);
     color: var(--text);
