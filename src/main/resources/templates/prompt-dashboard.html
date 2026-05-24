@@ -138,6 +138,8 @@
                             <div><dt>输出 Token</dt><dd>{{ formatTokenCount(item.totalOutputTokens) }}</dd></div>
                             <div><dt>总 Token</dt><dd>{{ formatTokenCount(item.totalTokens) }}</dd></div>
                             <div><dt>均 Token</dt><dd>{{ formatTokenCount(item.avgTotalTokens) }}</dd></div>
+                            <div><dt>均输入长度</dt><dd>{{ formatCharCount(item.avgPromptChars) }}</dd></div>
+                            <div><dt>裁剪次数</dt><dd>{{ item.clippedCalls || 0 }}</dd></div>
                         </dl>
                     </article>
                     <p class="muted empty-line" v-if="!audit.metrics.length">暂无指标数据</p>

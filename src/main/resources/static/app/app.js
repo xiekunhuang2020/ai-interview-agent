@@ -144,8 +144,13 @@ function createInterviewApp() {
                 const totalInputTokens = metrics.reduce((sum, item) => sum + Number(item.totalInputTokens || 0), 0);
                 const totalOutputTokens = metrics.reduce((sum, item) => sum + Number(item.totalOutputTokens || 0), 0);
                 const totalTokens = metrics.reduce((sum, item) => sum + Number(item.totalTokens || 0), 0);
+                const contextSampleCalls = metrics.reduce((sum, item) => sum + Number(item.contextSampleCalls || 0), 0);
+                const clippedCalls = metrics.reduce((sum, item) => sum + Number(item.clippedCalls || 0), 0);
+                const totalPromptChars = metrics.reduce((sum, item) => sum + Number(item.totalPromptChars || 0), 0);
+                const totalClippedChars = metrics.reduce((sum, item) => sum + Number(item.totalClippedChars || 0), 0);
                 const avgLatency = totalCalls ? totalLatency / totalCalls : null;
                 const avgTotalTokens = tokenSampleCalls ? totalTokens / tokenSampleCalls : null;
+                const avgPromptChars = contextSampleCalls ? totalPromptChars / contextSampleCalls : null;
                 const successRate = totalCalls ? successCalls * 100 / totalCalls : null;
                 const structuredFailures = failures
                     .filter((item) => item.errorType === 'STRUCTURED_OUTPUT_ERROR' || item.errorType === 'VALIDATION_ERROR')
@@ -186,6 +191,16 @@ function createInterviewApp() {
                         label: '平均 Token',
                         value: this.formatTokenCount(avgTotalTokens),
                         note: tokenSampleCalls ? `有用量样本 ${tokenSampleCalls} 次` : '旧审计记录无用量'
+                    },
+                    {
+                        label: '平均输入长度',
+                        value: this.formatCharCount(avgPromptChars),
+                        note: contextSampleCalls ? `上下文样本 ${contextSampleCalls} 次` : '等待新调用产生统计'
+                    },
+                    {
+                        label: '上下文裁剪',
+                        value: `${clippedCalls} 次`,
+                        note: clippedCalls ? `累计减少 ${this.formatCharCount(totalClippedChars)}` : '暂无裁剪记录'
                     },
                     {
                         label: '向量召回命中率',
@@ -694,6 +709,20 @@ function createInterviewApp() {
                     return '--';
                 }
                 return `入 ${this.formatTokenCount(item.inputTokens)} / 出 ${this.formatTokenCount(item.outputTokens)} / 总 ${this.formatTokenCount(item.totalTokens)}`;
+            },
+            // 将字符数格式化为看板上的简短数字。
+            formatCharCount(value) {
+                if (value === null || value === undefined || value === '') {
+                    return '--';
+                }
+                const numeric = Number(value || 0);
+                if (!numeric) {
+                    return '--';
+                }
+                if (numeric >= 10000) {
+                    return `${this.round(numeric / 10000)} 万字`;
+                }
+                return `${this.round(numeric)} 字`;
             },
             sessionSummary() {
                 if (!this.session) {
