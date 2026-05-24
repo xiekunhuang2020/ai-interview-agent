@@ -77,15 +77,15 @@ ai-interview:
       max-message-content-length: ${AI_AGENT_AUDIT_MAX_MESSAGE_CONTENT_LENGTH:4000}
   context-budget:
     enabled: ${AI_CONTEXT_BUDGET_ENABLED:true}
-    resume-max-chars: ${AI_CONTEXT_RESUME_MAX_CHARS:9000}
-    jd-max-chars: ${AI_CONTEXT_JD_MAX_CHARS:3500}
-    answer-max-chars: ${AI_CONTEXT_ANSWER_MAX_CHARS:3000}
-    assistant-user-message-max-chars: ${AI_CONTEXT_ASSISTANT_USER_MESSAGE_MAX_CHARS:2000}
-    rag-document-max-chars: ${AI_CONTEXT_RAG_DOCUMENT_MAX_CHARS:1000}
-    rag-total-max-chars: ${AI_CONTEXT_RAG_TOTAL_MAX_CHARS:4500}
-    tool-resume-snippet-max-chars: ${AI_CONTEXT_TOOL_RESUME_SNIPPET_MAX_CHARS:800}
-    tool-search-snippet-max-chars: ${AI_CONTEXT_TOOL_SEARCH_SNIPPET_MAX_CHARS:700}
-    tool-question-max-chars: ${AI_CONTEXT_TOOL_QUESTION_MAX_CHARS:500}
+    resume-max-tokens: ${AI_CONTEXT_RESUME_MAX_TOKENS:2800}
+    jd-max-tokens: ${AI_CONTEXT_JD_MAX_TOKENS:1200}
+    answer-max-tokens: ${AI_CONTEXT_ANSWER_MAX_TOKENS:1000}
+    assistant-user-message-max-tokens: ${AI_CONTEXT_ASSISTANT_USER_MESSAGE_MAX_TOKENS:700}
+    rag-document-max-tokens: ${AI_CONTEXT_RAG_DOCUMENT_MAX_TOKENS:350}
+    rag-total-max-tokens: ${AI_CONTEXT_RAG_TOTAL_MAX_TOKENS:1400}
+    tool-resume-snippet-max-tokens: ${AI_CONTEXT_TOOL_RESUME_SNIPPET_MAX_TOKENS:260}
+    tool-search-snippet-max-tokens: ${AI_CONTEXT_TOOL_SEARCH_SNIPPET_MAX_TOKENS:230}
+    tool-question-max-tokens: ${AI_CONTEXT_TOOL_QUESTION_MAX_TOKENS:160}
   prompt:
     versions:
       resume-analysis: resume-analysis-v2026-05-17-01
