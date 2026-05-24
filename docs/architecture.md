@@ -202,6 +202,10 @@ errorType = TIMEOUT / RATE_LIMIT / MODEL_ERROR / EMPTY_RESPONSE / UNKNOWN
 
 `/audit/prompt-dashboard` 提供一个轻量看板页面，用于查看效果指标、Prompt 版本指标和按 errorType 聚合的失败原因分布。效果指标来自模型调用审计和 RAG 召回评估，覆盖调用样本量、成功率、平均耗时、失败次数、向量召回命中率、简历解析耗时、岗位匹配耗时和出题成功率。
 
+### Evaluation Harness
+
+`/api/evaluation/prompt-rag` 提供页面触发的 Prompt/RAG 评测回放能力。评测集位于 `samples/eval/prompt-rag-evaluation-cases.json`，覆盖简历分析、JD 匹配和 RAG 出题。当前实现使用 Spring AI 官方 `RelevancyEvaluator` 评估上下文相关性，使用 `FactCheckingEvaluator` 评估事实一致性；业务 DTO 转换只负责结构化输出检查。评测报告在运营看板“评测回放”区域展示。
+
 ### 工具
 
 Tool 负责确定性能力，方便后续迁移到函数调用或工具调用框架：
