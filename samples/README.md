@@ -18,6 +18,11 @@
 
 - `interview-answers-demo.json`：提交面试答案接口可直接使用的固定答案。
 
+## 评测样例
+
+- `eval/rag-recall-cases.json`：RAG TopK 召回评估样例。
+- `eval/prompt-rag-evaluation-cases.json`：Prompt/RAG 评测回放样例，覆盖简历分析、岗位匹配和岗位定制出题。
+
 ## 推荐演示命令
 
 ```powershell
