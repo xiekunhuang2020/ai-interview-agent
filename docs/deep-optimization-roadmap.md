@@ -617,9 +617,21 @@ AI 输出不符合 resume-score 结构：无法转换为目标 DTO
 
 下面这些方向暂时不写进简历核心项目职责，等代码、页面或数据证据落地后再同步更新。继续遵循“官方方案最高优先”：先查 Spring AI、Spring AI Alibaba、DashScope 官方能力，再决定是否写业务适配代码。
 
+## 下一阶段状态总览
+
+| 序号 | 优化项 | 当前状态 |
+| --- | --- | --- |
+| A | 模型调用成本观测 | 还需优化 |
+| B | Prompt/RAG 上下文预算控制 | 没做 |
+| C | 顾问对话历史摘要压缩 | 没做 |
+| D | 语音面试陪练 | 没做 |
+| E | JD 截图 / 简历截图 OCR | 没做 |
+
 ### A. 模型调用成本观测
 
 **优先级：高**
+
+**状态：还需优化**
 
 **为什么重要**
 
@@ -629,9 +641,10 @@ AI 输出不符合 resume-score 结构：无法转换为目标 DTO
 
 - 已确认 Spring AI `ChatResponseMetadata.getUsage()` 和 Spring AI Alibaba `DashScopeAiUsage` 能拿到官方 token usage。
 - 已将结构化调用改为 `responseEntity`、普通调用改为 `chatResponse`，保留 `ChatResponse` metadata。
-- 已新增 `model_name`、`input_tokens`、`output_tokens`、`total_tokens` 字段，并将 usage 写入 `ai_model_call_log`。
-- 运营看板已按 operation、Prompt 版本展示总 Token、平均 Token 和最近模型调用 Token。
+- 已新增 `model_name`、`input_tokens`、`output_tokens`、`total_tokens` 字段，并将模型名称和 usage 写入 `ai_model_call_log`。
+- 运营看板已按 operation、Prompt 版本展示调用模型、总 Token、平均 Token 和最近模型调用 Token。
 - 后续可继续补充重试放大成本和按模型单价换算的预估金额。
+- 还需补 AI 顾问 SSE 流式调用的模型名称和 token usage 记录。
 - 结合现有成功率、耗时和失败原因，形成“效果 + 稳定性 + 成本”的观测闭环。
 
 **暂不做**
@@ -643,6 +656,8 @@ AI 输出不符合 resume-score 结构：无法转换为目标 DTO
 ### B. Prompt/RAG 上下文预算控制
 
 **优先级：高**
+
+**状态：没做**
 
 **为什么重要**
 
@@ -665,6 +680,8 @@ AI 输出不符合 resume-score 结构：无法转换为目标 DTO
 
 **优先级：中**
 
+**状态：没做**
+
 **为什么重要**
 
 多轮对话越长，历史消息越占上下文。简单截断会丢失用户目标，全部保留又浪费 token。摘要压缩能在成本和上下文连续性之间折中。
@@ -684,6 +701,8 @@ AI 输出不符合 resume-score 结构：无法转换为目标 DTO
 ### D. 语音面试陪练
 
 **优先级：中高**
+
+**状态：没做**
 
 **为什么重要**
 
@@ -707,6 +726,8 @@ AI 输出不符合 resume-score 结构：无法转换为目标 DTO
 
 **优先级：中高**
 
+**状态：没做**
+
 **为什么重要**
 
 真实用户经常直接保存 BOSS、拉勾、猎聘等招聘软件截图。如果能上传截图自动提取 JD，会明显降低输入成本，也能让产品不只停留在“粘贴文本”。
@@ -728,7 +749,7 @@ AI 输出不符合 resume-score 结构：无法转换为目标 DTO
 ### 推荐推进顺序
 
 ```text
-1. 成本观测：下一步在运营看板聚合展示 token 消耗。
+1. 成本观测：已完成普通/结构化调用，下一步补 AI 顾问 SSE usage。
 2. 上下文预算：给 Prompt/RAG/工具返回建立统一预算边界。
 3. JD 截图 OCR：降低用户输入成本，产品价值直观。
 4. 语音面试陪练：增强真实面试体验，复用现有评估链路。

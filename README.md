@@ -88,9 +88,10 @@ Prompt 明确要求相似简历只能作为追问方向参考，不能当成当�
 
 ### 6. 模型调用审计
 
-`ai_model_call_log` 记录每次模型调用的 operation、Prompt 版本、traceId、耗时、Token 用量、成功状态、错误类型和失败原因。运营看板支持按场景和 Prompt 版本查看：
+`ai_model_call_log` 记录每次模型调用的 operation、Prompt 版本、模型名称、traceId、耗时、Token 用量、成功状态、错误类型和失败原因。运营看板支持按场景和 Prompt 版本查看：
 
 - 模型调用样本量
+- 调用模型名称
 - 成功率
 - 平均耗时
 - 总 Token 与平均 Token
