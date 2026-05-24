@@ -209,6 +209,18 @@ powershell -ExecutionPolicy Bypass -File scripts/demo-flow.ps1
 - [面试备注](docs/interview-notes.md)
 - [样例数据说明](samples/README.md)
 
+## 后续优化方向
+
+后续不继续堆概念，优先围绕真实企业场景补能力：
+
+- 成本观测：如果 Spring AI / DashScope 响应可获取 token usage，将输入 token、输出 token、总 token 和模型名称落到模型调用审计表，并在运营看板按 operation 展示消耗。
+- 上下文预算：为 Prompt、RAG 上下文、AI 顾问工具返回和对话历史设置最大预算，降低 token 成本和无关上下文干扰。
+- 对话摘要：当 AI 顾问多轮对话变长时，保留“会话摘要 + 最近消息”，减少历史消息无限拼接。
+- 语音面试陪练：通过官方 ASR 能力把语音回答转写成文本，复用现有回答评估链路，并补充语速、停顿和表达完整度建议。
+- 截图 OCR：支持 JD 截图、招聘软件截图、简历截图 OCR，降低用户输入成本，再复用岗位匹配和简历诊断流程。
+
+这些方向会继续遵循官方能力优先原则，不为了炫技自研 OCR、ASR、token 估算或多模态模型封装。
+
 ## 面试口径
 
 这个项目的核心不是“我调了一个大模型接口”，而是把大模型能力放进一个可控的后端业务流程里：
