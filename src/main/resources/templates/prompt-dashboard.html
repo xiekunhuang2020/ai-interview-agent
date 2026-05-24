@@ -140,6 +140,8 @@
                             <div><dt>均 Token</dt><dd>{{ formatTokenCount(item.avgTotalTokens) }}</dd></div>
                             <div><dt>均输入长度</dt><dd>{{ formatCharCount(item.avgPromptChars) }}</dd></div>
                             <div><dt>裁剪次数</dt><dd>{{ item.clippedCalls || 0 }}</dd></div>
+                            <div><dt>预算超出</dt><dd>{{ item.budgetExceededCalls || 0 }}</dd></div>
+                            <div><dt>策略未覆盖</dt><dd>{{ item.budgetUncoveredCalls || 0 }}</dd></div>
                         </dl>
                     </article>
                     <p class="muted empty-line" v-if="!audit.metrics.length">暂无指标数据</p>
@@ -180,7 +182,10 @@
                 <div class="panel-header"><div><h2>最近模型调用</h2><p>{{ audit.modelCalls.length }} 条</p></div></div>
                 <div class="log-table">
                     <div class="log-row model-call-row head">
-                        <span>时间</span><span>调用场景</span><span>模型</span><span>状态</span><span>Token</span><span>裁剪</span><span>耗时</span><span>追踪编号</span>
+                        <span>时间</span><span>调用场景</span><span>模型</span><span>状态</span><span>Token</span>
+                        <span class="help-label">输入预算<span class="help-tip" title="只看本次调用的输入 Token，不包含输出 Token。未超表示输入 Token 小于该场景预算；超出表示真实输入 Token 已超过目标线。">?</span></span>
+                        <span class="help-label">策略状态<span class="help-tip" title="正常表示未超预算；需优化表示输入已超预算但没有触发裁剪；已裁剪表示预算策略已经裁掉部分上下文。">?</span></span>
+                        <span>裁剪</span><span>耗时</span><span>追踪编号</span>
                     </div>
                     <div class="log-row model-call-row" v-for="item in audit.modelCalls" v-bind:key="item.id">
                         <span>{{ shortTime(item.createTime) }}</span>
@@ -188,6 +193,8 @@
                         <span>{{ item.modelName || '--' }}</span>
                         <span v-bind:class="item.success === 1 ? 'ok-text' : 'bad-text'">{{ item.success === 1 ? '成功' : '失败' }}<template v-if="item.success !== 1 && item.errorType"> / {{ errorTypeText(item.errorType) }}</template></span>
                         <span>{{ formatTokenBreakdown(item) }}</span>
+                        <span v-bind:class="item.budgetExceeded === 1 ? 'warn-text' : ''">{{ formatInputBudget(item) }}</span>
+                        <span v-bind:class="item.budgetUncovered === 1 ? 'warn-text' : ''">{{ formatBudgetStrategy(item) }}</span>
                         <span v-bind:class="item.contextClipped === 1 ? 'warn-text' : ''">{{ formatContextClipping(item) }}</span>
                         <span>{{ formatLatency(item.latencyMs) }}</span>
                         <span class="mono">{{ item.traceId }}</span>

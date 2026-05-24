@@ -1125,7 +1125,7 @@ p {
 }
 
 .log-row.model-call-row {
-    grid-template-columns: 150px minmax(110px, 1fr) minmax(90px, 0.75fr) 58px minmax(145px, 1fr) 86px 70px minmax(160px, 1fr);
+    grid-template-columns: 150px minmax(108px, 1fr) minmax(86px, 0.7fr) 58px minmax(142px, 1fr) minmax(96px, 0.75fr) 76px 76px 70px minmax(160px, 1fr);
 }
 
 .log-row.structured-row {
@@ -1135,6 +1135,26 @@ p {
 .log-row.head {
     color: var(--muted);
     font-weight: 800;
+}
+
+.help-label {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.help-tip {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 16px;
+    height: 16px;
+    border: 1px solid var(--line);
+    border-radius: 50%;
+    color: var(--muted);
+    font-size: 11px;
+    line-height: 1;
+    cursor: help;
 }
 
 .failure-list article {

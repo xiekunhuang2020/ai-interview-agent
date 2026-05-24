@@ -148,6 +148,10 @@ function createInterviewApp() {
                 const clippedCalls = metrics.reduce((sum, item) => sum + Number(item.clippedCalls || 0), 0);
                 const totalPromptChars = metrics.reduce((sum, item) => sum + Number(item.totalPromptChars || 0), 0);
                 const totalClippedChars = metrics.reduce((sum, item) => sum + Number(item.totalClippedChars || 0), 0);
+                const budgetSampleCalls = metrics.reduce((sum, item) => sum + Number(item.budgetSampleCalls || 0), 0);
+                const budgetExceededCalls = metrics.reduce((sum, item) => sum + Number(item.budgetExceededCalls || 0), 0);
+                const budgetUncoveredCalls = metrics.reduce((sum, item) => sum + Number(item.budgetUncoveredCalls || 0), 0);
+                const totalInputTokenOverBudget = metrics.reduce((sum, item) => sum + Number(item.totalInputTokenOverBudget || 0), 0);
                 const avgLatency = totalCalls ? totalLatency / totalCalls : null;
                 const avgTotalTokens = tokenSampleCalls ? totalTokens / tokenSampleCalls : null;
                 const avgPromptChars = contextSampleCalls ? totalPromptChars / contextSampleCalls : null;
@@ -201,6 +205,16 @@ function createInterviewApp() {
                         label: '上下文裁剪',
                         value: `${clippedCalls} 次`,
                         note: clippedCalls ? `累计减少 ${this.formatCharCount(totalClippedChars)}` : '暂无裁剪记录'
+                    },
+                    {
+                        label: '输入预算超出',
+                        value: `${budgetExceededCalls} 次`,
+                        note: budgetSampleCalls ? `累计超出 ${this.formatTokenCount(totalInputTokenOverBudget)} Token` : '等待新调用产生预算数据'
+                    },
+                    {
+                        label: '策略未覆盖',
+                        value: `${budgetUncoveredCalls} 次`,
+                        note: budgetUncoveredCalls ? '超预算但没有发生裁剪' : '暂无未覆盖记录'
                     },
                     {
                         label: '向量召回命中率',
@@ -730,6 +744,32 @@ function createInterviewApp() {
                     return '未裁剪';
                 }
                 return item.clippedChars ? `已裁 ${this.formatCharCount(item.clippedChars)}` : '已裁剪';
+            },
+            // 将单次模型调用的输入预算状态转换为看板文案。
+            formatInputBudget(item) {
+                if (!item || !item.inputTokenBudget) {
+                    return '--';
+                }
+                if (!item.inputTokens) {
+                    return `预算 ${this.formatTokenCount(item.inputTokenBudget)}`;
+                }
+                if (item.budgetExceeded === 1) {
+                    return `超出 ${this.formatTokenCount(item.inputTokenOverBudget)}`;
+                }
+                return `未超 / ${this.formatTokenCount(item.inputTokenBudget)}`;
+            },
+            // 将输入预算和裁剪组合成策略状态，方便识别是否需要优化 Prompt。
+            formatBudgetStrategy(item) {
+                if (!item || !item.inputTokenBudget) {
+                    return '--';
+                }
+                if (item.budgetUncovered === 1) {
+                    return '需优化';
+                }
+                if (item.contextClipped === 1) {
+                    return '已裁剪';
+                }
+                return item.budgetExceeded === 1 ? '已超' : '正常';
             },
             sessionSummary() {
                 if (!this.session) {
