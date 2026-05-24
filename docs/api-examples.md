@@ -123,7 +123,7 @@ curl "http://localhost:8080/api/audit/model-calls?operationName=jd-match&limit=2
 curl "http://localhost:8080/api/audit/prompt-metrics?operationName=jd-match&limit=1000"
 ```
 
-响应会按 `operationName + promptVersion` 聚合模型调用总数、模型名称、成功率、失败数、平均耗时、输入 Token、输出 Token、总 Token、平均 Token、平均 Prompt 字符数和上下文裁剪次数。`avgAttemptCount` 保留用于兼容早期外层重试审计；当前模型侧重试由 Spring AI 管理。
+响应会按 `operationName + promptVersion` 聚合模型调用总数、模型名称、成功率、失败数、平均耗时、输入 Token、输出 Token、总 Token、平均 Token、平均 Prompt 字符数和上下文裁剪次数。上下文预算使用 Spring AI 官方 `TokenCountEstimator` 估算 Token，上下文裁剪状态也会在最近模型调用列表中展示。`avgAttemptCount` 保留用于兼容早期外层重试审计；当前模型侧重试由 Spring AI 管理。
 
 ## 查询失败原因分布
 

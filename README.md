@@ -95,10 +95,12 @@ Prompt 明确要求相似简历只能作为追问方向参考，不能当成当�
 - 成功率
 - 平均耗时
 - 输入 Token、输出 Token、总 Token 与平均 Token
-- 平均输入长度、上下文裁剪次数和累计减少字符数
+- 平均输入长度、上下文裁剪次数、累计减少字符数和最近调用裁剪状态
 - 失败原因分布
 - 结构化失败样例
 - 最近模型调用日志
+
+上下文预算由 `PromptContextBudgetService` 统一处理，使用 Spring AI 官方 `TokenCountEstimator` / `JTokkitTokenCountEstimator` 做 Token 估算；简历超预算时保留开头和结尾，避免只截尾导致后半段经历整体丢失。RAG 检索结果通过 Spring AI 官方 `DocumentPostProcessor` 进入预算控制，再交给 `RetrievalAugmentationAdvisor` 注入 Prompt。
 
 ## 架构概览
 

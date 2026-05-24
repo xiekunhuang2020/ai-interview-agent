@@ -623,6 +623,7 @@ AI 输出不符合 resume-score 结构：无法转换为目标 DTO
 | --- | --- | --- |
 | A | 模型调用成本观测 | 已做 |
 | B | Prompt/RAG 上下文预算控制 | 已做 |
+| B+ | Token 级上下文预算和裁剪观测 | 已做 |
 | C | 顾问对话历史摘要压缩 | 没做 |
 | D | 语音面试陪练 | 没做 |
 | E | JD 截图 / 简历截图 OCR | 没做 |
@@ -666,11 +667,13 @@ AI 输出不符合 resume-score 结构：无法转换为目标 DTO
 
 **规划内容**
 
-- 已增加 `PromptContextBudgetService`，统一控制简历、JD、回答、AI 顾问输入、RAG 文档和工具返回的字符预算。
+- 已增加 `PromptContextBudgetService`，统一控制简历、JD、回答、AI 顾问输入、RAG 文档和工具返回的 Token 预算。
+- 已接入 Spring AI 官方 `TokenCountEstimator` / `JTokkitTokenCountEstimator`，不再用固定字符数近似预算上限。
+- 简历超预算时保留开头和结尾，避免只截尾导致后半段项目经历、教育经历等信息整体丢失。
 - 已将预算配置放到 `application.yml`，支持通过环境变量调整，不在业务代码里写死预算值。
 - RAG 检索结果通过 Spring AI 官方 `DocumentPostProcessor` 扩展点裁剪，再交给官方 `RetrievalAugmentationAdvisor` 注入上下文。
 - 模型调用审计已记录最终 Prompt 字符数、是否裁剪和被裁剪字符数。
-- 运营看板已展示平均输入长度、上下文裁剪次数和累计减少字符数。
+- 运营看板已展示平均输入长度、上下文裁剪次数、累计减少字符数，并在最近模型调用中标记是否发生裁剪。
 
 **已有基础**
 
