@@ -70,7 +70,7 @@ RAG 用在岗位定制面试题生成。系统用目标 JD 检索相似简历片
 
 ### 怎么治理结构化输出？
 
-模型输出直接通过 Spring AI `ChatClient.entity(DTO.class)` 转成 DTO，再用 Jakarta Bean Validation 做必填、范围、枚举和级联校验。少量业务规则放在 DTO setter 中做归一化，例如分数裁剪和枚举别名兼容。
+结构化调用会使用 DashScope `responseFormat(JSON_OBJECT)` 约束 JSON 输出，再由 Spring AI `StructuredOutputValidationAdvisor` 按 DTO JSON Schema 校验并自动重试一次。最终通过 `ChatClient.entity(DTO.class)` 转成 DTO，再用 Jakarta Bean Validation 做必填、范围、枚举和级联校验。
 
 ## 展示前检查
 

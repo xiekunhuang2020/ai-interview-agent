@@ -114,7 +114,8 @@ AI 顾问可调用的工具集中在 `ResumeAgentTools`，只暴露查询类能�
 - 调用耗时日志
 - traceId 贯穿 HTTP 请求和模型调用日志
 - 模型调用最终失败后映射为 502 响应
-- 结构化输出治理：Spring AI `ChatClient.entity(DTO.class)` 负责 DTO 转换，Jakarta Bean Validation 负责必填、范围、枚举和级联校验
+- 结构化输出治理：Spring AI `StructuredOutputValidationAdvisor` 先按 DTO JSON Schema 校验并自动重试一次，Spring AI `ChatClient.entity(DTO.class)` 负责 DTO 转换，Jakarta Bean Validation 负责必填、范围、枚举和级联校验
+- 结构化模型调用使用 Spring AI Alibaba DashScope `responseFormat(JSON_OBJECT)` 约束模型返回 JSON
 - Prompt 版本记录
 - 调用审计落库
 

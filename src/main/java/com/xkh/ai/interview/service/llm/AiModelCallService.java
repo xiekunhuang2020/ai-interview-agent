@@ -1,6 +1,7 @@
 package com.xkh.ai.interview.service.llm;
 
 import com.alibaba.cloud.ai.dashscope.chat.DashScopeChatOptions;
+import com.alibaba.cloud.ai.dashscope.api.DashScopeResponseFormat;
 import com.xkh.ai.interview.dto.InterviewEvaluationDTO;
 import com.xkh.ai.interview.dto.InterviewQuestionsDTO;
 import com.xkh.ai.interview.dto.JobDescriptionMatchResultDTO;
@@ -12,11 +13,13 @@ import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.ai.chat.client.ChatClient;
+import org.springframework.ai.chat.client.advisor.StructuredOutputValidationAdvisor;
 import org.springframework.ai.chat.client.advisor.api.Advisor;
 import org.springframework.ai.chat.messages.Message;
 import org.springframework.ai.chat.prompt.Prompt;
 import org.springframework.stereotype.Component;
 
+import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Locale;
@@ -105,11 +108,12 @@ public class AiModelCallService {
         String promptVersion = promptVersionRegistry.versionOf(operationName);
         Prompt prompt = new Prompt(messages, DashScopeChatOptions.builder()
                 .temperature(temperature)
+                .responseFormat(new DashScopeResponseFormat(DashScopeResponseFormat.Type.JSON_OBJECT))
                 .build());
 
         long start = System.currentTimeMillis();
         try {
-            T result = doCallEntity(prompt, advisors, targetType);
+            T result = doCallEntity(prompt, withStructuredOutputAdvisor(advisors, targetType), targetType);
             validateEntity(result, targetType);
             long latencyMs = System.currentTimeMillis() - start;
             logger.info("AI structured call succeeded, operation={}, promptVersion={}, targetType={}, latencyMs={}",
@@ -144,6 +148,21 @@ public class AiModelCallService {
                 .advisors(advisors)
                 .call()
                 .content();
+    }
+
+    /**
+     * 为结构化调用追加 Spring AI 官方 JSON Schema 校验 Advisor，失败时由官方 Advisor 触发一次重试。
+     */
+    private List<Advisor> withStructuredOutputAdvisor(List<Advisor> advisors, Class<?> targetType) {
+        List<Advisor> mergedAdvisors = new ArrayList<>();
+        if (advisors != null) {
+            mergedAdvisors.addAll(advisors);
+        }
+        mergedAdvisors.add(StructuredOutputValidationAdvisor.builder()
+                .outputType(targetType)
+                .maxRepeatAttempts(1)
+                .build());
+        return mergedAdvisors;
     }
 
     /**
