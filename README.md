@@ -1,173 +1,200 @@
 # AI 求职顾问
 
-AI 求职顾问是一个面向程序员求职和技术面试训练场景的 AI 面试工作流应用。系统围绕“简历解析、能力画像、岗位匹配、面试题生成、回答评估、报告生成、向量检索”构建完整闭环，适合作为 Java 后端转型 AI 应用开发的展示项目。
+作者：谢半仙
+
+AI 求职顾问是一套面向求职者和技术面试训练场景的 AI 面试工作流应用。系统围绕“上传简历 -> 简历诊断 -> 岗位匹配 -> 岗位定制出题 -> AI 顾问问答 -> 回答评估 -> 运营观测”构建闭环，用于验证 Java 后端工程如何接入大模型、RAG、结构化输出和可观测能力。
+
+项目定位不是完全自主规划型 Agent，而是更适合业务落地的确定性 AI 工作流：主流程由 `InterviewWorkflowService` 控制，`agent` 包表示需要大模型推理的任务角色，`tool` 包负责文档解析、数据读写、缓存和向量检索等确定性能力。
+
+## 在线体验
+
+- 产品演示地址：[http://150.109.232.238/](http://150.109.232.238/)
+- 运营看板：`/audit/prompt-dashboard`
+- 代码开源地址：[https://github.com/xiekunhuang2020/ai-interview-agent](https://github.com/xiekunhuang2020/ai-interview-agent)
 
 ## 核心能力
 
-- 简历解析：支持 PDF、DOC、DOCX、TXT，通过 Apache Tika 提取简历文本。
-- 简历评分：基于大模型从项目深度、技能匹配、内容完整性、结构清晰度和表达专业性进行多维度评分。
-- 基础面试题生成：根据简历中出现的项目和技术栈生成定制化面试题。
-- 岗位匹配分析：基于目标岗位说明输出匹配分、能力证据、缺失技能和面试追问方向。
-- 岗位定制面试题：结合目标岗位说明、候选人简历和向量检索上下文生成更贴近投递岗位的问题，并标明题目来源。
-- 答案评估：结合简历背景和候选人回答，输出逐题评分、分类得分、优势、不足和参考答案。
-- RAG 基础能力：将简历切片写入 Milvus 向量库，支持相似简历检索和本地召回评估。
-- 会话存储：使用 MySQL 持久化简历、问题和评估结果，使用 Redis 缓存热点面试会话。
-- 模型调用治理：基于 Spring AI `ChatClient` 统一模型调用入口，模型侧重试和退避交给 `spring.ai.retry`，业务层只保留 Prompt 版本、调用审计、异常映射、结构化输出强校验和 traceId 日志追踪。
-- 调用审计：记录每次大模型调用的 operation、Prompt 版本、traceId、耗时、成功状态、错误类型和失败原因。
-- Prompt 评估：按 Prompt 版本统计成功率、失败数、平均耗时、最大耗时和失败原因分布。
+- 简历解析：支持 PDF、DOC、DOCX、TXT，使用 Spring AI Tika Document Reader 提取文本。
+- 简历诊断：从项目深度、技能匹配、内容完整、结构清晰、表达质量等维度生成评分和建议。
+- 岗位匹配：根据目标 JD 输出匹配分、命中技能、能力缺口、投递风险和学习建议。
+- 岗位定制出题：结合当前简历、目标 JD 和向量检索上下文生成面试题。
+- AI 顾问问答：基于只读工具查询简历画像、面试题和相似简历片段，支持 SSE 流式输出。
+- 回答评估：结合简历背景、面试题和用户答案生成逐题评分、反馈和参考答案。
+- 运营观测：按 operation 和 Prompt 版本统计成功率、失败原因、耗时和结构化失败样例。
+- 评测回放：使用固定样例集回放简历分析、岗位匹配和 RAG 出题效果。
 
 ## 技术栈
 
 | 模块 | 技术 |
 | --- | --- |
-| 后端框架 | Java 21, Spring Boot 3 |
-| AI 框架 | Spring AI Alibaba, DashScope |
-| 文档解析 | Apache Tika |
-| 向量检索 | Milvus Vector Store |
-| 数据存储 | MySQL, MyBatis-Plus |
-| 缓存 | Redis |
-| 页面渲染 | Thymeleaf, Vue 3, HTML, CSS, JavaScript |
-| 工程化 | Maven, Docker Compose |
+| 后端 | Java 21、Spring Boot 3、MyBatis-Plus |
+| AI 框架 | Spring AI、Spring AI Alibaba、DashScope |
+| 结构化输出 | `ChatClient.entity(DTO.class)`、`StructuredOutputValidationAdvisor`、Jakarta Validation |
+| RAG | Spring AI RAG、Milvus Vector Store、DashScope Embedding |
+| 文档解析 | Spring AI Tika Document Reader、Apache Tika |
+| 存储 | MySQL、Redis |
+| 前端 | Vue 3、Thymeleaf、HTML、CSS |
+| 部署 | Docker Compose、Linux、Nginx |
 
-## 开发约束
+## 工程亮点
 
-- 严禁重复封装框架已有能力。Spring AI、Spring AI Alibaba、MyBatis-Plus、Milvus Vector Store、RedisTemplate 已提供的能力必须优先直接使用。
-- 新增功能前先检查官方 API 和当前依赖能力，确认框架没有现成方案后，才允许写项目内业务适配代码。
-- 如果同一能力 Spring AI 已提供通用抽象，而 Spring AI Alibaba 针对 DashScope、通义模型或阿里云生态提供了更少代码的官方 Starter、Builder、Options、Advisor 或 Graph/RAG 扩展，优先使用 Spring AI Alibaba 的简化封装。
-- 选择 Spring AI Alibaba 的前提是减少业务代码和配置复杂度；如果会引入明显更重的运行时、管理端或复杂编排框架，则继续使用 Spring AI 通用能力或当前确定性工作流。
-- 项目代码只保留业务编排、参数校验、审计记录、异常映射和页面接口适配，不自研模型重试、工具调度、向量检索、结构化转换等框架能力。
-- 如果必须做业务适配，方法注释里要说明“适配的业务边界”，避免后续误解为重复造轮子。
+### 1. 确定性工作流，而不是普通 ChatBot
 
-## 工作流架构
+系统将面试准备拆成多个可追踪任务节点：简历解析、简历诊断、岗位匹配、RAG 出题、回答评估和 AI 顾问问答。每个节点由 Workflow 编排，模型只参与需要推理的环节，避免把业务链路完全交给模型自由发挥。
 
-项目已从单一 Service 调用模型，改造成 Controller + Service + 模型任务角色 + Tool 分层。这里的 `agent` 包表示“需要大模型推理的任务角色”，整体流程仍由 `InterviewWorkflowService` 确定性编排，不宣称完全自主规划。
+### 2. 官方能力优先，减少自研封装
+
+项目遵循“官方方案最高优先”的开发准则：
+
+- 模型调用统一使用 Spring AI `ChatClient`
+- 结构化转换使用 `ChatClient.entity(DTO.class)`
+- 结构化输出重试使用 Spring AI `StructuredOutputValidationAdvisor`
+- JSON 输出约束使用 DashScope `responseFormat(JSON_OBJECT)`
+- 向量检索使用 Spring AI `VectorStore` 和 `SearchRequest`
+- RAG 注入使用 Spring AI 官方 Advisor 机制
+
+业务代码只保留流程编排、参数校验、异常映射、审计记录和页面接口适配。
+
+### 3. 结构化输出治理
+
+大模型结构化输出并不稳定，项目采用三层治理：
+
+1. DashScope `responseFormat(JSON_OBJECT)` 约束模型返回 JSON。
+2. Spring AI `StructuredOutputValidationAdvisor` 按 DTO JSON Schema 校验输出，并自动重试一次。
+3. `ChatClient.entity(DTO.class)` 转换为 DTO 后，再用 Jakarta Validation 校验必填、范围、枚举和嵌套结构。
+
+结构化失败会记录为 `STRUCTURED_OUTPUT_ERROR`，前端展示 schema、字段、原因和 traceId，运营看板展示最近失败样例。
+
+### 4. RAG 可追踪、可评估
+
+简历入库流程使用 Spring AI Alibaba `RecursiveCharacterTextSplitter` 切片，并为每个 chunk 增加 `resumeId`、`fileName`、`chunkIndex`、`chunkCount`、`indexedAt` 等元数据。RAG 出题时区分：
+
+- `CURRENT_RESUME_FACT`：当前候选人真实简历事实
+- `SIMILAR_RESUME_REFERENCE`：相似简历参考片段
+
+Prompt 明确要求相似简历只能作为追问方向参考，不能当成当前候选人的真实经历。运营看板提供 RAG 召回评估，展示 TopK 命中率、平均耗时和未命中样例。
+
+### 5. Prompt/RAG Evaluation Harness
+
+项目内置固定评测样例集，覆盖简历分析、岗位匹配和 RAG 出题。运营看板可一键运行回放，并通过 Spring AI 官方 Evaluator 输出：
+
+- 结构化输出成功率
+- 上下文相关性
+- 事实一致性
+- 失败检查点
+- 平均耗时
+
+这让 Prompt 调整从“凭感觉”变成“有样例、有指标、有失败记录”的迭代流程。
+
+### 6. 模型调用审计
+
+`ai_model_call_log` 记录每次模型调用的 operation、Prompt 版本、traceId、耗时、成功状态、错误类型和失败原因。运营看板支持按场景和 Prompt 版本查看：
+
+- 模型调用样本量
+- 成功率
+- 平均耗时
+- 失败原因分布
+- 结构化失败样例
+- 最近模型调用日志
+
+## 架构概览
 
 ```text
 InterviewPageController
-  -> 返回 Thymeleaf 页面
+  -> 返回页面
 
 InterviewApiController
   -> InterviewWorkflowService
       -> ResumeParseTool
-      -> ResumeAnalysisAgent
       -> ResumeRepositoryTool
       -> ResumeVectorTool
-      -> InterviewQuestionAgent
+      -> ResumeAnalysisAgent
       -> JobDescriptionMatchAgent
+      -> InterviewQuestionAgent
       -> RagInterviewQuestionAgent
       -> AnswerEvaluationAgent
+
+InterviewAssistantAgentService
+  -> ResumeAgentTools
+      -> get_resume_profile
+      -> get_resume_interview_questions
+      -> search_similar_resumes
+```
+
+目录结构：
+
+```text
+src/main/java/com/xkh/ai/interview
+├── config        # MyBatis-Plus、Redis、Trace、ToolCalling 配置
+├── controller    # 页面入口和 API 入口
+├── dto           # 请求响应 DTO 和模型结构化输出 DTO
+├── entity        # 数据库实体
+├── mapper        # MyBatis-Plus Mapper
+└── service
+    ├── agent     # 需要大模型推理的任务角色
+    ├── audit     # 模型调用和顾问消息审计
+    ├── llm       # ChatClient 调用、结构化输出、Prompt 版本
+    ├── rag       # RAG Advisor、召回评估、评测回放
+    ├── tool      # 文档解析、向量入库、只读顾问工具
+    └── workflow  # 面试业务流程编排
 ```
 
 详细说明见 [docs/architecture.md](docs/architecture.md)。
 
-## 目录结构
-
-```text
-src/main/java/com/xkh/ai/interview
-├── config            # MyBatis-Plus、Redis、Trace 配置
-├── controller        # 页面入口和 API 入口
-├── dto               # 请求、响应和模型结构化输出 DTO
-├── entity            # 数据库实体
-├── mapper            # MyBatis-Plus Mapper
-└── service
-    ├── agent         # 需要大模型推理的任务角色
-    ├── audit         # 模型调用和对话审计
-    ├── llm           # 模型调用、结构化解析和 Prompt 版本
-    ├── rag           # Spring AI RAG Advisor 适配
-    ├── tool          # AI 顾问和工作流可调用的确定性工具
-    └── workflow      # 面试业务流程编排
-```
-
-## Prompt 版本管理
-
-每个模型调用场景都有独立 operation 名称和 Prompt 版本号，配置位于 `application.yml`：
-
-```yaml
-ai-interview:
-  prompt:
-    versions:
-      resume-analysis: resume-analysis-v2026-05-17-01
-      interview-question-generation: interview-question-v2026-05-17-01
-      answer-evaluation: answer-evaluation-v2026-05-17-01
-      jd-match: jd-match-v2026-05-17-01
-      rag-interview-question-generation: rag-question-v2026-05-17-01
-```
-
-模型调用审计会将 `operationName` 和 `promptVersion` 一起落库，便于后续评估不同 Prompt 版本的稳定性和效果。可以通过以下接口查看 Prompt 版本维度的调用指标：
-
-```text
-GET /api/audit/prompt-metrics?operationName=jd-match&limit=1000
-```
-
-指标包括调用总数、成功率、失败数、平均耗时和最大耗时；`avgAttemptCount` 作为早期外层重试审计兼容字段保留。
-
-也可以打开页面查看：
-
-```text
-http://localhost:8080/audit/prompt-dashboard
-```
-
 ## 快速启动
 
-### 1. 准备配置
+### 1. 准备环境变量
 
-复制环境变量模板：
+复制 `.env.example`：
 
-```bash
-cp .env.example .env
+```powershell
+Copy-Item .env.example .env
 ```
 
-将 `.env` 中的 `DASHSCOPE_API_KEY` 替换成你的通义千问 API Key。
-
-应用会通过 `spring.config.import=optional:file:.env[.properties]` 读取当前目录下的 `.env`，Docker Compose 也会复用同一份配置。
-
-模型调用、HTTP 超时和审计参数也可以通过 `.env` 调整：
+至少需要配置：
 
 ```text
-AI_MODEL_RETRY_MAX_ATTEMPTS=3
-AI_MODEL_RETRY_INITIAL_INTERVAL=800ms
-AI_MODEL_RETRY_BACKOFF_MULTIPLIER=2
-AI_MODEL_RETRY_MAX_INTERVAL=5s
-HTTP_CLIENT_CONNECT_TIMEOUT=60s
-HTTP_CLIENT_READ_TIMEOUT=600s
-HTTP_REACTIVE_CLIENT_CONNECT_TIMEOUT=60s
-HTTP_REACTIVE_CLIENT_READ_TIMEOUT=600s
-AI_AGENT_AUDIT_ENABLED=true
-AI_AGENT_AUDIT_LOG_MESSAGE_CONTENT=true
-AI_AGENT_AUDIT_MAX_MESSAGE_CONTENT_LENGTH=4000
+DASHSCOPE_API_KEY=你的通义千问 API Key
 ```
 
-完整环境变量清单见 [.env.example](.env.example)，本地真实密钥只放在 `.env` 中。
+应用通过 `spring.config.import=optional:file:.env[.properties]` 读取本地配置，Docker Compose 也复用同一份 `.env`。
 
 ### 2. 启动依赖
 
-```bash
+```powershell
 docker compose up -d
 ```
 
-会启动 MySQL、Redis、Milvus、etcd、MinIO。
+依赖包括 MySQL、Redis、Milvus、etcd、MinIO。首次启动会自动执行 `sql/init.sql`。
 
-确认依赖就绪：
+若已有旧数据卷，需要按顺序执行 `sql/migration-v2` 到 `sql/migration-v8`。
 
-```bash
-docker compose ps
-docker compose exec mysql sh -c 'mysqladmin ping -h 127.0.0.1 -uroot -p"$MYSQL_ROOT_PASSWORD"'
-docker compose exec redis redis-cli ping
-curl http://localhost:9091/healthz
-```
+### 3. 启动后端
 
-`sql/init.sql` 会在 MySQL 数据卷首次初始化时自动执行。若本地已有旧数据卷，需要补齐新表结构并清理旧字段，请按顺序执行 `sql/migration-v2-ai-model-call-log.sql`、`sql/migration-v3-agent-conversation-message.sql`、`sql/migration-v4-interview-session.sql`、`sql/migration-v5-core-result-tables.sql`、`sql/migration-v6-clean-resume-info-json-columns.sql`、`sql/migration-v7-question-source.sql` 和 `sql/migration-v8-ai-model-error-type.sql`。
-
-### 3. 启动应用
-
-```bash
+```powershell
 mvn spring-boot:run
 ```
 
-浏览器访问：
+访问：
 
 ```text
 http://localhost:8080
+```
+
+## 演示流程
+
+1. 打开首页，进入“候选人导入”。
+2. 上传简历并填写目标岗位说明。
+3. 查看简历诊断和岗位匹配结果。
+4. 生成岗位定制面试题。
+5. 进入模拟面试，填写答案并生成评估报告。
+6. 进入 AI 顾问，围绕当前简历进行流式问答。
+7. 打开运营看板，查看调用审计、RAG 召回评估和 Prompt/RAG 评测回放。
+
+也可以运行脚本：
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts/demo-flow.ps1
 ```
 
 ## API 示例
@@ -176,60 +203,20 @@ http://localhost:8080
 
 ## 项目文档
 
-- [深度优化路线图](docs/deep-optimization-roadmap.md)
 - [架构说明](docs/architecture.md)
+- [深度优化路线图](docs/deep-optimization-roadmap.md)
 - [API 示例](docs/api-examples.md)
 - [面试备注](docs/interview-notes.md)
+- [样例数据说明](samples/README.md)
 
-## Demo 数据集
+## 面试口径
 
-样例文件统一放在 [samples](samples)：
+这个项目的核心不是“我调了一个大模型接口”，而是把大模型能力放进一个可控的后端业务流程里：
 
-- 简历：`java-backend-resume.txt`、`ai-application-resume.txt`、`platform-backend-resume.txt`
-- 岗位：`java-ai-agent-jd.txt`、`java-backend-performance-jd.txt`、`fullstack-ai-product-jd.txt`
-- 答案：`interview-answers-demo.json`
+- 流程可控：Workflow 编排每个业务节点。
+- 输出可校验：DTO、JSON Schema Advisor、Jakarta Validation 多层校验。
+- 检索可追踪：RAG chunk 带元数据和引用来源。
+- 效果可回放：固定样例集评估 Prompt/RAG 结果。
+- 问题可排查：模型调用审计、错误分类、traceId 和运营看板。
 
-一键演示脚本：
-
-```powershell
-powershell -ExecutionPolicy Bypass -File scripts/demo-flow.ps1
-```
-
-切换样例：
-
-```powershell
-powershell -ExecutionPolicy Bypass -File scripts/demo-flow.ps1 `
-  -ResumePath samples/ai-application-resume.txt `
-  -JobDescriptionPath samples/fullstack-ai-product-jd.txt
-```
-
-## 展示流程
-
-1. 启动后端服务，确认本地 MySQL、Redis、Milvus 可用。
-2. 执行 `scripts/demo-flow.ps1`，自动完成上传简历、岗位匹配、生成面试题、提交答案和 RAG 召回评估。
-3. 打开脚本输出的简历分析、岗位匹配、模拟面试和复盘结果地址。
-4. 打开脚本输出的 AI 求职顾问地址，围绕当前简历继续追问。
-5. 打开 `/audit/prompt-dashboard` 查看效果指标、提示词指标、最近模型调用和失败原因分布。
-6. 在运营看板点击“运行评测”，回放固定样例集，查看结构化输出、事实一致性和上下文相关性结果。
-
-## 简历可写亮点
-
-```text
-AI 求职顾问｜Java 21 / Spring Boot / Spring AI Alibaba / DashScope / Milvus / Redis / MySQL
-
-- 设计并实现“简历解析 -> 能力画像 -> 岗位匹配 -> 面试题生成 -> 回答评估 -> 面试报告生成”的确定性 AI 面试工作流，提升模拟面试的个性化与反馈质量。
-- 基于 Spring AI Alibaba 接入通义千问模型，通过 System/User Prompt 分层设计、结构化 JSON 输出约束和容错解析，降低大模型输出不稳定对业务流程的影响。
-- 基于 Spring AI `ChatClient` 统一模型调用入口，模型侧重试和退避交给 `spring.ai.retry` 配置，业务层保留 Prompt 版本、调用审计、traceId 日志追踪和模型侧故障映射。
-- 强化 AI 结构化输出校验，覆盖必填字段、类型、数值范围、枚举值、数组元素结构和未知字段检测，避免异常模型输出污染业务数据。
-- 设计 AI 调用审计表，记录 operation、Prompt 版本、traceId、耗时、成功状态和错误原因，支持模型链路问题回溯。
-- 实现 Prompt 指标聚合，支持按版本观察成功率、失败数、平均耗时和失败原因分布，为 Prompt 迭代提供数据依据。
-- 使用 Apache Tika 支持多格式简历解析，并围绕项目深度、技能匹配、内容完整性、结构清晰度和表达专业性生成多维度评分。
-- 基于 Milvus 构建简历向量知识库，结合目标岗位说明检索相似简历片段，为岗位定制化出题提供 RAG 上下文。
-- 实现岗位匹配分析能力，输出岗位匹配分、能力证据、缺失技能、风险点和面试追问方向。
-- 设计 MySQL + Redis 的存储与缓存机制，持久化简历评分、面试题和回答评估结果，并对热点会话数据做缓存加速。
-```
-
-## 后续规划
-
-- 增加 Prompt 评估看板的时间范围筛选。
-- 增加结构化输出失败诊断与自动修复闭环。
+当前版本不是完全自主规划型 Agent，也没有宣称真实生产用户量、QPS 或业务准确率。它的价值在于展示 Java 后端工程如何将 LLM、RAG、结构化输出、审计和前端体验组合成一个可演示、可追问、可迭代的 AI 应用。
