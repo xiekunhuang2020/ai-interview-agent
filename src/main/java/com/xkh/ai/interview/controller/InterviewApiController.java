@@ -184,6 +184,29 @@ public class InterviewApiController {
     }
 
     /**
+     * 将单题语音回答转写为文本，前端回填后仍由用户确认再提交评估。
+     */
+    @PostMapping("/api/interview/{resumeId}/answer-audio/transcribe")
+    public ResponseEntity<?> transcribeAnswerAudio(
+            @PathVariable String resumeId,
+            @RequestParam("file") MultipartFile file,
+            @RequestParam(required = false) Integer sampleRate) {
+        try {
+            return ResponseEntity.ok(interviewWorkflowService.transcribeAnswerAudio(resumeId, file, sampleRate));
+        } catch (NoSuchElementException e) {
+            return ResponseEntity.notFound().build();
+        } catch (IllegalArgumentException e) {
+            return badRequest(e);
+        } catch (AiModelCallException e) {
+            return aiGatewayError(e);
+        } catch (IOException e) {
+            return serverError("语音转写失败", e, "语音转写失败：" + e.getMessage());
+        } catch (Exception e) {
+            return serverError("语音转写失败", e, "语音转写失败：" + e.getMessage());
+        }
+    }
+
+    /**
      * 分析候选人简历与目标岗位 JD 的匹配度。
      */
     @PostMapping("/api/jd/{resumeId}/match")

@@ -1,11 +1,13 @@
 package com.xkh.ai.interview.service.workflow;
 
 import com.xkh.ai.interview.service.agent.AnswerEvaluationAgent;
+import com.xkh.ai.interview.service.agent.InterviewAnswerAudioTranscriptionAgent;
 import com.xkh.ai.interview.service.agent.InterviewQuestionAgent;
 import com.xkh.ai.interview.service.agent.JobDescriptionImageOcrAgent;
 import com.xkh.ai.interview.service.agent.JobDescriptionMatchAgent;
 import com.xkh.ai.interview.service.agent.RagInterviewQuestionAgent;
 import com.xkh.ai.interview.service.agent.ResumeAnalysisAgent;
+import com.xkh.ai.interview.dto.AnswerAudioTranscriptionResultDTO;
 import com.xkh.ai.interview.dto.InterviewEvaluationDTO;
 import com.xkh.ai.interview.dto.InterviewQuestionsDTO;
 import com.xkh.ai.interview.dto.InterviewSessionInfoDTO;
@@ -41,6 +43,7 @@ public class InterviewWorkflowService {
     private final JobDescriptionMatchAgent jobDescriptionMatchAgent;
     private final JobDescriptionImageOcrAgent jobDescriptionImageOcrAgent;
     private final RagInterviewQuestionAgent ragInterviewQuestionAgent;
+    private final InterviewAnswerAudioTranscriptionAgent interviewAnswerAudioTranscriptionAgent;
     private final InterviewSessionService interviewSessionService;
 
     /**
@@ -55,6 +58,7 @@ public class InterviewWorkflowService {
                                     JobDescriptionMatchAgent jobDescriptionMatchAgent,
                                     JobDescriptionImageOcrAgent jobDescriptionImageOcrAgent,
                                     RagInterviewQuestionAgent ragInterviewQuestionAgent,
+                                    InterviewAnswerAudioTranscriptionAgent interviewAnswerAudioTranscriptionAgent,
                                     InterviewSessionService interviewSessionService) {
         this.resumeParseTool = resumeParseTool;
         this.resumeRepositoryTool = resumeRepositoryTool;
@@ -65,6 +69,7 @@ public class InterviewWorkflowService {
         this.jobDescriptionMatchAgent = jobDescriptionMatchAgent;
         this.jobDescriptionImageOcrAgent = jobDescriptionImageOcrAgent;
         this.ragInterviewQuestionAgent = ragInterviewQuestionAgent;
+        this.interviewAnswerAudioTranscriptionAgent = interviewAnswerAudioTranscriptionAgent;
         this.interviewSessionService = interviewSessionService;
     }
 
@@ -157,6 +162,16 @@ public class InterviewWorkflowService {
             interviewSessionService.markFailed(resumeId, "ANSWER_EVALUATION", e);
             throw e;
         }
+    }
+
+    /**
+     * 将单题语音回答转写为文本，前端检查后再统一提交评估。
+     */
+    public AnswerAudioTranscriptionResultDTO transcribeAnswerAudio(String resumeId,
+                                                                   MultipartFile file,
+                                                                   Integer sampleRate) throws IOException {
+        requireResume(resumeId);
+        return interviewAnswerAudioTranscriptionAgent.transcribe(file, sampleRate);
     }
 
     /**
