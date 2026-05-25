@@ -1,5 +1,6 @@
 package com.xkh.ai.interview.dto;
 
+import com.fasterxml.jackson.annotation.JsonFormat;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
@@ -48,6 +49,7 @@ public class InterviewEvaluationDTO {
     /**
      * 分类得分统计
      */
+    @JsonFormat(with = JsonFormat.Feature.ACCEPT_SINGLE_VALUE_AS_ARRAY)
     @Valid
     @NotNull
     private List<@Valid CategoryScore> categoryScores;
@@ -55,6 +57,7 @@ public class InterviewEvaluationDTO {
     /**
      * 问题详情
      */
+    @JsonFormat(with = JsonFormat.Feature.ACCEPT_SINGLE_VALUE_AS_ARRAY)
     @Valid
     @NotNull
     private List<@Valid QuestionDetail> questionDetails;
@@ -69,6 +72,7 @@ public class InterviewEvaluationDTO {
     /**
      * 优势列表
      */
+    @JsonFormat(with = JsonFormat.Feature.ACCEPT_SINGLE_VALUE_AS_ARRAY)
     @NotNull
     @Size(max = 20)
     private List<@NotBlank String> strengths;
@@ -76,6 +80,7 @@ public class InterviewEvaluationDTO {
     /**
      * 改进建议列表
      */
+    @JsonFormat(with = JsonFormat.Feature.ACCEPT_SINGLE_VALUE_AS_ARRAY)
     @NotNull
     @Size(max = 20)
     private List<@NotBlank String> improvements;
@@ -83,6 +88,7 @@ public class InterviewEvaluationDTO {
     /**
      * 参考答案列表
      */
+    @JsonFormat(with = JsonFormat.Feature.ACCEPT_SINGLE_VALUE_AS_ARRAY)
     @Valid
     @NotNull
     private List<@Valid ReferenceAnswer> referenceAnswers;
@@ -144,6 +150,7 @@ public class InterviewEvaluationDTO {
         @NotBlank
         @Size(max = 4000)
         private String referenceAnswer;
+        @JsonFormat(with = JsonFormat.Feature.ACCEPT_SINGLE_VALUE_AS_ARRAY)
         @NotNull
         @Size(max = 20)
         private List<@NotBlank String> keyPoints;

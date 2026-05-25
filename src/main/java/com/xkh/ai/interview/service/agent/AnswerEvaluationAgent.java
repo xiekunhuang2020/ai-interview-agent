@@ -49,7 +49,7 @@ public class AnswerEvaluationAgent {
         messages.add(new SystemMessage(systemPromptResource));
         messages.add(new UserMessage(buildUserPrompt(resumeText, questions, answers)));
 
-        return aiModelCallService.callEntity(OPERATION_NAME, messages, 0.7, InterviewEvaluationDTO.class);
+        return aiModelCallService.callEntity(OPERATION_NAME, messages, 0.2, InterviewEvaluationDTO.class);
     }
 
     /**

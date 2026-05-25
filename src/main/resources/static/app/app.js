@@ -618,7 +618,7 @@ function createInterviewApp() {
                     });
                     this.answers[index] = this.mergeAnswerText(this.answers[index], payload.text);
                     this.pendingAudioReviewIndex = index;
-                    this.globalMessage = `第 ${index + 1} 题语音已转成文字，请检查后点击“确认并提交评估”。`;
+                    this.globalMessage = `第 ${index + 1} 题语音已转成文字，请检查答案框。全部题目答完后，再点击右上角“提交评估”。`;
                 } catch (error) {
                     this.globalError = error.message;
                 } finally {
@@ -697,13 +697,6 @@ function createInterviewApp() {
                     return current;
                 }
                 return `${current}\n${transcription}`;
-            },
-            async confirmAudioAndSubmit() {
-                await this.submitAnswers();
-            },
-            clearAudioReview() {
-                this.pendingAudioReviewIndex = null;
-                this.globalMessage = '';
             },
             answerAudioButtonText(index) {
                 if (this.recordingQuestionIndex === index) {
