@@ -838,6 +838,30 @@ p {
     gap: 12px;
 }
 
+.question-answer-tools {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 10px;
+    margin-top: -2px;
+}
+
+.recording-status {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    color: var(--red);
+    font-size: 13px;
+    font-weight: 800;
+}
+
+.recording-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 999px;
+    background: var(--red);
+}
+
 .question-meta {
     display: flex;
     align-items: center;

@@ -61,6 +61,17 @@
                         <small>{{ question.sourceNote || '基于当前简历事实设计追问' }}</small>
                     </div>
                     <h3>{{ question.question }}</h3>
+                    <div class="question-answer-tools">
+                        <button class="ghost-button compact-button" type="button"
+                                v-on:click="toggleAnswerRecording(index)"
+                                v-bind:disabled="loading.transcription && transcribingQuestionIndex !== index">
+                            {{ answerAudioButtonText(index) }}
+                        </button>
+                        <span class="recording-status" v-if="recordingQuestionIndex === index">
+                            <span class="recording-dot"></span>正在录音
+                        </span>
+                        <span class="muted" v-else-if="transcribingQuestionIndex === index">正在转写语音...</span>
+                    </div>
                     <textarea v-model="answers[index]" placeholder="输入候选人的回答。建议用背景、动作、结果的结构描述。"></textarea>
                 </article>
 

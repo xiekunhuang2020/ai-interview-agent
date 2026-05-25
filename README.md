@@ -19,6 +19,7 @@ AI 求职顾问是一套面向求职者和技术面试训练场景的 AI 面试�
 - 岗位匹配：根据目标 JD 输出匹配分、命中技能、能力缺口、投递风险和学习建议。
 - 岗位截图识别：支持上传招聘软件或网页截图，使用 Spring AI 多模态消息和 DashScope 视觉模型提取岗位说明。
 - 岗位定制出题：结合当前简历、目标 JD 和向量检索上下文生成面试题。
+- 语音回答转写：模拟面试页支持录音回答，使用 DashScope 官方 Java SDK 转写后回填答案框。
 - AI 顾问问答：基于只读工具查询简历画像、面试题和相似简历片段，支持 SSE 流式输出和长对话摘要压缩。
 - 回答评估：结合简历背景、面试题和用户答案生成逐题评分、反馈和参考答案。
 - 运营观测：按 operation 和 Prompt 版本统计成功率、失败原因、耗时和结构化失败样例。
@@ -120,6 +121,7 @@ InterviewApiController
       -> InterviewQuestionAgent
       -> RagInterviewQuestionAgent
       -> AnswerEvaluationAgent
+      -> InterviewAnswerAudioTranscriptionAgent
 
 InterviewAssistantAgentService
   -> ResumeAgentTools
@@ -223,7 +225,7 @@ powershell -ExecutionPolicy Bypass -File scripts/demo-flow.ps1
 - 成本观测：已打通 Spring AI / DashScope 官方 token usage 落库，并在运营看板按 operation 展示输入 token、输出 token、总 token 和模型名称。
 - 上下文预算：已为 Prompt、RAG 上下文、AI 顾问工具返回和对话历史设置最大预算，降低 token 成本和无关上下文干扰。
 - 对话摘要：AI 顾问使用 Spring AI 官方 `MessageWindowChatMemory` 保存最近消息；当多轮对话变长时，保留“会话摘要 + 最近消息”，减少历史消息无限拼接。
-- 语音面试陪练：通过官方 ASR 能力把语音回答转写成文本，复用现有回答评估链路，并补充语速、停顿和表达完整度建议。
+- 语音面试陪练：已完成第一轮，模拟面试页支持录音回答，后端通过 DashScope 官方 Java SDK 转写文本并回填答案框；后续再补语速、停顿和表达完整度建议。
 - 截图识别：已支持岗位截图识别并回填岗位说明；不做简历截图识别，继续沿用 PDF、DOC、DOCX、TXT 文件解析链路。
 
 这些方向会继续遵循官方能力优先原则，不为了炫技自研 OCR、ASR、token 估算或多模态模型封装。

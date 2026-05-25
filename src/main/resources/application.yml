@@ -31,6 +31,9 @@ spring:
       connect-timeout: ${HTTP_REACTIVE_CLIENT_CONNECT_TIMEOUT:60s}
       read-timeout: ${HTTP_REACTIVE_CLIENT_READ_TIMEOUT:600s}
   ai:
+    model:
+      audio:
+        transcription: none
     chat:
       client:
         observations:
@@ -70,6 +73,11 @@ server:
   port: 8080
 
 ai-interview:
+  audio:
+    answer-transcription:
+      model: ${DASHSCOPE_ASR_MODEL:paraformer-realtime-v2}
+      max-file-size: ${AI_ANSWER_AUDIO_MAX_FILE_SIZE:10485760}
+      timeout-seconds: ${AI_ANSWER_AUDIO_TIMEOUT_SECONDS:90}
   vision:
     jd-ocr-model: ${DASHSCOPE_VISION_MODEL:qwen-vl-max}
   agent:
@@ -103,6 +111,7 @@ ai-interview:
       interview-assistant-stream: ${AI_BUDGET_INTERVIEW_ASSISTANT_INPUT_TOKENS:2500}
       interview-assistant-summary: ${AI_BUDGET_INTERVIEW_ASSISTANT_SUMMARY_INPUT_TOKENS:1800}
       jd-image-ocr: ${AI_BUDGET_JD_IMAGE_OCR_INPUT_TOKENS:1800}
+      answer-audio-transcription: ${AI_BUDGET_ANSWER_AUDIO_TRANSCRIPTION_INPUT_TOKENS:0}
   prompt:
     versions:
       resume-analysis: resume-analysis-v2026-05-17-01
@@ -113,6 +122,7 @@ ai-interview:
       interview-assistant-stream: assistant-stream-v2026-05-24-01
       interview-assistant-summary: assistant-summary-v2026-05-24-01
       jd-image-ocr: jd-image-ocr-v2026-05-24-01
+      answer-audio-transcription: answer-audio-transcription-v2026-05-25-01
 
 mybatis-plus:
   mapper-locations: classpath*:/mapper/**/*.xml
