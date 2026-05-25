@@ -134,6 +134,26 @@ public class InterviewEvaluationDTO {
         @NotBlank
         @Size(max = 4000)
         private String feedback;
+        /**
+         * 回答内容层面的主要问题，例如概念错误、遗漏关键点或缺少业务场景。
+         */
+        @Size(max = 2000)
+        private String contentIssue;
+        /**
+         * 表达层面的主要问题，例如逻辑顺序、术语准确性或陈述是否啰嗦。
+         */
+        @Size(max = 2000)
+        private String expressionIssue;
+        /**
+         * 针对本题的回答结构优化建议，用于指导候选人按背景、动作、结果重讲。
+         */
+        @Size(max = 2000)
+        private String structureSuggestion;
+        /**
+         * 面试官可能基于当前回答继续追问的问题。
+         */
+        @Size(max = 1000)
+        private String followUpQuestion;
     }
 
     @Data

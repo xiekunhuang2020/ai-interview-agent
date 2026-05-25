@@ -968,6 +968,19 @@ function createInterviewApp() {
             safeList(value) {
                 return Array.isArray(value) ? value : [];
             },
+            // 根据题目序号找到对应参考答案，兼容旧数据里 questionIndex 从 1 开始的情况。
+            referenceAnswerOf(questionDetail, fallbackIndex) {
+                const references = this.safeList(this.evaluation && this.evaluation.referenceAnswers);
+                if (!references.length) {
+                    return null;
+                }
+                const questionIndex = Number(questionDetail && questionDetail.questionIndex);
+                return references.find((item) => Number(item.questionIndex) === questionIndex)
+                    || references.find((item) => Number(item.questionIndex) === fallbackIndex)
+                    || references.find((item) => Number(item.questionIndex) === fallbackIndex + 1)
+                    || references[fallbackIndex]
+                    || null;
+            },
             clamp(value) {
                 const numeric = Number(value || 0);
                 return Math.max(0, Math.min(100, numeric));

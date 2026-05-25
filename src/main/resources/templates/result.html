@@ -27,6 +27,9 @@
             当前流程：{{ sessionSummary() }}
             <span v-if="session.status === 'FAILED' && session.failedReason">，失败原因：{{ session.failedReason }}</span>
         </div>
+        <div class="notice info" v-if="evaluation">
+            语音回答会先转写为文字，本报告以候选人确认后的文字答案为评分依据。
+        </div>
         <div class="notice info" v-if="loading.workspace">正在加载复盘报告...</div>
 
         <section class="content-grid" v-if="evaluation">
@@ -79,13 +82,45 @@
                     </div>
                 </div>
                 <div class="feedback-list">
-                    <article class="feedback-item" v-for="item in safeList(evaluation.questionDetails)" v-bind:key="item.questionIndex">
+                    <article class="feedback-item" v-for="(item, index) in safeList(evaluation.questionDetails)" v-bind:key="item.questionIndex || index">
                         <div class="question-meta">
-                            <span>Q{{ Number(item.questionIndex) + 1 }}</span>
+                            <span>Q{{ index + 1 }} · {{ item.category || '综合问题' }}</span>
                             <strong>{{ item.score }}</strong>
                         </div>
                         <h3>{{ item.question }}</h3>
-                        <p>{{ item.feedback }}</p>
+                        <div class="feedback-section answer-section">
+                            <span>候选人回答</span>
+                            <p>{{ item.userAnswer || '未作答' }}</p>
+                        </div>
+                        <div class="feedback-grid">
+                            <div class="feedback-section">
+                                <span>综合反馈</span>
+                                <p>{{ item.feedback }}</p>
+                            </div>
+                            <div class="feedback-section" v-if="item.contentIssue">
+                                <span>内容问题</span>
+                                <p>{{ item.contentIssue }}</p>
+                            </div>
+                            <div class="feedback-section" v-if="item.expressionIssue">
+                                <span>表达问题</span>
+                                <p>{{ item.expressionIssue }}</p>
+                            </div>
+                            <div class="feedback-section" v-if="item.structureSuggestion">
+                                <span>结构建议</span>
+                                <p>{{ item.structureSuggestion }}</p>
+                            </div>
+                        </div>
+                        <div class="feedback-section follow-up-section" v-if="item.followUpQuestion">
+                            <span>可能追问</span>
+                            <p>{{ item.followUpQuestion }}</p>
+                        </div>
+                        <div class="feedback-section reference-section" v-if="referenceAnswerOf(item, index)">
+                            <span>参考答案</span>
+                            <p>{{ referenceAnswerOf(item, index).referenceAnswer }}</p>
+                            <ul class="key-point-list" v-if="safeList(referenceAnswerOf(item, index).keyPoints).length">
+                                <li v-for="point in safeList(referenceAnswerOf(item, index).keyPoints)" v-bind:key="point">{{ point }}</li>
+                            </ul>
+                        </div>
                     </article>
                 </div>
             </div>
