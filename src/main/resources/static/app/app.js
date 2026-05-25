@@ -1,6 +1,6 @@
 const { createApp } = Vue;
 
-const answerAudioState = {
+const speechAudioState = {
     stream: null,
     audioContext: null,
     source: null,
@@ -72,6 +72,8 @@ function createInterviewApp() {
                 recordingQuestionIndex: null,
                 transcribingQuestionIndex: null,
                 pendingAudioReviewIndex: null,
+                recordingAssistant: false,
+                transcribingAssistant: false,
                 audit: {
                     operationName: '',
                     promptVersion: '',
@@ -487,7 +489,7 @@ function createInterviewApp() {
                     this.globalError = '请先生成面试问题。';
                     return;
                 }
-                if (this.recordingQuestionIndex !== null) {
+                if (this.isRecordingSpeech()) {
                     this.globalError = '请先停止当前录音，再提交评估。';
                     return;
                 }
@@ -523,59 +525,65 @@ function createInterviewApp() {
                 await this.startAnswerRecording(index);
             },
             async startAnswerRecording(index) {
-                if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-                    this.globalError = '当前浏览器不支持录音，请改用文字输入。';
-                    return;
-                }
-                if (this.recordingQuestionIndex !== null) {
-                    this.globalError = '请先停止当前录音。';
-                    return;
-                }
                 this.globalError = '';
                 this.globalMessage = '';
                 this.pendingAudioReviewIndex = null;
-                try {
-                    const AudioContextClass = window.AudioContext || window.webkitAudioContext;
-                    if (!AudioContextClass) {
-                        this.globalError = '当前浏览器不支持音频处理，请改用文字输入。';
-                        return;
-                    }
-                    answerAudioState.stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-                    answerAudioState.audioContext = new AudioContextClass();
-                    answerAudioState.inputSampleRate = answerAudioState.audioContext.sampleRate || 16000;
-                    answerAudioState.outputSampleRate = 16000;
-                    answerAudioState.buffers = [];
-                    answerAudioState.source = answerAudioState.audioContext.createMediaStreamSource(answerAudioState.stream);
-                    answerAudioState.processor = answerAudioState.audioContext.createScriptProcessor(4096, 1, 1);
-                    answerAudioState.processor.onaudioprocess = (event) => {
-                        const input = event.inputBuffer.getChannelData(0);
-                        answerAudioState.buffers.push(new Float32Array(input));
-                        const output = event.outputBuffer.getChannelData(0);
-                        output.fill(0);
-                    };
-                    answerAudioState.source.connect(answerAudioState.processor);
-                    answerAudioState.processor.connect(answerAudioState.audioContext.destination);
+                if (await this.startSpeechRecording()) {
                     this.recordingQuestionIndex = index;
                     this.globalMessage = `第 ${index + 1} 题正在录音，回答完后点击“停止录音”。`;
-                } catch (error) {
-                    this.releaseAnswerAudioResources();
-                    this.globalError = error.message || '录音启动失败，请检查麦克风权限。';
                 }
             },
             async stopAnswerRecording() {
                 const index = this.recordingQuestionIndex;
-                const blob = await this.finishAnswerRecording();
+                const blob = await this.finishSpeechRecording();
                 this.recordingQuestionIndex = null;
                 if (index === null || !blob) {
                     return;
                 }
                 await this.transcribeAnswerAudio(index, blob);
             },
-            async finishAnswerRecording() {
-                const buffers = answerAudioState.buffers.slice();
-                const inputSampleRate = answerAudioState.inputSampleRate;
-                const outputSampleRate = answerAudioState.outputSampleRate;
-                await this.releaseAnswerAudioResources();
+            async startSpeechRecording() {
+                if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+                    this.globalError = '当前浏览器不支持录音，请改用文字输入。';
+                    return false;
+                }
+                if (this.isRecordingSpeech()) {
+                    this.globalError = '请先停止当前录音。';
+                    return false;
+                }
+                try {
+                    const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+                    if (!AudioContextClass) {
+                        this.globalError = '当前浏览器不支持音频处理，请改用文字输入。';
+                        return false;
+                    }
+                    speechAudioState.stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                    speechAudioState.audioContext = new AudioContextClass();
+                    speechAudioState.inputSampleRate = speechAudioState.audioContext.sampleRate || 16000;
+                    speechAudioState.outputSampleRate = 16000;
+                    speechAudioState.buffers = [];
+                    speechAudioState.source = speechAudioState.audioContext.createMediaStreamSource(speechAudioState.stream);
+                    speechAudioState.processor = speechAudioState.audioContext.createScriptProcessor(4096, 1, 1);
+                    speechAudioState.processor.onaudioprocess = (event) => {
+                        const input = event.inputBuffer.getChannelData(0);
+                        speechAudioState.buffers.push(new Float32Array(input));
+                        const output = event.outputBuffer.getChannelData(0);
+                        output.fill(0);
+                    };
+                    speechAudioState.source.connect(speechAudioState.processor);
+                    speechAudioState.processor.connect(speechAudioState.audioContext.destination);
+                    return true;
+                } catch (error) {
+                    await this.releaseSpeechAudioResources();
+                    this.globalError = error.message || '录音启动失败，请检查麦克风权限。';
+                    return false;
+                }
+            },
+            async finishSpeechRecording() {
+                const buffers = speechAudioState.buffers.slice();
+                const inputSampleRate = speechAudioState.inputSampleRate;
+                const outputSampleRate = speechAudioState.outputSampleRate;
+                await this.releaseSpeechAudioResources();
                 if (!buffers.length) {
                     this.globalError = '没有录到语音，请重新录制。';
                     return null;
@@ -584,23 +592,23 @@ function createInterviewApp() {
                 const resampled = this.downsampleAudioBuffer(samples, inputSampleRate, outputSampleRate);
                 return this.encodeWavBlob(resampled, outputSampleRate);
             },
-            async releaseAnswerAudioResources() {
-                if (answerAudioState.processor) {
-                    answerAudioState.processor.disconnect();
-                    answerAudioState.processor.onaudioprocess = null;
-                    answerAudioState.processor = null;
+            async releaseSpeechAudioResources() {
+                if (speechAudioState.processor) {
+                    speechAudioState.processor.disconnect();
+                    speechAudioState.processor.onaudioprocess = null;
+                    speechAudioState.processor = null;
                 }
-                if (answerAudioState.source) {
-                    answerAudioState.source.disconnect();
-                    answerAudioState.source = null;
+                if (speechAudioState.source) {
+                    speechAudioState.source.disconnect();
+                    speechAudioState.source = null;
                 }
-                if (answerAudioState.stream) {
-                    answerAudioState.stream.getTracks().forEach((track) => track.stop());
-                    answerAudioState.stream = null;
+                if (speechAudioState.stream) {
+                    speechAudioState.stream.getTracks().forEach((track) => track.stop());
+                    speechAudioState.stream = null;
                 }
-                if (answerAudioState.audioContext) {
-                    await answerAudioState.audioContext.close();
-                    answerAudioState.audioContext = null;
+                if (speechAudioState.audioContext) {
+                    await speechAudioState.audioContext.close();
+                    speechAudioState.audioContext = null;
                 }
             },
             async transcribeAnswerAudio(index, blob) {
@@ -611,7 +619,7 @@ function createInterviewApp() {
                 try {
                     const formData = new FormData();
                     formData.append('file', blob, `answer-${index + 1}.wav`);
-                    formData.append('sampleRate', String(answerAudioState.outputSampleRate));
+                    formData.append('sampleRate', String(speechAudioState.outputSampleRate));
                     const payload = await fetchJson(`/api/interview/${encodeURIComponent(this.resumeId)}/answer-audio/transcribe`, {
                         method: 'POST',
                         body: formData
@@ -625,6 +633,9 @@ function createInterviewApp() {
                     this.loading.transcription = false;
                     this.transcribingQuestionIndex = null;
                 }
+            },
+            isRecordingSpeech() {
+                return this.recordingQuestionIndex !== null || this.recordingAssistant;
             },
             flattenAudioBuffers(buffers) {
                 const totalLength = buffers.reduce((sum, buffer) => sum + buffer.length, 0);
@@ -707,8 +718,68 @@ function createInterviewApp() {
                 }
                 return '录音回答';
             },
+            async toggleAssistantRecording() {
+                if (this.recordingAssistant) {
+                    await this.stopAssistantRecording();
+                    return;
+                }
+                await this.startAssistantRecording();
+            },
+            async startAssistantRecording() {
+                if (this.loading.chat) {
+                    this.globalError = 'AI 顾问正在回复，请稍后再录音提问。';
+                    return;
+                }
+                this.globalError = '';
+                this.globalMessage = '';
+                if (await this.startSpeechRecording()) {
+                    this.recordingAssistant = true;
+                    this.globalMessage = '正在录音提问，说完后点击“停止录音”。';
+                }
+            },
+            async stopAssistantRecording() {
+                const blob = await this.finishSpeechRecording();
+                this.recordingAssistant = false;
+                if (!blob) {
+                    return;
+                }
+                await this.transcribeAssistantAudio(blob);
+            },
+            async transcribeAssistantAudio(blob) {
+                this.transcribingAssistant = true;
+                this.globalError = '';
+                this.globalMessage = '';
+                try {
+                    const formData = new FormData();
+                    formData.append('file', blob, 'assistant-question.wav');
+                    formData.append('sampleRate', String(speechAudioState.outputSampleRate));
+                    const payload = await fetchJson('/api/audio/transcribe', {
+                        method: 'POST',
+                        body: formData
+                    });
+                    this.assistantMessage = this.mergeAnswerText(this.assistantMessage, payload.text);
+                    this.globalMessage = '语音提问已转成文字，请检查输入框后发送。';
+                } catch (error) {
+                    this.globalError = error.message;
+                } finally {
+                    this.transcribingAssistant = false;
+                }
+            },
+            assistantAudioButtonText() {
+                if (this.recordingAssistant) {
+                    return '停止录音';
+                }
+                if (this.transcribingAssistant) {
+                    return '转写中...';
+                }
+                return '语音提问';
+            },
             async sendAssistantMessage() {
                 if (this.loading.chat) {
+                    return;
+                }
+                if (this.recordingAssistant || this.transcribingAssistant) {
+                    this.globalError = '请先完成语音转写，再发送顾问问题。';
                     return;
                 }
                 const content = this.assistantMessage.trim();

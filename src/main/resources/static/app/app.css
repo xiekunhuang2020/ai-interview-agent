@@ -1106,6 +1106,14 @@ p {
     margin-top: 14px;
 }
 
+.chat-tools {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 10px;
+    margin-top: 14px;
+}
+
 .chat-input textarea {
     min-height: 78px;
     resize: vertical;

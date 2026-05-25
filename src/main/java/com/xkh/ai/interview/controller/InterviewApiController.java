@@ -207,6 +207,26 @@ public class InterviewApiController {
     }
 
     /**
+     * 通用语音转写入口，AI 顾问语音提问会复用同一套 ASR 能力。
+     */
+    @PostMapping("/api/audio/transcribe")
+    public ResponseEntity<?> transcribeAudio(
+            @RequestParam("file") MultipartFile file,
+            @RequestParam(required = false) Integer sampleRate) {
+        try {
+            return ResponseEntity.ok(interviewWorkflowService.transcribeAudio(file, sampleRate));
+        } catch (IllegalArgumentException e) {
+            return badRequest(e);
+        } catch (AiModelCallException e) {
+            return aiGatewayError(e);
+        } catch (IOException e) {
+            return serverError("语音转写失败", e, "语音转写失败：" + e.getMessage());
+        } catch (Exception e) {
+            return serverError("语音转写失败", e, "语音转写失败：" + e.getMessage());
+        }
+    }
+
+    /**
      * 分析候选人简历与目标岗位 JD 的匹配度。
      */
     @PostMapping("/api/jd/{resumeId}/match")

@@ -23,6 +23,7 @@
         </header>
 
         <div class="notice error" v-if="globalError">{{ globalError }}</div>
+        <div class="notice success" v-if="globalMessage">{{ globalMessage }}</div>
         <div class="notice info" v-if="session">
             当前流程：{{ sessionSummary() }}
             <span v-if="session.status === 'FAILED' && session.failedReason">，失败原因：{{ session.failedReason }}</span>
@@ -47,13 +48,28 @@
                     </div>
                 </div>
 
+                <div class="chat-tools">
+                    <button class="ghost-button compact-button" type="button"
+                            v-on:click="toggleAssistantRecording"
+                            v-bind:disabled="loading.chat || transcribingAssistant || recordingQuestionIndex !== null">
+                        {{ assistantAudioButtonText() }}
+                    </button>
+                    <span class="recording-status" v-if="recordingAssistant">
+                        <span class="recording-dot"></span>正在录音
+                    </span>
+                    <span class="muted" v-else-if="transcribingAssistant">正在转写语音...</span>
+                    <span class="muted" v-else>语音会先转成文字，确认后再发送。</span>
+                </div>
+
                 <div class="chat-input">
                     <textarea v-model="assistantMessage"
                               placeholder="输入客户问题，按 Enter 发送，Shift + Enter 换行"
                               v-on:compositionstart="assistantInputComposing = true"
                               v-on:compositionend="assistantInputComposing = false"
                               v-on:keydown.enter.exact="submitAssistantMessageByEnter"></textarea>
-                    <button class="primary-button" type="button" v-on:click="sendAssistantMessage" v-bind:disabled="!assistantMessage.trim() || loading.chat">
+                    <button class="primary-button" type="button"
+                            v-on:click="sendAssistantMessage"
+                            v-bind:disabled="!assistantMessage.trim() || loading.chat || recordingAssistant || transcribingAssistant">
                         {{ loading.chat ? '处理中...' : '发送' }}
                     </button>
                 </div>
