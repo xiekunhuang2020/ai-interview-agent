@@ -19,7 +19,7 @@
             <div class="top-actions">
                 <a class="ghost-button" th:href="@{/match/{resumeId}(resumeId=${resumeId})}">岗位匹配</a>
                 <a class="ghost-button" th:href="@{/analysis/{resumeId}(resumeId=${resumeId})}">简历诊断</a>
-                <button class="primary-button" type="button" v-on:click="submitAnswers" v-bind:disabled="!questions.length || loading.evaluation">
+                <button class="primary-button" type="button" v-on:click="submitAnswers" v-bind:disabled="!questions.length || loading.evaluation || loading.transcription || recordingQuestionIndex !== null">
                     {{ loading.evaluation ? '评估中...' : '提交评估' }}
                 </button>
             </div>
@@ -73,6 +73,22 @@
                         <span class="muted" v-else-if="transcribingQuestionIndex === index">正在转写语音...</span>
                     </div>
                     <textarea v-model="answers[index]" placeholder="输入候选人的回答。建议用背景、动作、结果的结构描述。"></textarea>
+                    <div class="audio-review-box" v-if="pendingAudioReviewIndex === index">
+                        <div>
+                            <strong>语音已转成文字</strong>
+                            <p>请先检查回答框内容，必要时修改，再提交本轮面试评估。</p>
+                        </div>
+                        <div class="audio-review-actions">
+                            <button class="primary-button compact-button" type="button"
+                                    v-on:click="confirmAudioAndSubmit"
+                                    v-bind:disabled="loading.evaluation || loading.transcription || recordingQuestionIndex !== null">
+                                确认并提交评估
+                            </button>
+                            <button class="ghost-button compact-button" type="button" v-on:click="clearAudioReview">
+                                继续回答
+                            </button>
+                        </div>
+                    </div>
                 </article>
 
                 <div class="panel empty-panel" v-if="!loading.workspace && !questions.length">

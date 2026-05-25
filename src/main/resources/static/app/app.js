@@ -71,6 +71,7 @@ function createInterviewApp() {
                 assistantSummaryCompressed: false,
                 recordingQuestionIndex: null,
                 transcribingQuestionIndex: null,
+                pendingAudioReviewIndex: null,
                 audit: {
                     operationName: '',
                     promptVersion: '',
@@ -486,6 +487,14 @@ function createInterviewApp() {
                     this.globalError = '请先生成面试问题。';
                     return;
                 }
+                if (this.recordingQuestionIndex !== null) {
+                    this.globalError = '请先停止当前录音，再提交评估。';
+                    return;
+                }
+                if (this.loading.transcription) {
+                    this.globalError = '语音正在转写，请等待转写完成后再提交评估。';
+                    return;
+                }
                 if (this.unansweredCount > 0 && !window.confirm(`还有 ${this.unansweredCount} 题未回答，确定提交评估吗？`)) {
                     return;
                 }
@@ -498,6 +507,7 @@ function createInterviewApp() {
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify(this.answers)
                     });
+                    this.pendingAudioReviewIndex = null;
                     window.location.href = `/result/${encodeURIComponent(this.resumeId)}`;
                 } catch (error) {
                     this.globalError = error.message;
@@ -523,6 +533,7 @@ function createInterviewApp() {
                 }
                 this.globalError = '';
                 this.globalMessage = '';
+                this.pendingAudioReviewIndex = null;
                 try {
                     const AudioContextClass = window.AudioContext || window.webkitAudioContext;
                     if (!AudioContextClass) {
@@ -606,7 +617,8 @@ function createInterviewApp() {
                         body: formData
                     });
                     this.answers[index] = this.mergeAnswerText(this.answers[index], payload.text);
-                    this.globalMessage = `第 ${index + 1} 题语音已转成文字，请检查后再提交评估。`;
+                    this.pendingAudioReviewIndex = index;
+                    this.globalMessage = `第 ${index + 1} 题语音已转成文字，请检查后点击“确认并提交评估”。`;
                 } catch (error) {
                     this.globalError = error.message;
                 } finally {
@@ -685,6 +697,13 @@ function createInterviewApp() {
                     return current;
                 }
                 return `${current}\n${transcription}`;
+            },
+            async confirmAudioAndSubmit() {
+                await this.submitAnswers();
+            },
+            clearAudioReview() {
+                this.pendingAudioReviewIndex = null;
+                this.globalMessage = '';
             },
             answerAudioButtonText(index) {
                 if (this.recordingQuestionIndex === index) {

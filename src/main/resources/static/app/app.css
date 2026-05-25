@@ -912,6 +912,37 @@ p {
     outline: none;
 }
 
+.audio-review-box {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    border: 1px solid #c9e5dc;
+    border-radius: 8px;
+    padding: 12px 14px;
+    background: #f3faf7;
+}
+
+.audio-review-box strong {
+    display: block;
+    margin-bottom: 4px;
+    color: var(--brand-strong);
+}
+
+.audio-review-box p {
+    margin: 0;
+    color: var(--muted);
+    font-size: 14px;
+    line-height: 1.6;
+}
+
+.audio-review-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    justify-content: flex-end;
+}
+
 .empty-panel {
     min-height: 240px;
     display: grid;
@@ -1399,6 +1430,12 @@ p {
         width: 100%;
         white-space: normal;
         text-align: center;
+    }
+
+    .audio-review-box,
+    .audio-review-actions {
+        display: grid;
+        grid-template-columns: 1fr;
     }
 
     .score-row {
