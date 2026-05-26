@@ -129,5 +129,20 @@ public class PromptMetricsResultDTO {
      * 当前分组累计输入 Token 超预算数量。
      */
     private Long totalInputTokenOverBudget;
+
+    /**
+     * 有音频时长样本的语音转写调用次数。
+     */
+    private Long audioSampleCalls;
+
+    /**
+     * 当前分组累计输入音频时长，单位毫秒。
+     */
+    private Long totalAudioDurationMs;
+
+    /**
+     * 有音频样本的平均输入音频时长，单位毫秒。
+     */
+    private Double avgAudioDurationMs;
 }
 

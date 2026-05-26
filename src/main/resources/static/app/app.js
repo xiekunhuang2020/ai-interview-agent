@@ -182,6 +182,18 @@ function createInterviewApp() {
                 const questionMetric = metrics.find((item) => item.operationName === 'rag-interview-question-generation')
                     || metrics.find((item) => item.operationName === 'interview-question-generation');
                 const summaryMetric = metrics.find((item) => item.operationName === 'interview-assistant-summary');
+                const audioMetrics = metrics.filter((item) => [
+                    'answer-audio-transcription',
+                    'assistant-audio-transcription'
+                ].includes(item.operationName));
+                const audioCalls = audioMetrics.reduce((sum, item) => sum + Number(item.totalCalls || 0), 0);
+                const audioSuccessCalls = audioMetrics.reduce((sum, item) => sum + Number(item.successCalls || 0), 0);
+                const audioTotalLatency = audioMetrics.reduce((sum, item) => {
+                    return sum + Number(item.avgLatencyMs || 0) * Number(item.totalCalls || 0);
+                }, 0);
+                const audioTotalDurationMs = audioMetrics.reduce((sum, item) => {
+                    return sum + Number(item.totalAudioDurationMs || 0);
+                }, 0);
                 const ragRecall = this.audit.ragRecall;
 
                 return [
@@ -239,6 +251,11 @@ function createInterviewApp() {
                         label: '摘要压缩次数',
                         value: `${summaryMetric ? Number(summaryMetric.totalCalls || 0) : 0} 次`,
                         note: summaryMetric ? `均耗时 ${this.formatLatency(summaryMetric.avgLatencyMs)}` : '暂无摘要压缩记录'
+                    },
+                    {
+                        label: '语音转写调用',
+                        value: `${audioCalls} 次`,
+                        note: audioCalls ? `成功率 ${this.round(audioSuccessCalls * 100 / audioCalls)}% / 总音频 ${this.formatAudioDuration(audioTotalDurationMs)}` : '暂无语音样本'
                     },
                     {
                         label: '向量召回命中率',
@@ -1086,6 +1103,23 @@ function createInterviewApp() {
                 }
                 return `入 ${this.formatTokenCount(item.inputTokens)} / 出 ${this.formatTokenCount(item.outputTokens)} / 总 ${this.formatTokenCount(item.totalTokens)}`;
             },
+            // 将 ASR 音频输入元信息格式化为审计表展示文案。
+            formatAudioMeta(item) {
+                if (!item || (!item.audioFileSizeBytes && !item.audioSampleRate && !item.audioDurationMs)) {
+                    return '--';
+                }
+                const parts = [];
+                if (item.audioFileSizeBytes) {
+                    parts.push(this.formatBytes(item.audioFileSizeBytes));
+                }
+                if (item.audioSampleRate) {
+                    parts.push(this.formatSampleRate(item.audioSampleRate));
+                }
+                if (item.audioDurationMs) {
+                    parts.push(this.formatAudioDuration(item.audioDurationMs));
+                }
+                return parts.join(' / ');
+            },
             // 将字符数格式化为看板上的简短数字。
             formatCharCount(value) {
                 if (value === null || value === undefined || value === '') {
@@ -1151,7 +1185,8 @@ function createInterviewApp() {
                     'interview-assistant-stream': 'AI 顾问流式对话',
                     'interview-assistant-summary': '顾问摘要压缩',
                     'jd-image-ocr': '岗位截图识别',
-                    'answer-audio-transcription': '语音回答转写'
+                    'answer-audio-transcription': '语音回答转写',
+                    'assistant-audio-transcription': '顾问语音提问转写'
                 };
                 return map[operationName] || '其他调用';
             },
@@ -1247,6 +1282,30 @@ function createInterviewApp() {
                     return `${Math.round(value / 1024)}KB`;
                 }
                 return `${Math.round(value / 1024 / 1024 * 10) / 10}MB`;
+            },
+            // 将采样率转换成常见音频标注，例如 16000Hz 展示为 16kHz。
+            formatSampleRate(value) {
+                const numeric = Number(value || 0);
+                if (!numeric) {
+                    return '--';
+                }
+                if (numeric >= 1000 && numeric % 1000 === 0) {
+                    return `${numeric / 1000}kHz`;
+                }
+                return `${numeric}Hz`;
+            },
+            // 将音频时长毫秒数格式化为“3.2秒”或“1分05秒”。
+            formatAudioDuration(value) {
+                const numeric = Number(value || 0);
+                if (!numeric) {
+                    return '--';
+                }
+                if (numeric < 60000) {
+                    return `${this.round(numeric / 1000)}秒`;
+                }
+                const minutes = Math.floor(numeric / 60000);
+                const seconds = Math.round((numeric % 60000) / 1000);
+                return `${minutes}分${String(seconds).padStart(2, '0')}秒`;
             }
         }
     });

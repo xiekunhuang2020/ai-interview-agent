@@ -185,6 +185,7 @@
                 <div class="log-table">
                     <div class="log-row model-call-row head">
                         <span>时间</span><span>调用场景</span><span>模型</span><span>状态</span><span>Token</span>
+                        <span class="help-label">音频输入<span class="help-tip" title="语音转写请求的输入元信息：文件大小、采样率和音频时长。ASR 不按 Token 统计。">?</span></span>
                         <span class="help-label">输入预算<span class="help-tip" title="只看本次调用的输入 Token，不包含输出 Token。未超表示输入 Token 小于该场景预算；超出表示真实输入 Token 已超过目标线。">?</span></span>
                         <span class="help-label">策略状态<span class="help-tip" title="正常表示未超预算；需优化表示输入已超预算但没有触发裁剪；已裁剪表示预算策略已经裁掉部分上下文。">?</span></span>
                         <span>裁剪</span><span>耗时</span><span>追踪编号</span>
@@ -195,6 +196,7 @@
                         <span>{{ item.modelName || '--' }}</span>
                         <span v-bind:class="item.success === 1 ? 'ok-text' : 'bad-text'">{{ item.success === 1 ? '成功' : '失败' }}<template v-if="item.success !== 1 && item.errorType"> / {{ errorTypeText(item.errorType) }}</template></span>
                         <span>{{ formatTokenBreakdown(item) }}</span>
+                        <span>{{ formatAudioMeta(item) }}</span>
                         <span v-bind:class="item.budgetExceeded === 1 ? 'warn-text' : ''">{{ formatInputBudget(item) }}</span>
                         <span v-bind:class="item.budgetUncovered === 1 ? 'warn-text' : ''">{{ formatBudgetStrategy(item) }}</span>
                         <span v-bind:class="item.contextClipped === 1 ? 'warn-text' : ''">{{ formatContextClipping(item) }}</span>

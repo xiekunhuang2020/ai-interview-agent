@@ -171,14 +171,22 @@ public class InterviewWorkflowService {
                                                                    MultipartFile file,
                                                                    Integer sampleRate) throws IOException {
         requireResume(resumeId);
-        return transcribeAudio(file, sampleRate);
+        return interviewAnswerAudioTranscriptionAgent.transcribe(
+                file,
+                sampleRate,
+                InterviewAnswerAudioTranscriptionAgent.ANSWER_OPERATION_NAME
+        );
     }
 
     /**
      * 将浏览器录制的通用语音转写为文本，供面试回答和 AI 顾问语音提问复用。
      */
     public AnswerAudioTranscriptionResultDTO transcribeAudio(MultipartFile file, Integer sampleRate) throws IOException {
-        return interviewAnswerAudioTranscriptionAgent.transcribe(file, sampleRate);
+        return interviewAnswerAudioTranscriptionAgent.transcribe(
+                file,
+                sampleRate,
+                InterviewAnswerAudioTranscriptionAgent.ASSISTANT_OPERATION_NAME
+        );
     }
 
     /**

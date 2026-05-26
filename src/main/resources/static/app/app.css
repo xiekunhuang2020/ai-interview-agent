@@ -1277,7 +1277,7 @@ p {
 }
 
 .log-row.model-call-row {
-    grid-template-columns: 150px minmax(108px, 1fr) minmax(86px, 0.7fr) 58px minmax(142px, 1fr) minmax(96px, 0.75fr) 76px 76px 70px minmax(160px, 1fr);
+    grid-template-columns: 150px minmax(108px, 1fr) minmax(86px, 0.7fr) 58px minmax(128px, 1fr) minmax(136px, 0.9fr) minmax(96px, 0.75fr) 76px 76px 70px minmax(160px, 1fr);
 }
 
 .log-row.structured-row {

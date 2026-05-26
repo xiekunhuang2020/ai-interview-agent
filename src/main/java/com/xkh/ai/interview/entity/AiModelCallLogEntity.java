@@ -74,6 +74,21 @@ public class AiModelCallLogEntity {
     private Integer totalTokens;
 
     /**
+     * 语音转写上传的音频文件大小，单位字节。
+     */
+    private Long audioFileSizeBytes;
+
+    /**
+     * 语音转写使用的音频采样率。
+     */
+    private Integer audioSampleRate;
+
+    /**
+     * 语音转写输入音频的时长，单位毫秒。
+     */
+    private Long audioDurationMs;
+
+    /**
      * 当前调用场景配置的目标输入 Token 预算。
      */
     private Integer inputTokenBudget;

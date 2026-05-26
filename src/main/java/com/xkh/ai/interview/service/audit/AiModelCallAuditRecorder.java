@@ -44,6 +44,12 @@ public class AiModelCallAuditRecorder {
     }
 
     /**
+     * 语音转写请求的输入音频信息，用于排查 ASR 成本和识别失败。
+     */
+    public record AudioUsage(Long fileSizeBytes, Integer sampleRate, Long durationMs) {
+    }
+
+    /**
      * 注入模型调用审计表 Mapper，用于把每次模型调用结果写入数据库。
      */
     public AiModelCallAuditRecorder(AiModelCallLogMapper aiModelCallLogMapper,
@@ -171,6 +177,22 @@ public class AiModelCallAuditRecorder {
     }
 
     /**
+     * 记录一次语音转写审计，ASR 没有 token usage 时保留模型名、音频大小、采样率和耗时。
+     */
+    @Transactional
+    public void recordAudio(String operationName,
+                            String promptVersion,
+                            boolean success,
+                            int attemptCount,
+                            long latencyMs,
+                            Throwable error,
+                            ModelUsage usage,
+                            AudioUsage audioUsage) {
+        record(operationName, promptVersion, success, attemptCount, latencyMs,
+                error == null ? null : error.getMessage(), error, usage, null, audioUsage);
+    }
+
+    /**
      * 写入模型调用审计记录，内部统一处理错误文本裁剪和错误类型分类。
      */
     private void record(String operationName,
@@ -195,12 +217,30 @@ public class AiModelCallAuditRecorder {
                         Throwable error,
                         ModelUsage usage,
                         PromptContextBudgetService.ContextUsage contextUsage) {
+        record(operationName, promptVersion, success, attemptCount, latencyMs,
+                errorMessage, error, usage, contextUsage, null);
+    }
+
+    /**
+     * 写入模型调用审计记录，附带 token usage、上下文预算和语音输入元信息。
+     */
+    private void record(String operationName,
+                        String promptVersion,
+                        boolean success,
+                        int attemptCount,
+                        long latencyMs,
+                        String errorMessage,
+                        Throwable error,
+                        ModelUsage usage,
+                        PromptContextBudgetService.ContextUsage contextUsage,
+                        AudioUsage audioUsage) {
         try {
             AiModelCallLogEntity log = new AiModelCallLogEntity();
             log.setTraceId(MDC.get(RequestTraceFilter.TRACE_ID_KEY));
             log.setOperationName(operationName);
             log.setPromptVersion(promptVersion);
             fillUsage(log, usage);
+            fillAudioUsage(log, audioUsage);
             fillContextUsage(log, contextUsage);
             fillInputBudget(log, operationName, usage, contextUsage);
             log.setSuccess(success ? 1 : 0);
@@ -214,6 +254,18 @@ public class AiModelCallAuditRecorder {
             logger.warn("Failed to record AI model call audit, operation={}, error={}",
                     operationName, e.getMessage());
         }
+    }
+
+    /**
+     * 将语音输入元信息写入审计记录，方便看板区分不同 ASR 请求规模。
+     */
+    private void fillAudioUsage(AiModelCallLogEntity log, AudioUsage audioUsage) {
+        if (audioUsage == null) {
+            return;
+        }
+        log.setAudioFileSizeBytes(audioUsage.fileSizeBytes());
+        log.setAudioSampleRate(audioUsage.sampleRate());
+        log.setAudioDurationMs(audioUsage.durationMs());
     }
 
     /**

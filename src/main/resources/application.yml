@@ -112,6 +112,7 @@ ai-interview:
       interview-assistant-summary: ${AI_BUDGET_INTERVIEW_ASSISTANT_SUMMARY_INPUT_TOKENS:1800}
       jd-image-ocr: ${AI_BUDGET_JD_IMAGE_OCR_INPUT_TOKENS:1800}
       answer-audio-transcription: ${AI_BUDGET_ANSWER_AUDIO_TRANSCRIPTION_INPUT_TOKENS:0}
+      assistant-audio-transcription: ${AI_BUDGET_ASSISTANT_AUDIO_TRANSCRIPTION_INPUT_TOKENS:0}
   prompt:
     versions:
       resume-analysis: resume-analysis-v2026-05-17-01
@@ -123,6 +124,7 @@ ai-interview:
       interview-assistant-summary: assistant-summary-v2026-05-24-01
       jd-image-ocr: jd-image-ocr-v2026-05-24-01
       answer-audio-transcription: answer-audio-transcription-v2026-05-25-01
+      assistant-audio-transcription: assistant-audio-transcription-v2026-05-26-01
 
 mybatis-plus:
   mapper-locations: classpath*:/mapper/**/*.xml
