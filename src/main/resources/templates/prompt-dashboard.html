@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>系统观测 - AI 求职顾问</title>
-    <link rel="stylesheet" href="/app/app.css?v=20260526-02">
+    <link rel="stylesheet" href="/app/app.css?v=20260527-01">
 </head>
 <body>
 <div id="app" data-page="ops" v-cloak>
@@ -137,40 +137,54 @@
                 </div>
             </details>
 
-            <div class="panel">
-                <div class="panel-header"><div><h2>提示词指标</h2><p>{{ audit.metrics.length }} 组</p></div></div>
-                <div class="metric-list">
-                    <article class="metric-card" v-for="item in audit.metrics" v-bind:key="item.operationName + item.promptVersion">
-                        <div class="metric-card-main">
-                            <strong>{{ operationNameText(item.operationName) }}</strong>
-                            <span>{{ item.modelNames || '模型未记录' }}</span>
-                        </div>
-                        <dl class="metric-card-stats">
-                            <div><dt>成功率</dt><dd>{{ round(item.successRate) }}%</dd></div>
-                            <div><dt>失败</dt><dd>{{ item.failedCalls || 0 }}</dd></div>
-                            <div><dt>均耗时</dt><dd>{{ formatLatency(item.avgLatencyMs) }}</dd></div>
-                            <div><dt>输入 Token</dt><dd>{{ formatTokenCount(item.totalInputTokens) }}</dd></div>
-                            <div><dt>输出 Token</dt><dd>{{ formatTokenCount(item.totalOutputTokens) }}</dd></div>
-                            <div><dt>总 Token</dt><dd>{{ formatTokenCount(item.totalTokens) }}</dd></div>
-                            <div><dt>均 Token</dt><dd>{{ formatTokenCount(item.avgTotalTokens) }}</dd></div>
-                            <div><dt>估算费用</dt><dd>{{ estimateMetricCost(item) }}</dd></div>
-                            <div><dt>均输入长度</dt><dd>{{ formatCharCount(item.avgPromptChars) }}</dd></div>
-                            <div><dt>裁剪次数</dt><dd>{{ item.clippedCalls || 0 }}</dd></div>
-                            <div><dt>预算超出</dt><dd>{{ item.budgetExceededCalls || 0 }}</dd></div>
-                            <div><dt>策略未覆盖</dt><dd>{{ item.budgetUncoveredCalls || 0 }}</dd></div>
-                        </dl>
-                    </article>
-                    <p class="muted empty-line" v-if="!audit.metrics.length">暂无指标数据</p>
+            <div class="panel wide-panel">
+                <div class="panel-header">
+                    <div>
+                        <h2>调用场景健康度</h2>
+                        <p>当前范围内 {{ audit.metrics.length }} 组调用指标，汇总成功率、耗时、Token 和成本。</p>
+                    </div>
                 </div>
+                <div class="ops-health-table" v-if="audit.metrics.length">
+                    <div class="ops-health-row head">
+                        <span>调用场景</span><span>成功率</span><span>失败</span><span>均耗时</span><span>Token</span><span>费用</span><span>治理状态</span>
+                    </div>
+                    <div class="ops-health-row" v-for="item in audit.metrics" v-bind:key="item.operationName + item.promptVersion">
+                        <span>
+                            <strong>{{ operationNameText(item.operationName) }}</strong>
+                            <small>{{ item.modelNames || '模型未记录' }}</small>
+                        </span>
+                        <span>
+                            <strong>{{ round(item.successRate) }}%</strong>
+                            <small>{{ item.successCalls || 0 }} 成功 / {{ item.failedCalls || 0 }} 失败</small>
+                        </span>
+                        <span v-bind:class="item.failedCalls ? 'bad-text' : 'ok-text'">{{ item.failedCalls || 0 }}</span>
+                        <span>{{ formatLatency(item.avgLatencyMs) }}</span>
+                        <span>
+                            {{ formatTokenCount(item.totalTokens) }}
+                            <small>入 {{ formatTokenCount(item.totalInputTokens) }} / 出 {{ formatTokenCount(item.totalOutputTokens) }}</small>
+                        </span>
+                        <span>{{ estimateMetricCost(item) }}</span>
+                        <span>
+                            裁剪 {{ item.clippedCalls || 0 }} / 超出 {{ item.budgetExceededCalls || 0 }}
+                            <small>未覆盖 {{ item.budgetUncoveredCalls || 0 }}</small>
+                        </span>
+                    </div>
+                </div>
+                <p class="muted empty-line" v-if="!audit.metrics.length">暂无指标数据</p>
                 <p class="muted panel-footnote" v-if="audit.metrics.length">费用由后端价格配置和审计用量换算，实际费用以百炼控制台账单为准。</p>
             </div>
 
-            <div class="panel">
-                <div class="panel-header"><div><h2>失败原因</h2><p>{{ audit.failures.length }} 类</p></div></div>
-                <div class="failure-list">
+            <div class="panel wide-panel">
+                <div class="panel-header">
+                    <div>
+                        <h2>失败原因摘要</h2>
+                        <p>当前范围内 {{ audit.failures.length }} 类失败原因，按出现次数排序。</p>
+                    </div>
+                </div>
+                <div class="failure-summary-list">
                     <article v-for="item in audit.failures" v-bind:key="item.reason">
                         <strong>{{ errorTypeText(item.errorType) }}</strong>
-                        <p class="muted">{{ item.reason }}</p>
+                        <p class="muted failure-reason-text" v-bind:title="item.reason">{{ item.reason }}</p>
                         <div class="bar-track"><div class="bar-fill danger" v-bind:style="{ width: clamp(item.percentage) + '%' }"></div></div>
                         <span>{{ item.count }} 次 / {{ round(item.percentage) }}%</span>
                     </article>
