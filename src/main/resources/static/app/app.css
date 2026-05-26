@@ -147,6 +147,25 @@ button {
     font-weight: 800;
 }
 
+.side-tool-link {
+    display: inline-flex;
+    align-items: center;
+    min-height: 36px;
+    width: fit-content;
+    border-radius: 8px;
+    padding: 0 10px;
+    color: #91a29b;
+    text-decoration: none;
+    font-size: 13px;
+    font-weight: 800;
+}
+
+.side-tool-link:hover,
+.side-tool-link.active {
+    color: #ffffff;
+    background: rgba(255, 255, 255, 0.08);
+}
+
 .side-status {
     margin-top: auto;
     padding: 14px;
@@ -506,6 +525,41 @@ p {
 .timeline {
     display: grid;
     gap: 10px;
+}
+
+.home-actions {
+    margin-top: 18px;
+}
+
+.next-step-strip {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 12px;
+    margin-bottom: 16px;
+}
+
+.next-step-strip article {
+    min-height: 82px;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    padding: 14px;
+    background: #ffffff;
+    box-shadow: var(--shadow);
+}
+
+.next-step-strip span {
+    display: block;
+    margin-bottom: 8px;
+    color: var(--muted);
+    font-size: 12px;
+    font-weight: 800;
+}
+
+.next-step-strip strong {
+    display: block;
+    color: var(--text);
+    font-size: 16px;
+    line-height: 1.45;
 }
 
 .timeline-item {
@@ -983,6 +1037,11 @@ p {
     font-size: 22px;
 }
 
+.interview-tools > .primary-button.full,
+.interview-tools > .ghost-button.full {
+    margin-bottom: 10px;
+}
+
 .question-answer-tools {
     display: flex;
     flex-wrap: wrap;
@@ -1259,6 +1318,10 @@ p {
     gap: 12px;
 }
 
+.simple-filter-grid {
+    grid-template-columns: minmax(220px, 420px);
+}
+
 .filter-grid label {
     display: grid;
     gap: 6px;
@@ -1277,6 +1340,45 @@ p {
     color: var(--text);
     font-weight: 400;
     background: #ffffff;
+}
+
+.advanced-box {
+    margin-top: 14px;
+}
+
+.advanced-box summary {
+    min-height: 36px;
+    display: inline-flex;
+    align-items: center;
+    border-radius: 8px;
+    padding: 0 12px;
+    color: var(--brand-strong);
+    background: #edf5f1;
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 800;
+}
+
+.advanced-box[open] summary {
+    margin-bottom: 14px;
+}
+
+.panel.advanced-box {
+    box-shadow: none;
+    background: #fbfdfc;
+}
+
+.panel.advanced-box summary {
+    margin: -2px 0;
+}
+
+.panel.advanced-box[open] summary {
+    margin-bottom: 16px;
+}
+
+.advanced-box-body {
+    display: grid;
+    gap: 14px;
 }
 
 .effect-strip {
@@ -1564,6 +1666,7 @@ p {
     .kpi-grid,
     .effect-grid,
     .filter-grid,
+    .next-step-strip,
     .feedback-grid,
     .voice-summary-grid,
     .voice-summary-columns {

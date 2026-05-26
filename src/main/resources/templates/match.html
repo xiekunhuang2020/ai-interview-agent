@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>岗位匹配 - AI 求职顾问</title>
-    <link rel="stylesheet" href="/app/app.css">
+    <link rel="stylesheet" href="/app/app.css?v=20260526-02">
 </head>
 <body>
 <div id="app" data-page="match" th:attr="data-resume-id=${resumeId}" v-cloak>
@@ -29,12 +29,27 @@
             <span v-if="session.status === 'FAILED' && session.failedReason">，失败原因：{{ session.failedReason }}</span>
         </div>
 
+        <section class="next-step-strip" v-if="matchResult">
+            <article>
+                <span>匹配结论</span>
+                <strong>先判断是否值得投递</strong>
+            </article>
+            <article>
+                <span>技能缺口</span>
+                <strong>把短板转成简历修改点</strong>
+            </article>
+            <article>
+                <span>面试准备</span>
+                <strong>生成贴近岗位的追问题</strong>
+            </article>
+        </section>
+
         <section class="content-grid">
             <div class="panel wide-panel">
                 <div class="panel-header">
                     <div>
                         <h2>目标岗位说明</h2>
-                        <p>匹配结果会保存在浏览器本地，便于刷新页面后继续演示。</p>
+                        <p>建议粘贴完整 JD，包含职责、技术栈、加分项和业务方向。</p>
                     </div>
                     <div class="inline-actions">
                         <button class="ghost-button" type="button" v-on:click="fillSampleJd">填入示例</button>
@@ -56,7 +71,7 @@
                     <p class="summary-text">{{ matchResult.summary }}</p>
                     <div class="inline-actions">
                         <button class="primary-button" type="button" v-on:click="generateRagQuestions" v-bind:disabled="loading.questions">
-                            {{ loading.questions ? '生成中...' : '根据岗位生成面试题' }}
+                            {{ loading.questions ? '生成中...' : '生成岗位面试题' }}
                         </button>
                         <a class="ghost-button" th:href="@{/assistant/{resumeId}(resumeId=${resumeId})}">问 AI 顾问</a>
                     </div>
@@ -122,3 +137,5 @@
 <th:block th:replace="~{fragments/layout :: scripts}"></th:block>
 </body>
 </html>
+
+

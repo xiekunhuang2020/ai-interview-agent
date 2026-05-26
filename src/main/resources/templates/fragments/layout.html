@@ -4,7 +4,7 @@
 <aside class="sidebar"
        th:fragment="sidebar(activePage, resumeId)"
        th:with="hasResume=${not #strings.isEmpty(resumeId)}">
-    <a class="brand" href="/">
+    <a class="brand" href="/upload">
         <div class="brand-mark">AI</div>
         <div>
             <div class="brand-name">AI 求职顾问</div>
@@ -38,12 +38,13 @@
            th:href="${hasResume ? '/assistant/' + resumeId : '/assistant'}">
             <span class="nav-index">05</span><span>AI 顾问</span>
         </a>
-        <a class="nav-item"
-           th:classappend="${activePage == 'ops' ? ' active' : ''}"
-           href="/audit/prompt-dashboard">
-            <span class="nav-index">06</span><span>运营看板</span>
-        </a>
     </nav>
+
+    <a class="side-tool-link"
+       th:classappend="${activePage == 'ops' ? ' active' : ''}"
+       href="/audit/prompt-dashboard">
+        系统观测
+    </a>
 
     <div class="side-author">
         <span>作者</span>
@@ -52,7 +53,7 @@
 
     <div class="side-status">
         <div class="status-label">当前简历</div>
-        <div class="status-value" th:text="${hasResume ? resumeId : (activePage == 'ops' ? '运营视图' : '未选择')}">未选择</div>
+        <div class="status-value" th:text="${hasResume ? resumeId : (activePage == 'ops' ? '系统观测' : '未选择')}">未选择</div>
     </div>
 </aside>
 

@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>模拟面试 - AI 求职顾问</title>
-    <link rel="stylesheet" href="/app/app.css">
+    <link rel="stylesheet" href="/app/app.css?v=20260526-02">
 </head>
 <body>
 <div id="app" data-page="interview" th:attr="data-resume-id=${resumeId}" v-cloak>
@@ -19,9 +19,6 @@
             <div class="top-actions">
                 <a class="ghost-button" th:href="@{/match/{resumeId}(resumeId=${resumeId})}">岗位匹配</a>
                 <a class="ghost-button" th:href="@{/analysis/{resumeId}(resumeId=${resumeId})}">简历诊断</a>
-                <button class="primary-button" type="button" v-on:click="submitAnswers" v-bind:disabled="!questions.length || loading.evaluation || loading.transcription || recordingQuestionIndex !== null">
-                    {{ loading.evaluation ? '评估中...' : '提交评估' }}
-                </button>
             </div>
         </header>
 
@@ -47,6 +44,11 @@
                     <div><span>未答</span><strong>{{ unansweredCount }}</strong></div>
                     <div><span>语音</span><strong>{{ voiceAnswerIndexes.length }}</strong></div>
                 </div>
+                <button class="primary-button full" type="button"
+                        v-on:click="submitAnswers"
+                        v-bind:disabled="!questions.length || loading.evaluation || loading.transcription || recordingQuestionIndex !== null">
+                    {{ loading.evaluation ? '生成复盘中...' : '全部答完后生成复盘' }}
+                </button>
                 <button class="ghost-button full" type="button" v-on:click="scrollToFirstUnanswered" v-if="unansweredCount">
                     定位未答题
                 </button>
@@ -119,3 +121,5 @@
 <th:block th:replace="~{fragments/layout :: scripts}"></th:block>
 </body>
 </html>
+
+

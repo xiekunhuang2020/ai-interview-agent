@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>简历诊断 - AI 求职顾问</title>
-    <link rel="stylesheet" href="/app/app.css">
+    <link rel="stylesheet" href="/app/app.css?v=20260526-02">
 </head>
 <body>
 <div id="app" data-page="analysis" th:attr="data-resume-id=${resumeId}" v-cloak>
@@ -33,6 +33,21 @@
         </div>
         <div class="notice info" v-if="loading.workspace">正在加载简历诊断数据...</div>
 
+        <section class="next-step-strip" v-if="scoreResult">
+            <article>
+                <span>先看总分</span>
+                <strong>判断简历基础质量</strong>
+            </article>
+            <article>
+                <span>再看优化项</span>
+                <strong>按优先级改项目表达</strong>
+            </article>
+            <article>
+                <span>最后做匹配</span>
+                <strong>对齐目标岗位再练面试</strong>
+            </article>
+        </section>
+
         <section class="content-grid" v-if="scoreResult">
             <div class="panel score-panel">
                 <div class="score-ring" v-bind:style="scoreRingStyle">
@@ -45,7 +60,7 @@
                     <div class="inline-actions">
                         <a class="primary-button" th:href="@{/match/{resumeId}(resumeId=${resumeId})}">做岗位匹配</a>
                         <button class="ghost-button" type="button" v-on:click="generateStandardQuestions" v-bind:disabled="loading.questions">
-                            {{ loading.questions ? '生成中...' : '生成基础面试题' }}
+                            {{ loading.questions ? '生成中...' : '先生成基础题' }}
                         </button>
                     </div>
                 </div>
@@ -110,3 +125,5 @@
 <th:block th:replace="~{fragments/layout :: scripts}"></th:block>
 </body>
 </html>
+
+

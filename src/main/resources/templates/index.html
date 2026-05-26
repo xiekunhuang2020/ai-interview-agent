@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>AI 求职顾问</title>
-    <link rel="stylesheet" href="/app/app.css">
+    <link rel="stylesheet" href="/app/app.css?v=20260526-02">
 </head>
 <body>
 <div id="app" data-page="home" v-cloak>
@@ -13,53 +13,54 @@
     <main class="main-shell">
         <header class="topbar">
             <div>
-                <p class="eyebrow">AI 面试增长工作台</p>
-                <h1>面向程序员的简历诊断与岗位匹配顾问</h1>
+                <p class="eyebrow">AI 求职顾问</p>
+                <h1>上传简历，得到岗位匹配和面试准备方案</h1>
             </div>
             <div class="top-actions">
-                <a class="ghost-button" href="/audit/prompt-dashboard">运营看板</a>
-                <a class="primary-button" href="/upload">新增候选人</a>
+                <a class="primary-button" href="/upload">开始分析</a>
             </div>
         </header>
 
         <div class="notice info product-scope">
-            <strong>当前产品定位：程序员和技术岗求职者。</strong>
-            <span>围绕目标岗位说明评估简历匹配度。</span>
-            <span>把能力缺口转成面试训练和简历优化方向。</span>
+            <strong>面向程序员和技术岗求职者。</strong>
+            <span>围绕目标岗位说明，输出简历诊断、匹配风险、追问方向和模拟面试建议。</span>
         </div>
 
         <section class="workspace-grid">
             <div class="panel hero-panel">
                 <div class="panel-header">
                     <div>
-                        <h2>客户交付链路</h2>
-                        <p>上传简历和目标岗位说明后自动完成评分、匹配判断、面试题生成和复盘评估。</p>
+                        <h2>一次分析会完成什么</h2>
+                        <p>把简历和岗位要求对齐，直接告诉用户哪里匹配、哪里需要补。</p>
                     </div>
-                    <span class="pill">多页应用</span>
+                    <span class="pill">客户主流程</span>
                 </div>
                 <div class="timeline">
-                    <div class="timeline-item done">1. 导入候选人简历</div>
-                    <div class="timeline-item done">2. 生成结构化简历诊断</div>
-                    <div class="timeline-item done">3. 对齐目标岗位说明</div>
-                    <div class="timeline-item done">4. 产出面试题与答题评估</div>
+                    <div class="timeline-item done">1. 上传候选人简历</div>
+                    <div class="timeline-item done">2. 填入目标岗位说明</div>
+                    <div class="timeline-item done">3. 输出简历诊断和岗位匹配</div>
+                    <div class="timeline-item done">4. 进入模拟面试和 AI 顾问</div>
+                </div>
+                <div class="inline-actions home-actions">
+                    <a class="primary-button" href="/upload">上传简历</a>
+                    <a class="ghost-button" href="/assistant">先问 AI 顾问</a>
                 </div>
             </div>
 
             <div class="panel outcome-panel">
                 <div class="panel-header">
                     <div>
-                        <h2>适合拿给客户看的能力点</h2>
-                        <p>不是简单聊天机器人，而是有数据链路、有审计、有结果页的 AI 面试工作流。</p>
+                        <h2>客户最关心的结果</h2>
+                        <p>页面只展示求职者能理解、能马上行动的结论。</p>
                     </div>
                 </div>
                 <div class="kpi-grid">
-                    <div class="kpi"><span>检索</span><strong>向量库</strong></div>
-                    <div class="kpi"><span>工作流</span><strong>工具</strong></div>
-                    <div class="kpi"><span>审计</span><strong>追踪</strong></div>
+                    <div class="kpi"><span>匹配</span><strong>分数</strong></div>
+                    <div class="kpi"><span>短板</span><strong>清单</strong></div>
+                    <div class="kpi"><span>练习</span><strong>题目</strong></div>
                 </div>
                 <div class="inline-actions">
-                    <a class="primary-button" href="/upload">开始体验</a>
-                    <a class="ghost-button" href="/audit/prompt-dashboard">查看稳定性</a>
+                    <a class="primary-button" href="/upload">进入工作台</a>
                 </div>
             </div>
         </section>
@@ -69,3 +70,5 @@
 <th:block th:replace="~{fragments/layout :: scripts}"></th:block>
 </body>
 </html>
+
+

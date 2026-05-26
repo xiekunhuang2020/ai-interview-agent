@@ -3,8 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>运营看板 - AI 求职顾问</title>
-    <link rel="stylesheet" href="/app/app.css">
+    <title>系统观测 - AI 求职顾问</title>
+    <link rel="stylesheet" href="/app/app.css?v=20260526-02">
 </head>
 <body>
 <div id="app" data-page="ops" v-cloak>
@@ -13,8 +13,8 @@
     <main class="main-shell">
         <header class="topbar">
             <div>
-                <p class="eyebrow">06 / 运营看板</p>
-                <h1>模型效果与调用审计</h1>
+                <p class="eyebrow">系统观测</p>
+                <h1>模型调用、成本和稳定性</h1>
             </div>
             <div class="top-actions">
                 <a class="ghost-button" href="/">首页</a>
@@ -30,11 +30,11 @@
             <div class="panel wide-panel">
                 <div class="panel-header">
                     <div>
-                        <h2>筛选条件</h2>
-                        <p>用于排查提示词版本效果、模型失败原因、响应耗时和向量召回质量。</p>
+                        <h2>查看范围</h2>
+                        <p>默认查看最近模型调用表现；Prompt 和 RAG 调试项已收进高级筛选。</p>
                     </div>
                 </div>
-                <div class="filter-grid">
+                <div class="filter-grid simple-filter-grid">
                     <label>
                         调用场景
                         <select v-model="audit.operationName">
@@ -49,19 +49,29 @@
                             <option value="jd-image-ocr">岗位截图识别</option>
                         </select>
                     </label>
-                    <label>
-                        提示词版本
-                        <input type="text" v-model="audit.promptVersion" placeholder="可留空">
-                    </label>
-                    <label>
-                        样本量
-                        <input type="number" min="1" max="5000" v-model.number="audit.limit">
-                    </label>
-                    <label>
-                        召回数量
-                        <input type="number" min="1" max="20" v-model.number="audit.ragTopK">
-                    </label>
                 </div>
+                <details class="advanced-box">
+                    <summary>高级筛选</summary>
+                    <div class="filter-grid">
+                        <label>
+                            提示词版本
+                            <input type="text" v-model="audit.promptVersion" placeholder="可留空">
+                        </label>
+                        <label>
+                            样本量
+                            <select v-model.number="audit.limit">
+                                <option v-bind:value="100">最近 100 条</option>
+                                <option v-bind:value="500">最近 500 条</option>
+                                <option v-bind:value="1000">最近 1000 条</option>
+                                <option v-bind:value="3000">最近 3000 条</option>
+                            </select>
+                        </label>
+                        <label>
+                            RAG 召回数量
+                            <input type="number" min="1" max="20" v-model.number="audit.ragTopK">
+                        </label>
+                    </div>
+                </details>
             </div>
 
             <section class="effect-strip wide-panel">
@@ -80,49 +90,52 @@
                 </div>
             </section>
 
-            <section class="panel wide-panel">
-                <div class="panel-header">
-                    <div>
-                        <h2>评测回放</h2>
-                        <p>使用固定简历和岗位样例，回放简历分析、岗位匹配和 RAG 出题，并调用 Spring AI 官方评估器。</p>
+            <details class="panel wide-panel advanced-box">
+                <summary>高级评测回放</summary>
+                <div class="advanced-box-body">
+                    <div class="panel-header">
+                        <div>
+                            <h2>Prompt/RAG 评测回放</h2>
+                            <p>使用固定简历和岗位样例，回放简历分析、岗位匹配和 RAG 出题，并调用 Spring AI 官方评估器。</p>
+                        </div>
+                        <div class="inline-actions">
+                            <label class="compact-field">
+                                召回数量
+                                <input class="number-input" type="number" min="1" max="20" v-model.number="harness.topK">
+                            </label>
+                            <button class="primary-button" type="button" v-on:click="runPromptRagEvaluation" v-bind:disabled="loading.harness">
+                                {{ loading.harness ? '评测中...' : '运行评测' }}
+                            </button>
+                        </div>
                     </div>
-                    <div class="inline-actions">
-                        <label class="compact-field">
-                            召回数量
-                            <input class="number-input" type="number" min="1" max="20" v-model.number="harness.topK">
-                        </label>
-                        <button class="primary-button" type="button" v-on:click="runPromptRagEvaluation" v-bind:disabled="loading.harness">
-                            {{ loading.harness ? '评测中...' : '运行评测' }}
-                        </button>
-                    </div>
-                </div>
 
-                <div class="effect-grid compact-effect-grid" v-if="harness.report">
-                    <article class="effect-item" v-for="card in harnessSummaryCards" v-bind:key="card.label">
-                        <span>{{ card.label }}</span>
-                        <strong>{{ card.value }}</strong>
-                        <p>{{ card.note }}</p>
-                    </article>
-                </div>
-
-                <div class="eval-table" v-if="harness.report">
-                    <div class="eval-row head">
-                        <span>样例</span><span>场景</span><span>维度</span><span>评估器</span><span>状态</span><span>评分</span><span>耗时</span><span>说明</span>
+                    <div class="effect-grid compact-effect-grid" v-if="harness.report">
+                        <article class="effect-item" v-for="card in harnessSummaryCards" v-bind:key="card.label">
+                            <span>{{ card.label }}</span>
+                            <strong>{{ card.value }}</strong>
+                            <p>{{ card.note }}</p>
+                        </article>
                     </div>
-                    <div class="eval-row" v-for="check in safeList(harness.report.checks)" v-bind:key="check.caseId + check.scenario + check.dimension + check.evaluatorName">
-                        <span>{{ check.caseName }}</span>
-                        <span>{{ check.scenario }}</span>
-                        <span>{{ check.dimension }}</span>
-                        <span>{{ check.evaluatorName || '--' }}</span>
-                        <span v-bind:class="check.passed ? 'ok-text' : 'bad-text'">{{ check.passed ? '通过' : '失败' }}</span>
-                        <span>{{ check.score === null || check.score === undefined ? '--' : `${round(Number(check.score) * 100)}%` }}</span>
-                        <span>{{ formatLatency(check.latencyMs) }}</span>
-                        <span>{{ check.message || '--' }}</span>
-                    </div>
-                </div>
 
-                <p class="muted empty-line" v-if="!harness.report && !loading.harness">暂无评测结果，点击“运行评测”后查看。</p>
-            </section>
+                    <div class="eval-table" v-if="harness.report">
+                        <div class="eval-row head">
+                            <span>样例</span><span>场景</span><span>维度</span><span>评估器</span><span>状态</span><span>评分</span><span>耗时</span><span>说明</span>
+                        </div>
+                        <div class="eval-row" v-for="check in safeList(harness.report.checks)" v-bind:key="check.caseId + check.scenario + check.dimension + check.evaluatorName">
+                            <span>{{ check.caseName }}</span>
+                            <span>{{ check.scenario }}</span>
+                            <span>{{ check.dimension }}</span>
+                            <span>{{ check.evaluatorName || '--' }}</span>
+                            <span v-bind:class="check.passed ? 'ok-text' : 'bad-text'">{{ check.passed ? '通过' : '失败' }}</span>
+                            <span>{{ check.score === null || check.score === undefined ? '--' : `${round(Number(check.score) * 100)}%` }}</span>
+                            <span>{{ formatLatency(check.latencyMs) }}</span>
+                            <span>{{ check.message || '--' }}</span>
+                        </div>
+                    </div>
+
+                    <p class="muted empty-line" v-if="!harness.report && !loading.harness">暂无评测结果，点击“运行评测”后查看。</p>
+                </div>
+            </details>
 
             <div class="panel">
                 <div class="panel-header"><div><h2>提示词指标</h2><p>{{ audit.metrics.length }} 组</p></div></div>
@@ -257,3 +270,5 @@
 <th:block th:replace="~{fragments/layout :: scripts}"></th:block>
 </body>
 </html>
+
+

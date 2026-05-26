@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>AI 顾问 - AI 求职顾问</title>
-    <link rel="stylesheet" href="/app/app.css">
+    <link rel="stylesheet" href="/app/app.css?v=20260526-02">
 </head>
 <body>
 <div id="app" data-page="assistant" th:attr="data-resume-id=${resumeId}" v-cloak>
@@ -14,7 +14,7 @@
         <header class="topbar">
             <div>
                 <p class="eyebrow">05 / AI 顾问</p>
-                <h1>让 AI 顾问基于简历上下文回答客户问题</h1>
+                <h1>围绕简历、岗位和面试复盘继续追问</h1>
             </div>
             <div class="top-actions">
                 <a class="ghost-button" href="/upload">新增候选人</a>
@@ -34,7 +34,7 @@
                 <div class="panel-header">
                     <div>
                         <h2>顾问对话</h2>
-                        <p>{{ conversationId || '新会话' }}</p>
+                        <p>{{ resumeId ? '已读取当前简历上下文' : '通用求职咨询' }}</p>
                     </div>
                 </div>
 
@@ -44,7 +44,7 @@
                         <p>{{ message.content }}</p>
                     </div>
                     <div class="empty-chat" v-if="!chatMessages.length">
-                        可以问：“这份简历最应该先改哪里？”、“按目标岗位应该重点准备哪些问题？”
+                        可以问：“这份简历最应该先改哪里？”、“按目标岗位应该重点准备哪些问题？”、“面试官追问这个项目时我怎么答？”
                     </div>
                 </div>
 
@@ -90,8 +90,8 @@
             <div class="panel">
                 <div class="panel-header">
                     <div>
-                        <h2>上下文</h2>
-                        <p>AI 顾问会优先读取当前简历画像、问题和相似简历工具。</p>
+                        <h2>当前资料</h2>
+                        <p>顾问回答会优先参考这些资料，缺失时只做通用建议。</p>
                     </div>
                 </div>
                 <div class="context-list">
@@ -115,3 +115,5 @@
 <th:block th:replace="~{fragments/layout :: scripts}"></th:block>
 </body>
 </html>
+
+
