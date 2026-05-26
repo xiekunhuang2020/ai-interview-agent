@@ -90,89 +90,31 @@ public class AiModelCallAuditRecorder {
     }
 
     /**
-     * 记录一次模型调用审计，审计失败只打印日志，不影响主业务流程。
-     */
-    @Transactional
-    public void record(String operationName,
-                       String promptVersion,
-                       boolean success,
-                       int attemptCount,
-                       long latencyMs,
-                       String errorMessage) {
-        record(operationName, promptVersion, success, attemptCount, latencyMs, errorMessage, (Throwable) null);
-    }
-
-    /**
-     * 记录一次带官方 token usage 的模型调用审计。
-     */
-    @Transactional
-    public void record(String operationName,
-                       String promptVersion,
-                       boolean success,
-                       int attemptCount,
-                       long latencyMs,
-                       String errorMessage,
-                       ModelUsage usage) {
-        record(operationName, promptVersion, success, attemptCount, latencyMs, errorMessage, null, usage, null);
-    }
-
-    /**
      * 记录一次带官方 token usage 和上下文预算统计的模型调用审计。
      */
     @Transactional
     public void record(String operationName,
                        String promptVersion,
                        boolean success,
-                       int attemptCount,
                        long latencyMs,
                        String errorMessage,
                        ModelUsage usage,
                        PromptContextBudgetService.ContextUsage contextUsage) {
-        record(operationName, promptVersion, success, attemptCount, latencyMs, errorMessage, null, usage, contextUsage);
+        record(operationName, promptVersion, success, latencyMs, errorMessage, null, usage, contextUsage);
     }
 
     /**
-     * 记录一次模型调用审计，并根据异常类型自动生成错误分类。
+     * 记录一次带异常、官方 token usage 和上下文预算统计的模型调用审计。
      */
     @Transactional
     public void record(String operationName,
                        String promptVersion,
                        boolean success,
-                       int attemptCount,
-                       long latencyMs,
-                       Throwable error) {
-        record(operationName, promptVersion, success, attemptCount, latencyMs,
-                error == null ? null : error.getMessage(), error);
-    }
-
-    /**
-     * 记录一次带异常和官方 token usage 的模型调用审计。
-     */
-    @Transactional
-    public void record(String operationName,
-                       String promptVersion,
-                       boolean success,
-                       int attemptCount,
-                       long latencyMs,
-                       Throwable error,
-                       ModelUsage usage) {
-        record(operationName, promptVersion, success, attemptCount, latencyMs,
-                error == null ? null : error.getMessage(), error, usage, null);
-    }
-
-    /**
-     * 记录一次失败模型调用审计，并保留上下文预算统计。
-     */
-    @Transactional
-    public void record(String operationName,
-                       String promptVersion,
-                       boolean success,
-                       int attemptCount,
                        long latencyMs,
                        Throwable error,
                        ModelUsage usage,
                        PromptContextBudgetService.ContextUsage contextUsage) {
-        record(operationName, promptVersion, success, attemptCount, latencyMs,
+        record(operationName, promptVersion, success, latencyMs,
                 error == null ? null : error.getMessage(), error, usage, contextUsage);
     }
 
@@ -183,26 +125,12 @@ public class AiModelCallAuditRecorder {
     public void recordAudio(String operationName,
                             String promptVersion,
                             boolean success,
-                            int attemptCount,
                             long latencyMs,
                             Throwable error,
                             ModelUsage usage,
                             AudioUsage audioUsage) {
-        record(operationName, promptVersion, success, attemptCount, latencyMs,
+        record(operationName, promptVersion, success, latencyMs,
                 error == null ? null : error.getMessage(), error, usage, null, audioUsage);
-    }
-
-    /**
-     * 写入模型调用审计记录，内部统一处理错误文本裁剪和错误类型分类。
-     */
-    private void record(String operationName,
-                        String promptVersion,
-                        boolean success,
-                        int attemptCount,
-                        long latencyMs,
-                        String errorMessage,
-                        Throwable error) {
-        record(operationName, promptVersion, success, attemptCount, latencyMs, errorMessage, error, null, null);
     }
 
     /**
@@ -211,13 +139,12 @@ public class AiModelCallAuditRecorder {
     private void record(String operationName,
                         String promptVersion,
                         boolean success,
-                        int attemptCount,
                         long latencyMs,
                         String errorMessage,
                         Throwable error,
                         ModelUsage usage,
                         PromptContextBudgetService.ContextUsage contextUsage) {
-        record(operationName, promptVersion, success, attemptCount, latencyMs,
+        record(operationName, promptVersion, success, latencyMs,
                 errorMessage, error, usage, contextUsage, null);
     }
 
@@ -227,7 +154,6 @@ public class AiModelCallAuditRecorder {
     private void record(String operationName,
                         String promptVersion,
                         boolean success,
-                        int attemptCount,
                         long latencyMs,
                         String errorMessage,
                         Throwable error,
@@ -244,8 +170,6 @@ public class AiModelCallAuditRecorder {
             fillContextUsage(log, contextUsage);
             fillInputBudget(log, operationName, usage, contextUsage);
             log.setSuccess(success ? 1 : 0);
-            log.setFallbackUsed(0);
-            log.setAttemptCount(attemptCount);
             log.setLatencyMs(latencyMs);
             log.setErrorMessage(truncate(errorMessage));
             log.setErrorType(success ? null : classifyError(error, errorMessage));

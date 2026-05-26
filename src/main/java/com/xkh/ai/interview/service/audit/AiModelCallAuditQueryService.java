@@ -117,10 +117,6 @@ public class AiModelCallAuditQueryService {
                 .mapToLong(log -> log.getLatencyMs() == null ? 0L : log.getLatencyMs())
                 .max()
                 .orElse(0L);
-        double avgAttemptCount = logs.stream()
-                .mapToInt(log -> log.getAttemptCount() == null ? 0 : log.getAttemptCount())
-                .average()
-                .orElse(0D);
         String modelNames = modelNamesOf(logs);
         long tokenSampleCalls = logs.stream().filter(this::hasTokenUsage).count();
         long totalInputTokens = logs.stream()
@@ -171,7 +167,6 @@ public class AiModelCallAuditQueryService {
                 .successRate(rate(successCalls, totalCalls))
                 .avgLatencyMs(round(avgLatencyMs))
                 .maxLatencyMs(maxLatencyMs)
-                .avgAttemptCount(round(avgAttemptCount))
                 .tokenSampleCalls(tokenSampleCalls)
                 .totalInputTokens(totalInputTokens)
                 .totalOutputTokens(totalOutputTokens)

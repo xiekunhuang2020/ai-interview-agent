@@ -44,16 +44,6 @@ public class AiModelCallLogEntity {
     private Integer success;
 
     /**
-     * 是否使用降级结果，当前保留为历史兼容字段。
-     */
-    private Integer fallbackUsed;
-
-    /**
-     * 本次调用尝试次数，当前主要兼容早期外层重试审计。
-     */
-    private Integer attemptCount;
-
-    /**
      * 本次模型调用总耗时，单位毫秒。
      */
     private Long latencyMs;

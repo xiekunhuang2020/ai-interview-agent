@@ -115,9 +115,6 @@ function createInterviewApp() {
             };
         },
         computed: {
-            canUseResume() {
-                return Boolean(this.resumeId);
-            },
             scoreItems() {
                 const detail = this.scoreResult && this.scoreResult.scoreDetail;
                 if (!detail) {
@@ -1094,38 +1091,6 @@ function createInterviewApp() {
                 } else if (eventName === 'done' && payload.summaryCompressed) {
                     this.assistantSummaryCompressed = true;
                     this.appendAssistantSystemNotice('较早的对话已经压缩成摘要，后续回答会结合摘要和最近消息继续推进。');
-                }
-            },
-            consumeSseBuffer(buffer, assistantMessage, flush = false) {
-                const parts = buffer.split(/\r?\n\r?\n/);
-                const pending = flush ? '' : parts.pop();
-                parts.forEach((part) => this.handleAssistantStreamEvent(part, assistantMessage));
-                if (flush && parts.length === 0 && buffer.trim()) {
-                    this.handleAssistantStreamEvent(buffer, assistantMessage);
-                }
-                return pending || '';
-            },
-            handleAssistantStreamEvent(rawEvent, assistantMessage) {
-                if (!rawEvent.trim()) {
-                    return;
-                }
-                let eventName = 'message';
-                const dataLines = [];
-                rawEvent.split(/\r?\n/).forEach((line) => {
-                    if (line.startsWith('event:')) {
-                        eventName = line.slice(6).trim();
-                    } else if (line.startsWith('data:')) {
-                        dataLines.push(line.slice(5).trimStart());
-                    }
-                });
-                const rawData = dataLines.join('\n');
-                if (eventName === 'meta' || eventName === 'delta') {
-                    this.handleAssistantStreamPayload(eventName, rawData, assistantMessage);
-                } else if (eventName === 'done') {
-                    this.handleAssistantStreamPayload(eventName, rawData, assistantMessage);
-                } else if (eventName === 'error') {
-                    const payload = rawData ? JSON.parse(rawData) : {};
-                    throw new Error(payload.message || '顾问回答失败。');
                 }
             },
             appendAssistantSystemNotice(content) {

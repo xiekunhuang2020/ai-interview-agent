@@ -152,7 +152,7 @@ public class InterviewAssistantAgentService {
                 boolean summaryCompressed = summarizeConversationIfNeeded(conversationId, turnId);
                 conversationAuditRecorder.recordAssistantMessage(
                         conversationId, turnId, STREAM_AGENT_NAME, finalAnswer, true, latencyMs, null);
-                modelCallAuditRecorder.record(OPERATION_NAME, promptVersion, true, 1, latencyMs,
+                modelCallAuditRecorder.record(OPERATION_NAME, promptVersion, true, latencyMs,
                         (String) null, usageRef.get(), contextUsage);
                 return sse("done", Map.of(
                         "latencyMs", latencyMs,
@@ -163,7 +163,7 @@ public class InterviewAssistantAgentService {
             return Flux.concat(meta, deltas, done)
                     .onErrorResume(e -> {
                         recordFailedAssistantMessage(conversationId, turnId, STREAM_AGENT_NAME, start, e);
-                        modelCallAuditRecorder.record(OPERATION_NAME, promptVersion, false, 1,
+                        modelCallAuditRecorder.record(OPERATION_NAME, promptVersion, false,
                                 System.currentTimeMillis() - start, e, usageRef.get(), contextUsage);
                         return Flux.just(sse("error", Map.of("message", "顾问回答失败：" + e.getMessage())));
                     });

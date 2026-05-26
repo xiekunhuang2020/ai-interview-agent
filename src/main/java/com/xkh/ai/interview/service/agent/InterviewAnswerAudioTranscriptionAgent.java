@@ -87,11 +87,11 @@ public class InterviewAnswerAudioTranscriptionAgent {
             if (StringUtils.isBlank(text)) {
                 throw new IllegalStateException("语音转写结果为空，请靠近麦克风重新录制");
             }
-            auditRecorder.recordAudio(safeOperationName, promptVersion, true, 1,
+            auditRecorder.recordAudio(safeOperationName, promptVersion, true,
                     System.currentTimeMillis() - start, null, modelUsage, audioUsage);
             return new AnswerAudioTranscriptionResultDTO(text, originalFileName, file.getSize(), modelName);
         } catch (RuntimeException e) {
-            auditRecorder.recordAudio(safeOperationName, promptVersion, false, 1,
+            auditRecorder.recordAudio(safeOperationName, promptVersion, false,
                     System.currentTimeMillis() - start, e, modelUsage, audioUsage);
             throw new AiModelCallException("AI 模型调用失败，operation=" + safeOperationName
                     + "，原因=" + rootCauseMessage(e), e);

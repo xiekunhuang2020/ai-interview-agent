@@ -56,11 +56,6 @@ public class PromptMetricsResultDTO {
     private Long maxLatencyMs;
 
     /**
-     * 平均尝试次数，当前主要兼容早期外层重试审计。
-     */
-    private Double avgAttemptCount;
-
-    /**
      * 有官方 Token 用量数据的调用次数。
      */
     private Long tokenSampleCalls;
