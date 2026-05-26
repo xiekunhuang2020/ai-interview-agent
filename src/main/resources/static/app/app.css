@@ -624,8 +624,60 @@ p {
     overflow-wrap: anywhere;
 }
 
+.compact-clean-list li {
+    min-height: auto;
+}
+
 .muted {
     color: var(--muted);
+}
+
+.voice-summary-panel {
+    background: #fbfdfc;
+}
+
+.voice-summary-grid {
+    display: grid;
+    grid-template-columns: 150px 150px minmax(0, 1fr);
+    gap: 12px;
+    margin-bottom: 16px;
+}
+
+.voice-summary-stat,
+.voice-summary-script {
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    padding: 14px;
+    background: var(--surface-soft);
+}
+
+.voice-summary-stat span,
+.voice-summary-script span {
+    display: block;
+    color: var(--muted);
+    font-size: 13px;
+    margin-bottom: 8px;
+}
+
+.voice-summary-stat strong {
+    font-size: 28px;
+}
+
+.voice-summary-script p {
+    margin: 0;
+    line-height: 1.7;
+    color: #33413b;
+}
+
+.voice-summary-columns {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+}
+
+.voice-summary-columns h3 {
+    margin-bottom: 10px;
+    font-size: 16px;
 }
 
 .suggestion-list,
@@ -820,6 +872,19 @@ p {
     overflow-wrap: anywhere;
 }
 
+.panel-footnote {
+    margin: 12px 0 0;
+    font-size: 12px;
+}
+
+.cell-subtext {
+    display: block;
+    margin-top: 3px;
+    color: var(--muted);
+    font-size: 11px;
+    font-weight: 700;
+}
+
 .table-row {
     display: grid;
     grid-template-columns: 1fr 60px;
@@ -891,6 +956,31 @@ p {
 .question-panel {
     display: grid;
     gap: 12px;
+}
+
+.interview-progress-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 8px;
+    margin-bottom: 12px;
+}
+
+.interview-progress-grid div {
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    padding: 10px;
+    background: var(--surface-soft);
+}
+
+.interview-progress-grid span {
+    display: block;
+    color: var(--muted);
+    font-size: 12px;
+    margin-bottom: 4px;
+}
+
+.interview-progress-grid strong {
+    font-size: 22px;
 }
 
 .question-answer-tools {
@@ -1123,6 +1213,13 @@ p {
     align-items: center;
     gap: 10px;
     margin-top: 14px;
+}
+
+.quick-prompt-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 12px;
 }
 
 .chat-input textarea {
@@ -1467,7 +1564,9 @@ p {
     .kpi-grid,
     .effect-grid,
     .filter-grid,
-    .feedback-grid {
+    .feedback-grid,
+    .voice-summary-grid,
+    .voice-summary-columns {
         grid-template-columns: 1fr;
     }
 

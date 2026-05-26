@@ -48,6 +48,18 @@
                     </div>
                 </div>
 
+                <div class="quick-prompt-list">
+                    <button class="ghost-button compact-button" type="button" v-on:click="fillAssistantQuickPrompt('practice-plan')">
+                        生成练习计划
+                    </button>
+                    <button class="ghost-button compact-button" type="button" v-on:click="fillAssistantQuickPrompt('improve-answer')">
+                        优化低分回答
+                    </button>
+                    <button class="ghost-button compact-button" type="button" v-on:click="fillAssistantQuickPrompt('follow-up')">
+                        模拟追问
+                    </button>
+                </div>
+
                 <div class="chat-tools">
                     <button class="ghost-button compact-button" type="button"
                             v-on:click="toggleAssistantRecording"
@@ -91,6 +103,9 @@
                 </div>
                 <div class="notice info compact-notice" v-if="!resumeId">
                     当前没有绑定简历，AI 顾问只能进行通用咨询。建议从某份简历页面进入顾问。
+                </div>
+                <div class="notice info compact-notice" v-if="assistantMessage">
+                    输入框已有待发送内容，请确认后点击发送，系统不会自动消耗 Token。
                 </div>
             </div>
         </section>

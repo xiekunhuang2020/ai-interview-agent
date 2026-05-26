@@ -225,10 +225,12 @@ powershell -ExecutionPolicy Bypass -File scripts/demo-flow.ps1
 - 成本观测：已打通 Spring AI / DashScope 官方 token usage 落库，并在运营看板按 operation 展示输入 token、输出 token、总 token 和模型名称。
 - 上下文预算：已为 Prompt、RAG 上下文、AI 顾问工具返回和对话历史设置最大预算，降低 token 成本和无关上下文干扰。
 - 对话摘要：AI 顾问使用 Spring AI 官方 `MessageWindowChatMemory` 保存最近消息；当多轮对话变长时，保留“会话摘要 + 最近消息”，减少历史消息无限拼接。
-- 语音面试陪练：已完成第一轮，模拟面试页支持录音回答，后端通过 DashScope 官方 Java SDK 转写文本并回填答案框；后续再补语速、停顿和表达完整度建议。
+- 成本估算：运营看板已基于输入/输出 Token、ASR 音频时长和内置模型单价展示估算费用，实际账单仍以百炼控制台为准。
+- 语音面试陪练：模拟面试页支持录音回答、转写回填、语音作答标记、语音表达建议和复盘总览。
+- 失败恢复：模拟面试答案会在浏览器本地临时保存，评估失败或误刷新后可以继续修改并重新提交。
 - 截图识别：已支持岗位截图识别并回填岗位说明；不做简历截图识别，继续沿用 PDF、DOC、DOCX、TXT 文件解析链路。
 
-这些方向会继续遵循官方能力优先原则，不为了炫技自研 OCR、ASR、token 估算或多模态模型封装。
+这些方向会继续遵循官方能力优先原则，不为了炫技自研 OCR、ASR、Token 统计或多模态模型封装。
 
 ## 面试口径
 
@@ -238,6 +240,6 @@ powershell -ExecutionPolicy Bypass -File scripts/demo-flow.ps1
 - 输出可校验：DTO、JSON Schema Advisor、Jakarta Validation 多层校验。
 - 检索可追踪：RAG chunk 带元数据和引用来源。
 - 效果可回放：固定样例集评估 Prompt/RAG 结果。
-- 问题可排查：模型调用审计、错误分类、traceId 和运营看板。
+- 问题可排查：模型调用审计、错误分类、traceId、Token 成本和运营看板。
 
 当前版本不是完全自主规划型 Agent，也没有宣称真实生产用户量、QPS 或业务准确率。它的价值在于展示 Java 后端工程如何将 LLM、RAG、结构化输出、审计和前端体验组合成一个可演示、可追问、可迭代的 AI 应用。

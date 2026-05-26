@@ -17,12 +17,18 @@
                 <h1>候选人答题评估报告</h1>
             </div>
             <div class="top-actions">
+                <button class="ghost-button" type="button" v-on:click="copyEvaluationSummary" v-bind:disabled="!evaluation">
+                    复制复盘摘要
+                </button>
                 <a class="ghost-button" th:href="@{/interview/{resumeId}(resumeId=${resumeId})}">返回面试</a>
-                <a class="primary-button" th:href="@{/assistant/{resumeId}(resumeId=${resumeId})}">让 AI 顾问解读</a>
+                <button class="primary-button" type="button" v-on:click="openAssistantWithEvaluationSummary" v-bind:disabled="!evaluation">
+                    让 AI 顾问解读
+                </button>
             </div>
         </header>
 
         <div class="notice error" v-if="globalError">{{ globalError }}</div>
+        <div class="notice success" v-if="globalMessage">{{ globalMessage }}</div>
         <div class="notice info" v-if="session">
             当前流程：{{ sessionSummary() }}
             <span v-if="session.status === 'FAILED' && session.failedReason">，失败原因：{{ session.failedReason }}</span>
@@ -72,6 +78,48 @@
                 <ul class="clean-list">
                     <li v-for="item in safeList(evaluation.improvements)" v-bind:key="item">{{ item }}</li>
                 </ul>
+            </div>
+
+            <div class="panel wide-panel voice-summary-panel" v-if="voiceEvaluationSummary.count">
+                <div class="panel-header">
+                    <div>
+                        <h2>语音复盘总览</h2>
+                        <p>{{ voiceEvaluationSummary.count }} / {{ voiceEvaluationSummary.total }} 题使用语音作答</p>
+                    </div>
+                </div>
+                <div class="voice-summary-grid">
+                    <div class="voice-summary-stat">
+                        <span>语音平均分</span>
+                        <strong>{{ voiceEvaluationSummary.avgScore }}</strong>
+                    </div>
+                    <div class="voice-summary-stat">
+                        <span>优先复盘题</span>
+                        <strong v-if="voiceEvaluationSummary.lowestQuestion">
+                            Q{{ Number(voiceEvaluationSummary.lowestQuestion.questionIndex || 0) + 1 }}
+                        </strong>
+                        <strong v-else>--</strong>
+                    </div>
+                    <div class="voice-summary-script">
+                        <span>推荐回答节奏</span>
+                        <p>先给结论，再按背景、动作、结果、反思展开，每段控制在 20 到 40 秒。</p>
+                    </div>
+                </div>
+                <div class="voice-summary-columns">
+                    <div>
+                        <h3>主要表达问题</h3>
+                        <ul class="clean-list compact-clean-list">
+                            <li v-for="item in voiceEvaluationSummary.issueItems" v-bind:key="item">{{ item }}</li>
+                            <li v-if="!voiceEvaluationSummary.issueItems.length">暂无明显语音表达问题</li>
+                        </ul>
+                    </div>
+                    <div>
+                        <h3>下次复述建议</h3>
+                        <ul class="clean-list compact-clean-list">
+                            <li v-for="item in voiceEvaluationSummary.suggestionItems" v-bind:key="item">{{ item }}</li>
+                            <li v-if="!voiceEvaluationSummary.suggestionItems.length">保持结论先行，并用项目数据支撑回答</li>
+                        </ul>
+                    </div>
+                </div>
             </div>
 
             <div class="panel wide-panel">

@@ -54,7 +54,9 @@ public class AnswerEvaluationAgent {
         messages.add(new SystemMessage(systemPromptResource));
         messages.add(new UserMessage(buildUserPrompt(resumeText, questions, answers, voiceAnswerIndexes)));
 
-        return aiModelCallService.callEntity(OPERATION_NAME, messages, 0.2, InterviewEvaluationDTO.class);
+        InterviewEvaluationDTO evaluation = aiModelCallService.callEntity(OPERATION_NAME, messages, 0.2,
+                InterviewEvaluationDTO.class);
+        return fillEvaluationDefaults(evaluation, voiceAnswerIndexes);
     }
 
     /**
@@ -87,6 +89,47 @@ public class AnswerEvaluationAgent {
                 ## 面试问答
                 %s
                 """.formatted(contextBudgetService.limitResumeText(resumeText), qaText);
+    }
+
+    /**
+     * 补齐模型可能遗漏的非核心字段，避免新增语音建议字段影响已有回答评估链路。
+     */
+    private InterviewEvaluationDTO fillEvaluationDefaults(InterviewEvaluationDTO evaluation,
+                                                          List<Integer> voiceAnswerIndexes) {
+        if (evaluation == null || evaluation.getQuestionDetails() == null) {
+            return evaluation;
+        }
+        Set<Integer> voiceIndexes = voiceAnswerIndexes == null ? Set.of() : new HashSet<>(voiceAnswerIndexes);
+        for (int i = 0; i < evaluation.getQuestionDetails().size(); i++) {
+            InterviewEvaluationDTO.QuestionDetail detail = evaluation.getQuestionDetails().get(i);
+            if (detail == null) {
+                continue;
+            }
+            int questionIndex = detail.getQuestionIndex() == null ? i : detail.getQuestionIndex();
+            boolean voiceAnswer = voiceIndexes.contains(questionIndex);
+            detail.setAnswerMode(voiceAnswer ? "VOICE_TRANSCRIPT" : "TEXT");
+            if (StringUtils.isBlank(detail.getContentIssue())) {
+                detail.setContentIssue("暂无明显内容问题");
+            }
+            if (StringUtils.isBlank(detail.getExpressionIssue())) {
+                detail.setExpressionIssue("暂无明显表达问题");
+            }
+            if (StringUtils.isBlank(detail.getStructureSuggestion())) {
+                detail.setStructureSuggestion("建议按背景 -> 动作 -> 结果 -> 反思的顺序重讲，并先给结论。");
+            }
+            if (voiceAnswer) {
+                if (StringUtils.isBlank(detail.getVoiceExpressionIssue())) {
+                    detail.setVoiceExpressionIssue("转写文本未暴露明显语音表达问题。");
+                }
+                if (StringUtils.isBlank(detail.getVoiceExpressionSuggestion())) {
+                    detail.setVoiceExpressionSuggestion("口头回答时先给结论，再按背景、动作、结果、反思展开。");
+                }
+            } else {
+                detail.setVoiceExpressionIssue("非语音作答，无需语音表达建议");
+                detail.setVoiceExpressionSuggestion("非语音作答，无需语音表达建议");
+            }
+        }
+        return evaluation;
     }
 
 }

@@ -86,6 +86,7 @@ function createInterviewApp() {
                     metrics: [],
                     failures: [],
                     structuredFailures: [],
+                    answerEvaluationFailures: [],
                     modelCalls: [],
                     agentMessages: [],
                     ragRecall: null,
@@ -108,6 +109,7 @@ function createInterviewApp() {
                     jdOcr: false
                 },
                 uploadStage: '',
+                evaluationStage: '',
                 globalError: '',
                 globalMessage: ''
             };
@@ -153,6 +155,42 @@ function createInterviewApp() {
             unansweredCount() {
                 return Math.max(0, this.questions.length - this.answeredCount);
             },
+            voiceEvaluationSummary() {
+                const details = this.safeList(this.evaluation && this.evaluation.questionDetails);
+                const voiceDetails = details.filter((item) => item.answerMode === 'VOICE_TRANSCRIPT');
+                const total = details.length;
+                const count = voiceDetails.length;
+                if (!count) {
+                    return {
+                        count: 0,
+                        total,
+                        avgScore: null,
+                        lowestQuestion: null,
+                        issueItems: [],
+                        suggestionItems: []
+                    };
+                }
+                const avgScore = voiceDetails.reduce((sum, item) => sum + Number(item.score || 0), 0) / count;
+                const lowestQuestion = voiceDetails
+                    .slice()
+                    .sort((a, b) => Number(a.score || 0) - Number(b.score || 0))[0];
+                const issueItems = this.compactUniqueTextList(
+                    voiceDetails.map((item) => item.voiceExpressionIssue),
+                    '非语音作答'
+                ).slice(0, 3);
+                const suggestionItems = this.compactUniqueTextList(
+                    voiceDetails.map((item) => item.voiceExpressionSuggestion),
+                    '非语音作答'
+                ).slice(0, 3);
+                return {
+                    count,
+                    total,
+                    avgScore: this.round(avgScore),
+                    lowestQuestion,
+                    issueItems,
+                    suggestionItems
+                };
+            },
             opsEffectCards() {
                 const metrics = this.safeList(this.audit.metrics);
                 const failures = this.safeList(this.audit.failures);
@@ -166,6 +204,7 @@ function createInterviewApp() {
                 const totalInputTokens = metrics.reduce((sum, item) => sum + Number(item.totalInputTokens || 0), 0);
                 const totalOutputTokens = metrics.reduce((sum, item) => sum + Number(item.totalOutputTokens || 0), 0);
                 const totalTokens = metrics.reduce((sum, item) => sum + Number(item.totalTokens || 0), 0);
+                const estimatedTextCost = metrics.reduce((sum, item) => sum + this.estimateTextCost(item), 0);
                 const contextSampleCalls = metrics.reduce((sum, item) => sum + Number(item.contextSampleCalls || 0), 0);
                 const clippedCalls = metrics.reduce((sum, item) => sum + Number(item.clippedCalls || 0), 0);
                 const totalPromptChars = metrics.reduce((sum, item) => sum + Number(item.totalPromptChars || 0), 0);
@@ -198,6 +237,8 @@ function createInterviewApp() {
                 const audioTotalDurationMs = audioMetrics.reduce((sum, item) => {
                     return sum + Number(item.totalAudioDurationMs || 0);
                 }, 0);
+                const estimatedAudioCost = this.estimateAudioCost(audioTotalDurationMs);
+                const estimatedTotalCost = estimatedTextCost + estimatedAudioCost;
                 const ragRecall = this.audit.ragRecall;
 
                 return [
@@ -230,6 +271,11 @@ function createInterviewApp() {
                         label: '平均 Token',
                         value: this.formatTokenCount(avgTotalTokens),
                         note: tokenSampleCalls ? `有用量样本 ${tokenSampleCalls} 次` : '旧审计记录无用量'
+                    },
+                    {
+                        label: '估算调用成本',
+                        value: this.formatCny(estimatedTotalCost),
+                        note: `文本 ${this.formatCny(estimatedTextCost)} / 语音 ${this.formatCny(estimatedAudioCost)}`
                     },
                     {
                         label: '平均输入长度',
@@ -307,6 +353,7 @@ function createInterviewApp() {
             }
             if (this.page === 'assistant') {
                 this.conversationId = localStorage.getItem('interviewAgentConversationId') || '';
+                this.loadPendingAssistantPrompt();
             }
         },
         methods: {
@@ -423,6 +470,9 @@ function createInterviewApp() {
                     this.jdText = payload.jobDescription || this.jdText;
                     this.session = payload.session || null;
                     this.answers = Object.fromEntries(this.questions.map((_, index) => [index, this.answers[index] || '']));
+                    if (this.page === 'interview') {
+                        this.restoreAnswerDraft();
+                    }
                 } catch (error) {
                     this.globalError = error.message;
                 } finally {
@@ -523,9 +573,11 @@ function createInterviewApp() {
                     return;
                 }
                 this.loading.evaluation = true;
+                this.evaluationStage = '正在生成逐题反馈、参考答案和语音复盘，通常需要几十秒。';
                 this.globalError = '';
                 this.globalMessage = '';
                 try {
+                    this.saveAnswerDraft();
                     await fetchJson(`/api/interview/${encodeURIComponent(this.resumeId)}/submit`, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
@@ -535,11 +587,29 @@ function createInterviewApp() {
                         })
                     });
                     this.pendingAudioReviewIndex = null;
+                    this.clearAnswerDraft();
                     window.location.href = `/result/${encodeURIComponent(this.resumeId)}`;
                 } catch (error) {
                     this.globalError = error.message;
+                    this.globalMessage = '答案已保留在当前页面，可以调整后重新提交评估。';
                 } finally {
                     this.loading.evaluation = false;
+                    this.evaluationStage = '';
+                }
+            },
+            scrollToFirstUnanswered() {
+                const firstIndex = this.questions.findIndex((_, index) => !String(this.answers[index] || '').trim());
+                if (firstIndex < 0) {
+                    this.globalMessage = '所有问题都已作答。';
+                    return;
+                }
+                const target = document.querySelector(`[data-question-index="${firstIndex}"]`);
+                if (target) {
+                    target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    const textarea = target.querySelector('textarea');
+                    if (textarea) {
+                        window.setTimeout(() => textarea.focus(), 350);
+                    }
                 }
             },
             async toggleAnswerRecording(index) {
@@ -655,6 +725,7 @@ function createInterviewApp() {
                     if (!this.voiceAnswerIndexes.includes(index)) {
                         this.voiceAnswerIndexes.push(index);
                     }
+                    this.saveAnswerDraft();
                     this.pendingAudioReviewIndex = index;
                     this.globalMessage = `第 ${index + 1} 题语音已转成文字，请检查答案框。全部题目答完后，再点击右上角“提交评估”。`;
                 } catch (error) {
@@ -682,6 +753,55 @@ function createInterviewApp() {
                 this.voiceAnswerIndexes = this.voiceAnswerIndexes.filter((item) => item !== index);
                 if (this.pendingAudioReviewIndex === index) {
                     this.pendingAudioReviewIndex = null;
+                }
+                this.saveAnswerDraft();
+            },
+            answerDraftKey() {
+                return `interviewAgentAnswerDraft:${this.resumeId || 'global'}`;
+            },
+            saveAnswerDraft() {
+                if (!this.resumeId || this.page !== 'interview') {
+                    return;
+                }
+                localStorage.setItem(this.answerDraftKey(), JSON.stringify({
+                    questionCount: this.questions.length,
+                    answers: this.answers,
+                    voiceAnswerIndexes: this.voiceAnswerIndexes,
+                    savedAt: new Date().toISOString()
+                }));
+            },
+            restoreAnswerDraft() {
+                const raw = localStorage.getItem(this.answerDraftKey());
+                if (!raw || !this.questions.length) {
+                    return;
+                }
+                try {
+                    const draft = JSON.parse(raw);
+                    if (Number(draft.questionCount || 0) !== this.questions.length) {
+                        return;
+                    }
+                    const draftAnswers = draft.answers || {};
+                    let restored = 0;
+                    this.questions.forEach((_, index) => {
+                        const value = String(draftAnswers[index] || '').trim();
+                        if (value && !String(this.answers[index] || '').trim()) {
+                            this.answers[index] = draftAnswers[index];
+                            restored += 1;
+                        }
+                    });
+                    this.voiceAnswerIndexes = this.safeList(draft.voiceAnswerIndexes)
+                        .map((item) => Number(item))
+                        .filter((item) => Number.isInteger(item) && item >= 0 && item < this.questions.length);
+                    if (restored) {
+                        this.globalMessage = `已恢复 ${restored} 题未提交答案，可继续修改后提交评估。`;
+                    }
+                } catch (error) {
+                    localStorage.removeItem(this.answerDraftKey());
+                }
+            },
+            clearAnswerDraft() {
+                if (this.resumeId) {
+                    localStorage.removeItem(this.answerDraftKey());
                 }
             },
             isRecordingSpeech() {
@@ -891,6 +1011,34 @@ function createInterviewApp() {
                 event.preventDefault();
                 this.sendAssistantMessage();
             },
+            loadPendingAssistantPrompt() {
+                const key = this.pendingAssistantPromptKey();
+                const payloadText = sessionStorage.getItem(key) || sessionStorage.getItem('interviewAgentPendingAssistantPrompt');
+                if (!payloadText) {
+                    return;
+                }
+                try {
+                    const payload = JSON.parse(payloadText);
+                    this.assistantMessage = payload.prompt || '';
+                    this.globalMessage = payload.source === 'evaluation-summary'
+                        ? '已带入面试复盘摘要，请确认后发送给 AI 顾问。'
+                        : '已带入待发送内容，请确认后发送。';
+                } catch (error) {
+                    this.assistantMessage = payloadText;
+                } finally {
+                    sessionStorage.removeItem(key);
+                    sessionStorage.removeItem('interviewAgentPendingAssistantPrompt');
+                }
+            },
+            fillAssistantQuickPrompt(type) {
+                const prompts = {
+                    'practice-plan': '请基于当前简历、岗位匹配结果和面试复盘，帮我制定下一轮 3 天练习计划，按优先级列出每天要练什么、怎么练、验收标准是什么。',
+                    'improve-answer': '请找出我面试复盘里最应该优先优化的低分回答，帮我按“结论 -> 背景 -> 动作 -> 结果 -> 反思”重写一版。',
+                    'follow-up': '请基于我当前简历和面试复盘，模拟面试官连续追问 5 个问题，并说明每个问题想考察什么。'
+                };
+                this.assistantMessage = prompts[type] || '';
+                this.globalMessage = '快捷问题已填入输入框，请确认后发送。';
+            },
             consumeAssistantEventSource(message, assistantMessage) {
                 return new Promise((resolve, reject) => {
                     if (!window.EventSource) {
@@ -1063,16 +1211,22 @@ function createInterviewApp() {
                     }
                     const structuredParams = new URLSearchParams(params);
                     structuredParams.set('limit', '10');
-                    const [metrics, failures, structuredFailures, modelCalls, agentMessages] = await Promise.all([
+                    const evaluationStructuredParams = new URLSearchParams({ operationName: 'answer-evaluation', limit: '10' });
+                    if (this.audit.promptVersion.trim()) {
+                        evaluationStructuredParams.set('promptVersion', this.audit.promptVersion.trim());
+                    }
+                    const [metrics, failures, structuredFailures, answerEvaluationFailures, modelCalls, agentMessages] = await Promise.all([
                         fetchJson(`/api/audit/prompt-metrics?${params.toString()}`),
                         fetchJson(`/api/audit/failure-reasons?${params.toString()}`),
                         fetchJson(`/api/audit/structured-output-failures?${structuredParams.toString()}`),
+                        fetchJson(`/api/audit/structured-output-failures?${evaluationStructuredParams.toString()}`),
                         fetchJson('/api/audit/model-calls?limit=20'),
                         fetchJson('/api/audit/agent-messages?limit=20')
                     ]);
                     this.audit.metrics = this.safeList(metrics);
                     this.audit.failures = this.safeList(failures);
                     this.audit.structuredFailures = this.safeList(structuredFailures);
+                    this.audit.answerEvaluationFailures = this.safeList(answerEvaluationFailures);
                     this.audit.modelCalls = this.safeList(modelCalls);
                     this.audit.agentMessages = this.safeList(agentMessages);
                     this.audit.ragError = '';
@@ -1107,6 +1261,122 @@ function createInterviewApp() {
             },
             safeList(value) {
                 return Array.isArray(value) ? value : [];
+            },
+            async copyEvaluationSummary() {
+                if (!this.evaluation) {
+                    this.globalError = '暂无复盘报告可复制。';
+                    return;
+                }
+                this.globalError = '';
+                try {
+                    await this.copyText(this.buildEvaluationSummary());
+                    this.globalMessage = '复盘摘要已复制，可直接发送给朋友或粘贴给 AI 顾问继续分析。';
+                } catch (error) {
+                    this.globalError = '复制失败，请手动选择页面内容复制。';
+                }
+            },
+            openAssistantWithEvaluationSummary() {
+                if (!this.evaluation) {
+                    this.globalError = '暂无复盘报告可解读。';
+                    return;
+                }
+                const prompt = `请根据这份面试复盘，帮我制定下一轮练习计划。要求：先指出最优先解决的 3 个问题，再给出 3 天练习安排，最后给一版低分题重答模板。\n\n${this.buildEvaluationSummary()}`;
+                sessionStorage.setItem(this.pendingAssistantPromptKey(), JSON.stringify({
+                    source: 'evaluation-summary',
+                    prompt
+                }));
+                window.location.href = `/assistant/${encodeURIComponent(this.resumeId)}`;
+            },
+            pendingAssistantPromptKey() {
+                return `interviewAgentPendingAssistantPrompt:${this.resumeId || 'global'}`;
+            },
+            // 从已有评估结果拼出轻量摘要，不额外调用模型。
+            buildEvaluationSummary() {
+                const evaluation = this.evaluation || {};
+                const details = this.safeList(evaluation.questionDetails);
+                const weakestQuestions = details
+                    .slice()
+                    .sort((a, b) => Number(a.score || 0) - Number(b.score || 0))
+                    .slice(0, 2);
+                const lines = [
+                    'AI 求职顾问｜面试复盘摘要',
+                    '',
+                    `总分：${evaluation.overallScore ?? '--'}`,
+                    `整体反馈：${String(evaluation.overallFeedback || '暂无').trim()}`
+                ];
+
+                this.appendSummarySection(lines, '主要优势', this.safeList(evaluation.strengths).slice(0, 3));
+                this.appendSummarySection(lines, '主要问题与建议', this.safeList(evaluation.improvements).slice(0, 3));
+
+                if (this.voiceEvaluationSummary.count) {
+                    const voice = this.voiceEvaluationSummary;
+                    lines.push('', '语音复盘');
+                    lines.push(`- 语音作答：${voice.count}/${voice.total} 题，平均分 ${voice.avgScore}`);
+                    if (voice.lowestQuestion) {
+                        lines.push(`- 优先复盘：Q${Number(voice.lowestQuestion.questionIndex || 0) + 1}`);
+                    }
+                    this.safeList(voice.issueItems).slice(0, 2).forEach((item) => lines.push(`- 表达问题：${item}`));
+                    this.safeList(voice.suggestionItems).slice(0, 2).forEach((item) => lines.push(`- 复述建议：${item}`));
+                    lines.push('- 推荐节奏：先给结论，再按背景、动作、结果、反思展开。');
+                }
+
+                if (weakestQuestions.length) {
+                    lines.push('', '优先复盘题');
+                    weakestQuestions.forEach((item, index) => {
+                        lines.push(`${index + 1}. Q${Number(item.questionIndex ?? index) + 1}｜${item.category || '综合问题'}｜${item.score ?? '--'} 分`);
+                        if (item.contentIssue) {
+                            lines.push(`   问题：${item.contentIssue}`);
+                        }
+                        if (item.structureSuggestion) {
+                            lines.push(`   重答：${item.structureSuggestion}`);
+                        }
+                    });
+                }
+
+                return lines.join('\n');
+            },
+            appendSummarySection(lines, title, items) {
+                const values = this.safeList(items).map((item) => String(item || '').trim()).filter(Boolean);
+                if (!values.length) {
+                    return;
+                }
+                lines.push('', title);
+                values.forEach((item, index) => lines.push(`${index + 1}. ${item}`));
+            },
+            async copyText(text) {
+                if (navigator.clipboard && window.isSecureContext) {
+                    await navigator.clipboard.writeText(text);
+                    return;
+                }
+                this.fallbackCopyText(text);
+            },
+            fallbackCopyText(text) {
+                const textarea = document.createElement('textarea');
+                textarea.value = text;
+                textarea.setAttribute('readonly', 'readonly');
+                textarea.style.position = 'fixed';
+                textarea.style.left = '-9999px';
+                document.body.appendChild(textarea);
+                textarea.select();
+                const copied = document.execCommand('copy');
+                document.body.removeChild(textarea);
+                if (!copied) {
+                    throw new Error('copy failed');
+                }
+            },
+            // 去掉空文本和占位文案，保留顺序生成复盘总览。
+            compactUniqueTextList(values, ignoredKeyword) {
+                const result = [];
+                this.safeList(values).forEach((value) => {
+                    const text = String(value || '').trim();
+                    if (!text || (ignoredKeyword && text.includes(ignoredKeyword))) {
+                        return;
+                    }
+                    if (!result.includes(text)) {
+                        result.push(text);
+                    }
+                });
+                return result;
             },
             // 根据题目序号找到对应参考答案，兼容旧数据里 questionIndex 从 1 开始的情况。
             referenceAnswerOf(questionDetail, fallbackIndex) {
@@ -1147,6 +1417,53 @@ function createInterviewApp() {
                     return `${this.round(numeric / 10000)} 万`;
                 }
                 return `${this.round(numeric)}`;
+            },
+            // 按当前百炼中国内地实时推理价格估算文本模型费用。
+            estimateTextCost(item) {
+                if (!item) {
+                    return 0;
+                }
+                const pricing = this.textModelPricing(item.modelNames || '');
+                const inputCost = Number(item.totalInputTokens || 0) / 1000000 * pricing.inputPerMillion;
+                const outputCost = Number(item.totalOutputTokens || 0) / 1000000 * pricing.outputPerMillion;
+                return inputCost + outputCost;
+            },
+            // 按当前 Paraformer 实时语音识别价格估算 ASR 费用。
+            estimateAudioCost(durationMs) {
+                return Number(durationMs || 0) / 1000 * 0.00024;
+            },
+            textModelPricing(modelNames) {
+                const text = String(modelNames || '').toLowerCase();
+                if (text.includes('qwen-plus')) {
+                    return { inputPerMillion: 0.8, outputPerMillion: 2 };
+                }
+                return { inputPerMillion: 2.4, outputPerMillion: 9.6 };
+            },
+            estimateMetricCost(item) {
+                return this.formatCny(this.estimateTextCost(item) + this.estimateAudioCost(item && item.totalAudioDurationMs));
+            },
+            estimateCallCost(item) {
+                if (!item) {
+                    return '';
+                }
+                const textCost = this.estimateTextCost({
+                    modelNames: item.modelName,
+                    totalInputTokens: item.inputTokens,
+                    totalOutputTokens: item.outputTokens
+                });
+                const audioCost = this.estimateAudioCost(item.audioDurationMs);
+                const total = textCost + audioCost;
+                return total > 0 ? `估算 ${this.formatCny(total)}` : '';
+            },
+            formatCny(value) {
+                const numeric = Number(value || 0);
+                if (numeric <= 0) {
+                    return '--';
+                }
+                if (numeric < 0.01) {
+                    return `¥${numeric.toFixed(4)}`;
+                }
+                return `¥${numeric.toFixed(2)}`;
             },
             // 将单次调用的输入、输出和总 Token 拼成审计表展示文案。
             formatTokenBreakdown(item) {

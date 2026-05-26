@@ -27,6 +27,7 @@
 
         <div class="notice error" v-if="globalError">{{ globalError }}</div>
         <div class="notice success" v-if="globalMessage">{{ globalMessage }}</div>
+        <div class="notice info" v-if="loading.evaluation && evaluationStage">{{ evaluationStage }}</div>
         <div class="notice info" v-if="session">
             当前流程：{{ sessionSummary() }}
             <span v-if="session.status === 'FAILED' && session.failedReason">，失败原因：{{ session.failedReason }}</span>
@@ -38,9 +39,17 @@
                 <div class="panel-header">
                     <div>
                         <h2>面试控制台</h2>
-                        <p>{{ questions.length ? questions.length + ' 题，已答 ' + answeredCount + ' 题' : '还没有问题' }}</p>
+                        <p>{{ questions.length ? questions.length + ' 题，已答 ' + answeredCount + ' 题，未答 ' + unansweredCount + ' 题' : '还没有问题' }}</p>
                     </div>
                 </div>
+                <div class="interview-progress-grid" v-if="questions.length">
+                    <div><span>已答</span><strong>{{ answeredCount }}</strong></div>
+                    <div><span>未答</span><strong>{{ unansweredCount }}</strong></div>
+                    <div><span>语音</span><strong>{{ voiceAnswerIndexes.length }}</strong></div>
+                </div>
+                <button class="ghost-button full" type="button" v-on:click="scrollToFirstUnanswered" v-if="unansweredCount">
+                    定位未答题
+                </button>
                 <button class="primary-button full" type="button" v-on:click="generateStandardQuestions" v-bind:disabled="loading.questions">
                     {{ loading.questions ? '生成中...' : '生成基础题' }}
                 </button>
@@ -51,7 +60,7 @@
             </div>
 
             <div class="question-stack">
-                <article class="panel question-panel" v-for="(question, index) in questions" v-bind:key="index">
+                <article class="panel question-panel" v-for="(question, index) in questions" v-bind:key="index" v-bind:data-question-index="index">
                     <div class="question-meta">
                         <span>问题 {{ index + 1 }} / {{ questions.length }}</span>
                         <span>{{ typeName(question.type) }}</span>
@@ -72,7 +81,7 @@
                         </span>
                         <span class="muted" v-else-if="transcribingQuestionIndex === index">正在转写语音...</span>
                     </div>
-                    <textarea v-model="answers[index]" placeholder="输入候选人的回答。建议用背景、动作、结果的结构描述。"></textarea>
+                    <textarea v-model="answers[index]" v-on:input="saveAnswerDraft" placeholder="输入候选人的回答。建议用背景、动作、结果的结构描述。"></textarea>
                     <div class="audio-review-box" v-if="pendingAudioReviewIndex === index">
                         <div>
                             <strong>语音已转成文字</strong>

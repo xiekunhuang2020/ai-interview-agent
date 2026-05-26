@@ -36,9 +36,13 @@
 - 输出必须为纯 JSON 格式，严禁包含任何 Markdown 代码块或多余解释文字
 - 字段名称和结构必须严格一致，不可增减字段
 - 所有数组字段必须输出 JSON 数组，即使只有一项也要使用 `[]`，严禁把数组字段输出成字符串
+- 不要输出嵌套 JSON 字符串，不要把对象数组压成字符串
 - `overallScore` 应为各题得分的加权平均值（综合评估）
 - `categoryScores` 需按技术领域进行归类统计，类别名称需统一规范
+- `categoryScores` 最多 8 项；`strengths` 最多 6 项；`improvements` 最多 6 项；`keyPoints` 每题最多 8 项
 - `feedback` 必须具体指出答案的优点与不足，不可笼统评价
+- `feedback`、`contentIssue`、`expressionIssue`、`structureSuggestion`、`voiceExpressionIssue`、`voiceExpressionSuggestion` 单字段不超过 300 字
+- `overallFeedback` 不超过 500 字；`referenceAnswer` 不超过 700 字；`followUpQuestion` 只输出 1 个问题且不超过 80 字
 - `contentIssue` 只评价技术内容，不评价口音、音色或录音质量；如果没有明显问题，填写“暂无明显内容问题”
 - `expressionIssue` 只评价文字答案的逻辑结构、术语准确性和表达完整度；如果没有明显问题，填写“暂无明显表达问题”
 - `structureSuggestion` 必须给出可执行的重答建议，建议使用“背景 -> 动作 -> 结果 -> 反思”的表达结构

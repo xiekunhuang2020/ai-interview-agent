@@ -140,6 +140,7 @@
                             <div><dt>输出 Token</dt><dd>{{ formatTokenCount(item.totalOutputTokens) }}</dd></div>
                             <div><dt>总 Token</dt><dd>{{ formatTokenCount(item.totalTokens) }}</dd></div>
                             <div><dt>均 Token</dt><dd>{{ formatTokenCount(item.avgTotalTokens) }}</dd></div>
+                            <div><dt>估算费用</dt><dd>{{ estimateMetricCost(item) }}</dd></div>
                             <div><dt>均输入长度</dt><dd>{{ formatCharCount(item.avgPromptChars) }}</dd></div>
                             <div><dt>裁剪次数</dt><dd>{{ item.clippedCalls || 0 }}</dd></div>
                             <div><dt>预算超出</dt><dd>{{ item.budgetExceededCalls || 0 }}</dd></div>
@@ -148,6 +149,7 @@
                     </article>
                     <p class="muted empty-line" v-if="!audit.metrics.length">暂无指标数据</p>
                 </div>
+                <p class="muted panel-footnote" v-if="audit.metrics.length">费用为按当前内置模型单价和审计用量换算的估算值，实际费用以百炼控制台账单为准。</p>
             </div>
 
             <div class="panel">
@@ -181,6 +183,28 @@
             </div>
 
             <div class="panel wide-panel">
+                <div class="panel-header">
+                    <div>
+                        <h2>回答评估失败聚焦</h2>
+                        <p>{{ audit.answerEvaluationFailures.length }} 条</p>
+                    </div>
+                </div>
+                <div class="log-table">
+                    <div class="log-row structured-row head">
+                        <span>时间</span><span>调用场景</span><span>耗时</span><span>追踪编号</span><span>失败原因</span>
+                    </div>
+                    <div class="log-row structured-row" v-for="item in audit.answerEvaluationFailures" v-bind:key="item.id">
+                        <span>{{ shortTime(item.createTime) }}</span>
+                        <span>{{ operationNameText(item.operationName) }}</span>
+                        <span>{{ formatLatency(item.latencyMs) }}</span>
+                        <span class="mono">{{ item.traceId }}</span>
+                        <span>{{ item.errorMessage || '--' }}</span>
+                    </div>
+                    <p class="muted empty-line" v-if="!audit.answerEvaluationFailures.length">暂无回答评估结构化失败</p>
+                </div>
+            </div>
+
+            <div class="panel wide-panel">
                 <div class="panel-header"><div><h2>最近模型调用</h2><p>{{ audit.modelCalls.length }} 条</p></div></div>
                 <div class="log-table">
                     <div class="log-row model-call-row head">
@@ -195,7 +219,10 @@
                         <span>{{ operationNameText(item.operationName) }}</span>
                         <span>{{ item.modelName || '--' }}</span>
                         <span v-bind:class="item.success === 1 ? 'ok-text' : 'bad-text'">{{ item.success === 1 ? '成功' : '失败' }}<template v-if="item.success !== 1 && item.errorType"> / {{ errorTypeText(item.errorType) }}</template></span>
-                        <span>{{ formatTokenBreakdown(item) }}</span>
+                        <span>
+                            {{ formatTokenBreakdown(item) }}
+                            <small class="cell-subtext">{{ estimateCallCost(item) }}</small>
+                        </span>
                         <span>{{ formatAudioMeta(item) }}</span>
                         <span v-bind:class="item.budgetExceeded === 1 ? 'warn-text' : ''">{{ formatInputBudget(item) }}</span>
                         <span v-bind:class="item.budgetUncovered === 1 ? 'warn-text' : ''">{{ formatBudgetStrategy(item) }}</span>
