@@ -6,6 +6,7 @@ import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
 import lombok.Data;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 @Data
@@ -122,6 +123,12 @@ public class AiModelCallLogEntity {
      * 标准化错误类型，例如超时、限流、结构化输出错误。
      */
     private String errorType;
+
+    /**
+     * 按后端配置的模型单价估算出的本次调用费用，不落库。
+     */
+    @TableField(exist = false)
+    private BigDecimal estimatedCostCny;
 
     /**
      * 审计记录创建时间。

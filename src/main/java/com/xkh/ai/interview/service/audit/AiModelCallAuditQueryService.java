@@ -8,6 +8,7 @@ import com.xkh.ai.interview.dto.PromptMetricsResultDTO;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Service;
 
+import java.math.BigDecimal;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
@@ -20,12 +21,15 @@ public class AiModelCallAuditQueryService {
     private static final String ERROR_TYPE_STRUCTURED_OUTPUT_ERROR = "STRUCTURED_OUTPUT_ERROR";
 
     private final AiModelCallLogMapper aiModelCallLogMapper;
+    private final AiModelCostEstimator costEstimator;
 
     /**
      * 注入模型调用审计 Mapper，用于查询调用日志和聚合指标。
      */
-    public AiModelCallAuditQueryService(AiModelCallLogMapper aiModelCallLogMapper) {
+    public AiModelCallAuditQueryService(AiModelCallLogMapper aiModelCallLogMapper,
+                                        AiModelCostEstimator costEstimator) {
         this.aiModelCallLogMapper = aiModelCallLogMapper;
+        this.costEstimator = costEstimator;
     }
 
     /**
@@ -38,7 +42,9 @@ public class AiModelCallAuditQueryService {
         wrapper.eq(StringUtils.isNotBlank(operationName), AiModelCallLogEntity::getOperationName, operationName);
         wrapper.orderByDesc(AiModelCallLogEntity::getCreateTime);
         wrapper.last("LIMIT " + safeLimit);
-        return aiModelCallLogMapper.selectList(wrapper);
+        List<AiModelCallLogEntity> logs = aiModelCallLogMapper.selectList(wrapper);
+        logs.forEach(this::fillEstimatedCost);
+        return logs;
     }
 
     /**
@@ -155,6 +161,9 @@ public class AiModelCallAuditQueryService {
                 .mapToLong(log -> log.getAudioDurationMs() == null ? 0L : log.getAudioDurationMs())
                 .sum();
         double avgAudioDurationMs = audioSampleCalls == 0 ? 0D : totalAudioDurationMs * 1D / audioSampleCalls;
+        BigDecimal estimatedCostCny = logs.stream()
+                .map(costEstimator::estimate)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
 
         AiModelCallLogEntity sample = logs.get(0);
         return PromptMetricsResultDTO.builder()
@@ -172,6 +181,7 @@ public class AiModelCallAuditQueryService {
                 .totalOutputTokens(totalOutputTokens)
                 .totalTokens(totalTokens)
                 .avgTotalTokens(round(avgTotalTokens))
+                .estimatedCostCny(costEstimator.normalize(estimatedCostCny))
                 .contextSampleCalls(contextSampleCalls)
                 .clippedCalls(clippedCalls)
                 .totalPromptChars(totalPromptChars)
@@ -185,6 +195,13 @@ public class AiModelCallAuditQueryService {
                 .totalAudioDurationMs(totalAudioDurationMs)
                 .avgAudioDurationMs(round(avgAudioDurationMs))
                 .build();
+    }
+
+    /**
+     * 给最近调用记录补充估算费用，避免前端维护模型价格。
+     */
+    private void fillEstimatedCost(AiModelCallLogEntity log) {
+        log.setEstimatedCostCny(costEstimator.estimate(log));
     }
 
     /**

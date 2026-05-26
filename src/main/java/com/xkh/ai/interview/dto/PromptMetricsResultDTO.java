@@ -5,6 +5,8 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.math.BigDecimal;
+
 @Data
 @Builder
 @NoArgsConstructor
@@ -79,6 +81,11 @@ public class PromptMetricsResultDTO {
      * 有 Token 样本的平均总 Token 数。
      */
     private Double avgTotalTokens;
+
+    /**
+     * 当前分组按后端价格配置估算出的调用费用。
+     */
+    private BigDecimal estimatedCostCny;
 
     /**
      * 有 Prompt 字符数统计的调用次数。

@@ -225,7 +225,7 @@ powershell -ExecutionPolicy Bypass -File scripts/demo-flow.ps1
 - 成本观测：已打通 Spring AI / DashScope 官方 token usage 落库，并在运营看板按 operation 展示输入 token、输出 token、总 token 和模型名称。
 - 上下文预算：已为 Prompt、RAG 上下文、AI 顾问工具返回和对话历史设置最大预算，降低 token 成本和无关上下文干扰。
 - 对话摘要：AI 顾问使用 Spring AI 官方 `MessageWindowChatMemory` 保存最近消息；当多轮对话变长时，保留“会话摘要 + 最近消息”，减少历史消息无限拼接。
-- 成本估算：运营看板已基于输入/输出 Token、ASR 音频时长和内置模型单价展示估算费用，实际账单仍以百炼控制台为准。
+- 成本估算：后端按配置化模型单价、输入/输出 Token 和 ASR 音频时长估算费用，实际账单仍以百炼控制台为准。
 - 语音面试陪练：模拟面试页支持录音回答、转写回填、语音作答标记、语音表达建议和复盘总览。
 - 失败恢复：模拟面试答案会在浏览器本地临时保存，评估失败或误刷新后可以继续修改并重新提交。
 - 截图识别：已支持岗位截图识别并回填岗位说明；不做简历截图识别，继续沿用 PDF、DOC、DOCX、TXT 文件解析链路。

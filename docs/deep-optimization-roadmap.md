@@ -648,7 +648,8 @@ AI 输出不符合 resume-score 结构：无法转换为目标 DTO
 - 运营看板已按 operation、Prompt 版本展示调用模型、总 Token、平均 Token 和最近模型调用 Token。
 - 运营看板已区分输入 Token、输出 Token、总 Token 和平均 Token。
 - AI 顾问 SSE 流式对话已改用 Spring AI 官方 `stream().chatResponse()` 获取 metadata，并写入模型调用审计。
-- 已在运营看板补充按模型单价、输入/输出 Token 和 ASR 音频时长换算的估算费用。
+- 已在后端增加配置化成本估算，按模型单价、输入/输出 Token 和 ASR 音频时长换算估算费用。
+- 前端只展示后端返回的估算结果，不再维护模型价格常量。
 - 估算费用只作为优化参考，真实账单仍以百炼控制台为准。
 - 结合现有成功率、耗时和失败原因，形成“效果 + 稳定性 + 成本”的观测闭环。
 

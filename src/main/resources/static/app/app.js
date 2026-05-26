@@ -201,7 +201,7 @@ function createInterviewApp() {
                 const totalInputTokens = metrics.reduce((sum, item) => sum + Number(item.totalInputTokens || 0), 0);
                 const totalOutputTokens = metrics.reduce((sum, item) => sum + Number(item.totalOutputTokens || 0), 0);
                 const totalTokens = metrics.reduce((sum, item) => sum + Number(item.totalTokens || 0), 0);
-                const estimatedTextCost = metrics.reduce((sum, item) => sum + this.estimateTextCost(item), 0);
+                const estimatedTotalCost = metrics.reduce((sum, item) => sum + Number(item.estimatedCostCny || 0), 0);
                 const contextSampleCalls = metrics.reduce((sum, item) => sum + Number(item.contextSampleCalls || 0), 0);
                 const clippedCalls = metrics.reduce((sum, item) => sum + Number(item.clippedCalls || 0), 0);
                 const totalPromptChars = metrics.reduce((sum, item) => sum + Number(item.totalPromptChars || 0), 0);
@@ -234,8 +234,8 @@ function createInterviewApp() {
                 const audioTotalDurationMs = audioMetrics.reduce((sum, item) => {
                     return sum + Number(item.totalAudioDurationMs || 0);
                 }, 0);
-                const estimatedAudioCost = this.estimateAudioCost(audioTotalDurationMs);
-                const estimatedTotalCost = estimatedTextCost + estimatedAudioCost;
+                const estimatedAudioCost = audioMetrics.reduce((sum, item) => sum + Number(item.estimatedCostCny || 0), 0);
+                const estimatedTextCost = Math.max(0, estimatedTotalCost - estimatedAudioCost);
                 const ragRecall = this.audit.ragRecall;
 
                 return [
@@ -1383,42 +1383,15 @@ function createInterviewApp() {
                 }
                 return `${this.round(numeric)}`;
             },
-            // 按当前百炼中国内地实时推理价格估算文本模型费用。
-            estimateTextCost(item) {
-                if (!item) {
-                    return 0;
-                }
-                const pricing = this.textModelPricing(item.modelNames || '');
-                const inputCost = Number(item.totalInputTokens || 0) / 1000000 * pricing.inputPerMillion;
-                const outputCost = Number(item.totalOutputTokens || 0) / 1000000 * pricing.outputPerMillion;
-                return inputCost + outputCost;
-            },
-            // 按当前 Paraformer 实时语音识别价格估算 ASR 费用。
-            estimateAudioCost(durationMs) {
-                return Number(durationMs || 0) / 1000 * 0.00024;
-            },
-            textModelPricing(modelNames) {
-                const text = String(modelNames || '').toLowerCase();
-                if (text.includes('qwen-plus')) {
-                    return { inputPerMillion: 0.8, outputPerMillion: 2 };
-                }
-                return { inputPerMillion: 2.4, outputPerMillion: 9.6 };
-            },
             estimateMetricCost(item) {
-                return this.formatCny(this.estimateTextCost(item) + this.estimateAudioCost(item && item.totalAudioDurationMs));
+                return this.formatCny(item && item.estimatedCostCny);
             },
             estimateCallCost(item) {
                 if (!item) {
                     return '';
                 }
-                const textCost = this.estimateTextCost({
-                    modelNames: item.modelName,
-                    totalInputTokens: item.inputTokens,
-                    totalOutputTokens: item.outputTokens
-                });
-                const audioCost = this.estimateAudioCost(item.audioDurationMs);
-                const total = textCost + audioCost;
-                return total > 0 ? `估算 ${this.formatCny(total)}` : '';
+                const cost = this.formatCny(item.estimatedCostCny);
+                return cost === '--' ? '' : `估算 ${cost}`;
             },
             formatCny(value) {
                 const numeric = Number(value || 0);

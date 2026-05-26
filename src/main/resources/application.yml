@@ -80,6 +80,17 @@ ai-interview:
       timeout-seconds: ${AI_ANSWER_AUDIO_TIMEOUT_SECONDS:90}
   vision:
     jd-ocr-model: ${DASHSCOPE_VISION_MODEL:qwen-vl-max}
+  cost:
+    chat-models:
+      qwen-max:
+        input-per-million-tokens: ${AI_COST_QWEN_MAX_INPUT_PER_MILLION:2.4}
+        output-per-million-tokens: ${AI_COST_QWEN_MAX_OUTPUT_PER_MILLION:9.6}
+      qwen-plus:
+        input-per-million-tokens: ${AI_COST_QWEN_PLUS_INPUT_PER_MILLION:0.8}
+        output-per-million-tokens: ${AI_COST_QWEN_PLUS_OUTPUT_PER_MILLION:2}
+    audio-models:
+      paraformer-realtime-v2:
+        per-second: ${AI_COST_PARAFORMER_REALTIME_V2_PER_SECOND:0.00024}
   agent:
     memory:
       max-messages: ${AI_AGENT_MEMORY_MAX_MESSAGES:10}
