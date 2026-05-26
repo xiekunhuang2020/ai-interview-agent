@@ -56,6 +56,7 @@ function createInterviewApp() {
                 scoreResult: null,
                 questions: [],
                 answers: {},
+                voiceAnswerIndexes: [],
                 evaluation: null,
                 session: null,
                 jdText: '',
@@ -72,6 +73,9 @@ function createInterviewApp() {
                 recordingQuestionIndex: null,
                 transcribingQuestionIndex: null,
                 pendingAudioReviewIndex: null,
+                recordingStartedAt: null,
+                recordingElapsedSeconds: 0,
+                recordingTimer: null,
                 recordingAssistant: false,
                 transcribingAssistant: false,
                 audit: {
@@ -493,6 +497,7 @@ function createInterviewApp() {
                     const payload = await fetchJson(url, options);
                     this.questions = this.safeList(payload.questions);
                     this.answers = Object.fromEntries(this.questions.map((_, index) => [index, '']));
+                    this.voiceAnswerIndexes = [];
                     this.evaluation = null;
                     window.location.href = `/interview/${encodeURIComponent(this.resumeId)}`;
                 } catch (error) {
@@ -524,7 +529,10 @@ function createInterviewApp() {
                     await fetchJson(`/api/interview/${encodeURIComponent(this.resumeId)}/submit`, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify(this.answers)
+                        body: JSON.stringify({
+                            answers: this.answers,
+                            voiceAnswerIndexes: this.voiceAnswerIndexes
+                        })
                     });
                     this.pendingAudioReviewIndex = null;
                     window.location.href = `/result/${encodeURIComponent(this.resumeId)}`;
@@ -544,8 +552,8 @@ function createInterviewApp() {
             async startAnswerRecording(index) {
                 this.globalError = '';
                 this.globalMessage = '';
-                this.pendingAudioReviewIndex = null;
                 if (await this.startSpeechRecording()) {
+                    this.pendingAudioReviewIndex = null;
                     this.recordingQuestionIndex = index;
                     this.globalMessage = `第 ${index + 1} 题正在录音，回答完后点击“停止录音”。`;
                 }
@@ -589,6 +597,7 @@ function createInterviewApp() {
                     };
                     speechAudioState.source.connect(speechAudioState.processor);
                     speechAudioState.processor.connect(speechAudioState.audioContext.destination);
+                    this.startRecordingTimer();
                     return true;
                 } catch (error) {
                     await this.releaseSpeechAudioResources();
@@ -610,6 +619,7 @@ function createInterviewApp() {
                 return this.encodeWavBlob(resampled, outputSampleRate);
             },
             async releaseSpeechAudioResources() {
+                this.stopRecordingTimer();
                 if (speechAudioState.processor) {
                     speechAudioState.processor.disconnect();
                     speechAudioState.processor.onaudioprocess = null;
@@ -642,6 +652,9 @@ function createInterviewApp() {
                         body: formData
                     });
                     this.answers[index] = this.mergeAnswerText(this.answers[index], payload.text);
+                    if (!this.voiceAnswerIndexes.includes(index)) {
+                        this.voiceAnswerIndexes.push(index);
+                    }
                     this.pendingAudioReviewIndex = index;
                     this.globalMessage = `第 ${index + 1} 题语音已转成文字，请检查答案框。全部题目答完后，再点击右上角“提交评估”。`;
                 } catch (error) {
@@ -651,8 +664,44 @@ function createInterviewApp() {
                     this.transcribingQuestionIndex = null;
                 }
             },
+            async rerecordAnswerAudio(index) {
+                if (this.isRecordingSpeech() || this.loading.transcription) {
+                    this.globalError = '请先完成当前录音或转写。';
+                    return;
+                }
+                this.globalError = '';
+                this.globalMessage = '';
+                if (await this.startSpeechRecording()) {
+                    this.answers[index] = '';
+                    this.clearVoiceAnswerMark(index);
+                    this.recordingQuestionIndex = index;
+                    this.globalMessage = `第 ${index + 1} 题已清空旧答案，正在重新录音。`;
+                }
+            },
+            clearVoiceAnswerMark(index) {
+                this.voiceAnswerIndexes = this.voiceAnswerIndexes.filter((item) => item !== index);
+                if (this.pendingAudioReviewIndex === index) {
+                    this.pendingAudioReviewIndex = null;
+                }
+            },
             isRecordingSpeech() {
                 return this.recordingQuestionIndex !== null || this.recordingAssistant;
+            },
+            startRecordingTimer() {
+                this.stopRecordingTimer();
+                this.recordingStartedAt = Date.now();
+                this.recordingElapsedSeconds = 0;
+                this.recordingTimer = window.setInterval(() => {
+                    this.recordingElapsedSeconds = Math.floor((Date.now() - this.recordingStartedAt) / 1000);
+                }, 500);
+            },
+            stopRecordingTimer() {
+                if (this.recordingTimer) {
+                    window.clearInterval(this.recordingTimer);
+                    this.recordingTimer = null;
+                }
+                this.recordingStartedAt = null;
+                this.recordingElapsedSeconds = 0;
             },
             flattenAudioBuffers(buffers) {
                 const totalLength = buffers.reduce((sum, buffer) => sum + buffer.length, 0);
@@ -732,6 +781,9 @@ function createInterviewApp() {
                 }
                 if (this.transcribingQuestionIndex === index) {
                     return '转写中...';
+                }
+                if (this.voiceAnswerIndexes.includes(index)) {
+                    return '继续录音补充';
                 }
                 return '录音回答';
             },
@@ -1306,6 +1358,12 @@ function createInterviewApp() {
                 const minutes = Math.floor(numeric / 60000);
                 const seconds = Math.round((numeric % 60000) / 1000);
                 return `${minutes}分${String(seconds).padStart(2, '0')}秒`;
+            },
+            formatRecordingDuration(value) {
+                const numeric = Math.max(0, Number(value || 0));
+                const minutes = Math.floor(numeric / 60);
+                const seconds = numeric % 60;
+                return `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
             }
         }
     });

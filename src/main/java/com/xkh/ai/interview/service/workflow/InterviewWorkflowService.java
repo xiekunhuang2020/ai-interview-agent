@@ -26,6 +26,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
 import java.util.Map;
+import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.UUID;
 
@@ -141,7 +142,9 @@ public class InterviewWorkflowService {
     /**
      * 根据候选人答案进行 AI 复盘评分，并保存本次面试评估结果。
      */
-    public InterviewEvaluationDTO evaluateAnswers(String resumeId, Map<Integer, String> answers) {
+    public InterviewEvaluationDTO evaluateAnswers(String resumeId,
+                                                  Map<Integer, String> answers,
+                                                  List<Integer> voiceAnswerIndexes) {
         ResumeDataDTO resumeData = requireResume(resumeId);
         if (resumeData.getQuestions() == null || resumeData.getQuestions().getQuestions() == null
                 || resumeData.getQuestions().getQuestions().isEmpty()) {
@@ -153,7 +156,8 @@ public class InterviewWorkflowService {
             InterviewEvaluationDTO evaluation = answerEvaluationAgent.evaluate(
                     resumeData.getResumeText(),
                     resumeData.getQuestions(),
-                    answers
+                    answers,
+                    voiceAnswerIndexes
             );
             resumeRepositoryTool.saveEvaluation(resumeId, evaluation);
             interviewSessionService.markEvaluated(resumeId);

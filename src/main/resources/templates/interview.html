@@ -68,7 +68,7 @@
                             {{ answerAudioButtonText(index) }}
                         </button>
                         <span class="recording-status" v-if="recordingQuestionIndex === index">
-                            <span class="recording-dot"></span>正在录音
+                            <span class="recording-dot"></span>正在录音 {{ formatRecordingDuration(recordingElapsedSeconds) }}
                         </span>
                         <span class="muted" v-else-if="transcribingQuestionIndex === index">正在转写语音...</span>
                     </div>
@@ -77,6 +77,17 @@
                         <div>
                             <strong>语音已转成文字</strong>
                             <p>请检查回答框内容，必要时修改。全部题目答完后，再点击右上角“提交评估”。</p>
+                        </div>
+                        <div class="audio-review-actions">
+                            <button class="ghost-button compact-button" type="button"
+                                    v-on:click="rerecordAnswerAudio(index)"
+                                    v-bind:disabled="loading.transcription || recordingQuestionIndex !== null">
+                                重新录音
+                            </button>
+                            <button class="ghost-button compact-button" type="button"
+                                    v-on:click="clearVoiceAnswerMark(index)">
+                                仅保留文字
+                            </button>
                         </div>
                     </div>
                 </article>

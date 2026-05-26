@@ -3,6 +3,7 @@ package com.xkh.ai.interview.controller;
 import com.xkh.ai.interview.dto.AgentChatRequestDTO;
 import com.xkh.ai.interview.dto.JobDescriptionRequestDTO;
 import com.xkh.ai.interview.dto.ResumeDataDTO;
+import com.xkh.ai.interview.dto.SubmitAnswersRequestDTO;
 import com.xkh.ai.interview.config.RequestTraceFilter;
 import com.xkh.ai.interview.service.agent.InterviewAssistantAgentService;
 import com.xkh.ai.interview.service.audit.AgentConversationAuditQueryService;
@@ -169,9 +170,13 @@ public class InterviewApiController {
     @PostMapping("/api/interview/{resumeId}/submit")
     public ResponseEntity<?> submitAnswers(
             @PathVariable String resumeId,
-            @RequestBody Map<Integer, String> answers) {
+            @RequestBody SubmitAnswersRequestDTO request) {
         try {
-            return ResponseEntity.ok(interviewWorkflowService.evaluateAnswers(resumeId, answers));
+            return ResponseEntity.ok(interviewWorkflowService.evaluateAnswers(
+                    resumeId,
+                    request == null ? null : request.getAnswers(),
+                    request == null ? null : request.getVoiceAnswerIndexes()
+            ));
         } catch (NoSuchElementException e) {
             return ResponseEntity.notFound().build();
         } catch (IllegalStateException e) {

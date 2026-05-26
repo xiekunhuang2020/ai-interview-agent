@@ -150,6 +150,21 @@ public class InterviewEvaluationDTO {
         @Size(max = 2000)
         private String structureSuggestion;
         /**
+         * 作答来源，TEXT 表示文字输入，VOICE_TRANSCRIPT 表示语音转写后确认。
+         */
+        @Size(max = 64)
+        private String answerMode;
+        /**
+         * 语音作答在转写文本中暴露出的口头表达问题，不评价口音、音色或录音质量。
+         */
+        @Size(max = 2000)
+        private String voiceExpressionIssue;
+        /**
+         * 针对语音作答的复述建议，帮助候选人下次回答得更像真实面试。
+         */
+        @Size(max = 2000)
+        private String voiceExpressionSuggestion;
+        /**
          * 面试官可能基于当前回答继续追问的问题。
          */
         @Size(max = 1000)

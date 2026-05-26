@@ -117,7 +117,7 @@ ai-interview:
     versions:
       resume-analysis: resume-analysis-v2026-05-17-01
       interview-question-generation: interview-question-v2026-05-17-01
-      answer-evaluation: answer-evaluation-v2026-05-17-01
+      answer-evaluation: answer-evaluation-v2026-05-26-01
       jd-match: jd-match-v2026-05-17-01
       rag-interview-question-generation: rag-question-v2026-05-17-01
       interview-assistant-stream: assistant-stream-v2026-05-24-01

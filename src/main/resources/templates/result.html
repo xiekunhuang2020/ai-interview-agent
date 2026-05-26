@@ -109,6 +109,14 @@
                                 <span>结构建议</span>
                                 <p>{{ item.structureSuggestion }}</p>
                             </div>
+                            <div class="feedback-section" v-if="item.answerMode === 'VOICE_TRANSCRIPT' && item.voiceExpressionIssue">
+                                <span>语音表达问题</span>
+                                <p>{{ item.voiceExpressionIssue }}</p>
+                            </div>
+                            <div class="feedback-section" v-if="item.answerMode === 'VOICE_TRANSCRIPT' && item.voiceExpressionSuggestion">
+                                <span>语音复述建议</span>
+                                <p>{{ item.voiceExpressionSuggestion }}</p>
+                            </div>
                         </div>
                         <div class="feedback-section follow-up-section" v-if="item.followUpQuestion">
                             <span>可能追问</span>

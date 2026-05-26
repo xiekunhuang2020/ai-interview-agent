@@ -30,6 +30,7 @@
 3. **综合评价**：分析优势与不足，给出整体评价和改进建议
 4. **参考答案**：为每道题目提供深度解析版标准答案和核心要点
 5. **表达复盘**：每题区分内容问题和表达问题，并给出可直接复述的结构优化建议
+6. **语音表达建议**：如果作答来源为 VOICE_TRANSCRIPT，仅根据转写文本判断口头回答的结构、停顿感、赘词和复述顺序；不要评价口音、音色、音量或录音质量
 
 # Constraints (重要约束)
 - 输出必须为纯 JSON 格式，严禁包含任何 Markdown 代码块或多余解释文字
@@ -41,6 +42,10 @@
 - `contentIssue` 只评价技术内容，不评价口音、音色或录音质量；如果没有明显问题，填写“暂无明显内容问题”
 - `expressionIssue` 只评价文字答案的逻辑结构、术语准确性和表达完整度；如果没有明显问题，填写“暂无明显表达问题”
 - `structureSuggestion` 必须给出可执行的重答建议，建议使用“背景 -> 动作 -> 结果 -> 反思”的表达结构
+- `answerMode` 必须原样输出输入中的作答来源，只能为 `TEXT` 或 `VOICE_TRANSCRIPT`
+- `voiceExpressionIssue` 仅当 answerMode 为 `VOICE_TRANSCRIPT` 时给出语音表达问题；TEXT 时填写“非语音作答，无需语音表达建议”
+- `voiceExpressionSuggestion` 仅当 answerMode 为 `VOICE_TRANSCRIPT` 时给出适合口头复述的建议；TEXT 时填写“非语音作答，无需语音表达建议”
+- 语音表达建议只能基于转写文本，不得臆测口音、音色、音量、真实语速或录音环境
 - `followUpQuestion` 必须是面试官可能继续追问的一句话，不要输出多个问题
 - `referenceAnswer` 应体现深度，包含原理分析和最佳实践
 
@@ -65,6 +70,9 @@ JSON 结构必须严格包含以下字段：
    - contentIssue: 字符串，内容问题或关键遗漏
    - expressionIssue: 字符串，表达问题或逻辑组织问题
    - structureSuggestion: 字符串，建议如何按背景、动作、结果重讲
+   - answerMode: 字符串，作答来源，TEXT 或 VOICE_TRANSCRIPT
+   - voiceExpressionIssue: 字符串，语音转写答案暴露出的口头表达问题；非语音作答时说明无需建议
+   - voiceExpressionSuggestion: 字符串，下一次口头回答时的复述建议；非语音作答时说明无需建议
    - followUpQuestion: 字符串，面试官可能继续追问的一句话
 6. overallFeedback: 字符串，整场面试的综合性总结评价。
 7. strengths: 字符串数组，优势列表。

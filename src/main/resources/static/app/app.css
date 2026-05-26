@@ -972,6 +972,10 @@ p {
     border-radius: 8px;
     padding: 12px 14px;
     background: #f3faf7;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 14px;
 }
 
 .audio-review-box strong {
@@ -985,6 +989,13 @@ p {
     color: var(--muted);
     font-size: 14px;
     line-height: 1.6;
+}
+
+.audio-review-actions {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: 8px;
 }
 
 .empty-panel {
