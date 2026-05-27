@@ -873,6 +873,9 @@ p {
 .log-table {
     display: grid;
     gap: 0;
+    max-width: 100%;
+    min-width: 0;
+    overflow-x: auto;
 }
 
 .metric-list {
@@ -1534,7 +1537,7 @@ p {
 }
 
 .log-row.model-call-row {
-    grid-template-columns: 150px minmax(108px, 1fr) minmax(86px, 0.7fr) 58px minmax(128px, 1fr) minmax(136px, 0.9fr) minmax(96px, 0.75fr) 76px 76px 70px minmax(160px, 1fr);
+    grid-template-columns: 140px minmax(118px, 1fr) minmax(86px, 0.7fr) 58px minmax(170px, 1.15fr) minmax(190px, 1.1fr) minmax(190px, 1.05fr);
 }
 
 .log-row.structured-row {
@@ -1544,6 +1547,11 @@ p {
 .log-row.head {
     color: var(--muted);
     font-weight: 800;
+}
+
+.log-row span {
+    min-width: 0;
+    overflow-wrap: anywhere;
 }
 
 .help-label {

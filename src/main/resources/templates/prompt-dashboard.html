@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>系统观测 - AI 求职顾问</title>
-    <link rel="stylesheet" href="/app/app.css?v=20260527-01">
+    <link rel="stylesheet" href="/app/app.css?v=20260527-02">
 </head>
 <body>
 <div id="app" data-page="ops" v-cloak>
@@ -235,11 +235,10 @@
                 <div class="panel-header"><div><h2>最近模型调用</h2><p>{{ audit.modelCalls.length }} 条</p></div></div>
                 <div class="log-table">
                     <div class="log-row model-call-row head">
-                        <span>时间</span><span>调用场景</span><span>模型</span><span>状态</span><span>Token</span>
-                        <span class="help-label">音频输入<span class="help-tip" title="语音转写请求的输入元信息：文件大小、采样率和音频时长。ASR 不按 Token 统计。">?</span></span>
-                        <span class="help-label">输入预算<span class="help-tip" title="只看本次调用的输入 Token，不包含输出 Token。未超表示输入 Token 小于该场景预算；超出表示真实输入 Token 已超过目标线。">?</span></span>
-                        <span class="help-label">策略状态<span class="help-tip" title="正常表示未超预算；需优化表示输入已超预算但没有触发裁剪；已裁剪表示预算策略已经裁掉部分上下文。">?</span></span>
-                        <span>裁剪</span><span>耗时</span><span>追踪编号</span>
+                        <span>时间</span><span>调用场景</span><span>模型</span><span>状态</span>
+                        <span class="help-label">用量<span class="help-tip" title="文本模型展示输入/输出 Token 和估算费用；语音转写展示音频大小、采样率和时长。">?</span></span>
+                        <span class="help-label">输入治理<span class="help-tip" title="只看本次调用的输入 Token，不包含输出 Token。正常表示未超预算；需优化表示输入已超预算但没有触发裁剪；已裁剪表示预算策略已经裁掉部分上下文。">?</span></span>
+                        <span>耗时 / 追踪</span>
                     </div>
                     <div class="log-row model-call-row" v-for="item in audit.modelCalls" v-bind:key="item.id">
                         <span>{{ shortTime(item.createTime) }}</span>
@@ -249,13 +248,17 @@
                         <span>
                             {{ formatTokenBreakdown(item) }}
                             <small class="cell-subtext">{{ estimateCallCost(item) }}</small>
+                            <small class="cell-subtext" v-if="formatAudioMeta(item) !== '--'">音频 {{ formatAudioMeta(item) }}</small>
                         </span>
-                        <span>{{ formatAudioMeta(item) }}</span>
-                        <span v-bind:class="item.budgetExceeded === 1 ? 'warn-text' : ''">{{ formatInputBudget(item) }}</span>
-                        <span v-bind:class="item.budgetUncovered === 1 ? 'warn-text' : ''">{{ formatBudgetStrategy(item) }}</span>
-                        <span v-bind:class="item.contextClipped === 1 ? 'warn-text' : ''">{{ formatContextClipping(item) }}</span>
-                        <span>{{ formatLatency(item.latencyMs) }}</span>
-                        <span class="mono">{{ item.traceId }}</span>
+                        <span>
+                            <strong v-bind:class="item.budgetExceeded === 1 ? 'warn-text' : ''">{{ formatInputBudget(item) }}</strong>
+                            <small class="cell-subtext" v-bind:class="item.budgetUncovered === 1 ? 'warn-text' : ''">策略：{{ formatBudgetStrategy(item) }}</small>
+                            <small class="cell-subtext" v-bind:class="item.contextClipped === 1 ? 'warn-text' : ''">裁剪：{{ formatContextClipping(item) }}</small>
+                        </span>
+                        <span>
+                            {{ formatLatency(item.latencyMs) }}
+                            <small class="cell-subtext mono" v-bind:title="item.traceId">{{ item.traceId || '--' }}</small>
+                        </span>
                     </div>
                     <p class="muted empty-line" v-if="!audit.modelCalls.length">暂无模型调用记录</p>
                 </div>
