@@ -57,6 +57,6 @@ public class ResumeAnalysisAgent {
                 "resumeText", contextBudgetService.limitResumeText(resumeText)
         ))));
 
-        return aiModelCallService.callEntity(OPERATION_NAME, messages, 0.7, ResumeScoreResultDTO.class);
+        return aiModelCallService.callEntity(OPERATION_NAME, messages, 0.0, ResumeScoreResultDTO.class);
     }
 }
