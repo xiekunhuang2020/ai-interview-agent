@@ -126,7 +126,7 @@ ai-interview:
       assistant-audio-transcription: ${AI_BUDGET_ASSISTANT_AUDIO_TRANSCRIPTION_INPUT_TOKENS:0}
   prompt:
     versions:
-      resume-analysis: resume-analysis-v2026-05-17-01
+      resume-analysis: resume-analysis-v2026-05-28-01
       interview-question-generation: interview-question-v2026-05-17-01
       answer-evaluation: answer-evaluation-v2026-05-26-02
       jd-match: jd-match-v2026-05-17-01
