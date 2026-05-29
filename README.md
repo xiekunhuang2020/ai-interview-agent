@@ -212,6 +212,7 @@ powershell -ExecutionPolicy Bypass -File scripts/demo-flow.ps1
 
 ## 项目文档
 
+- [AI 协作入口](AGENT.md)
 - [架构说明](docs/architecture.md)
 - [深度优化路线图](docs/deep-optimization-roadmap.md)
 - [API 示例](docs/api-examples.md)
