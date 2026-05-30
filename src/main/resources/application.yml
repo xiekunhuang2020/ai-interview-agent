@@ -49,7 +49,7 @@ spring:
       api-key: ${DASHSCOPE_API_KEY:fake-key}
       chat:
         options:
-          model: ${DASHSCOPE_CHAT_MODEL:qwen-max}
+          model: ${DASHSCOPE_CHAT_MODEL:qwen3.7-max}
           enable-thinking: true
       embedding:
         options:
@@ -82,6 +82,9 @@ ai-interview:
     jd-ocr-model: ${DASHSCOPE_VISION_MODEL:qwen-vl-max}
   cost:
     chat-models:
+      qwen3.7-max:
+        input-per-million-tokens: ${AI_COST_QWEN37_MAX_INPUT_PER_MILLION:2.4}
+        output-per-million-tokens: ${AI_COST_QWEN37_MAX_OUTPUT_PER_MILLION:9.6}
       qwen-max:
         input-per-million-tokens: ${AI_COST_QWEN_MAX_INPUT_PER_MILLION:2.4}
         output-per-million-tokens: ${AI_COST_QWEN_MAX_OUTPUT_PER_MILLION:9.6}
