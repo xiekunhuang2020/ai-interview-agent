@@ -55,6 +55,9 @@ spring:
         options:
           model: text-embedding-v3
           dimensions: 1024
+      rerank:
+        options:
+          model: ${DASHSCOPE_RERANK_MODEL:qwen3-rerank}
     vectorstore:
       milvus:
         client:
@@ -78,6 +81,21 @@ ai-interview:
       model: ${DASHSCOPE_ASR_MODEL:paraformer-realtime-v2}
       max-file-size: ${AI_ANSWER_AUDIO_MAX_FILE_SIZE:10485760}
       timeout-seconds: ${AI_ANSWER_AUDIO_TIMEOUT_SECONDS:90}
+  rag:
+    search-mode: ${AI_RAG_SEARCH_MODE:hybrid}
+    hybrid:
+      collection-name: ${AI_RAG_HYBRID_COLLECTION_NAME:resume_hybrid_store}
+      sync-writes: ${AI_RAG_HYBRID_SYNC_WRITES:true}
+      initialize-schema: ${AI_RAG_HYBRID_INITIALIZE_SCHEMA:true}
+      analyzer-type: ${AI_RAG_HYBRID_ANALYZER_TYPE:chinese}
+      dense-top-k: ${AI_RAG_HYBRID_DENSE_TOP_K:20}
+      sparse-top-k: ${AI_RAG_HYBRID_SPARSE_TOP_K:20}
+      final-top-k: ${AI_RAG_HYBRID_FINAL_TOP_K:12}
+      dense-weight: ${AI_RAG_HYBRID_DENSE_WEIGHT:0.55}
+      sparse-weight: ${AI_RAG_HYBRID_SPARSE_WEIGHT:0.45}
+    rerank:
+      enabled: ${AI_RAG_RERANK_ENABLED:true}
+      top-n: ${AI_RAG_RERANK_TOP_N:6}
   vision:
     jd-ocr-model: ${DASHSCOPE_VISION_MODEL:qwen-vl-max}
   cost:

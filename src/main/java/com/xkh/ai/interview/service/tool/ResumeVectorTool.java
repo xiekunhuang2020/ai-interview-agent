@@ -1,11 +1,15 @@
 package com.xkh.ai.interview.service.tool;
 
 import com.alibaba.cloud.ai.transformer.splitter.RecursiveCharacterTextSplitter;
+import com.xkh.ai.interview.service.rag.MilvusHybridResumeStore;
 import org.apache.commons.lang3.StringUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.ai.document.Document;
 import org.springframework.ai.vectorstore.SearchRequest;
 import org.springframework.ai.vectorstore.VectorStore;
 import org.springframework.ai.vectorstore.filter.FilterExpressionBuilder;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.stereotype.Component;
 
 import java.time.LocalDateTime;
@@ -17,22 +21,38 @@ import java.util.Map;
 @Component
 public class ResumeVectorTool {
 
+    private static final Logger logger = LoggerFactory.getLogger(ResumeVectorTool.class);
     private static final int CHUNK_SIZE = 800;
     private static final int DASHSCOPE_EMBEDDING_BATCH_LIMIT = 10;
 
     private final VectorStore vectorStore;
+    private final MilvusHybridResumeStore hybridResumeStore;
     private final RecursiveCharacterTextSplitter textSplitter;
 
     /**
-     * 注入 Spring AI 向量库，并使用 Spring AI Alibaba 提供的递归文本切分器处理简历入库。
+     * 简历入库主线：
+     * 1. 先把简历文本清洗、切分成 chunk。
+     * 2. 默认写入 Spring AI VectorStore，对应原来的 Milvus 向量检索链路。
+     * 3. hybrid 模式开启时，再同步写入独立的 Milvus hybrid collection。
+     *
+     * 这样做是为了保留原向量检索能力，同时让 hybrid 检索可以单独测试和回退。
      */
-    public ResumeVectorTool(VectorStore vectorStore) {
+    public ResumeVectorTool(VectorStore vectorStore,
+                            ObjectProvider<MilvusHybridResumeStore> hybridResumeStoreProvider) {
         this.vectorStore = vectorStore;
+        this.hybridResumeStore = hybridResumeStoreProvider.getIfAvailable();
         this.textSplitter = new RecursiveCharacterTextSplitter(CHUNK_SIZE);
     }
 
     /**
-     * 将简历文本切分成多个语义片段后写入 Milvus，避免整份简历作为单个向量导致召回粒度过粗。
+     * 上传简历后的入库入口。
+     *
+     * 主线顺序：
+     * 1. cleanResumeText：去掉多余空白，保留换行语义。
+     * 2. textSplitter.split：使用 Spring AI Alibaba 的递归切分器生成 chunk。
+     * 3. withChunkMetadata：给每个 chunk 标记 resumeId、文件名、chunkIndex、chunkCount。
+     * 4. addInBatches：写入默认向量库，保持原来的 vector 检索可用。
+     * 5. addHybridStoreIfEnabled：hybrid 模式下额外写入 BM25 + dense 混合检索 collection。
      */
     public int addResume(String resumeId, String fileName, String resumeText) {
         String cleanedText = cleanResumeText(resumeText);
@@ -44,6 +64,7 @@ public class ResumeVectorTool {
         Document sourceDocument = new Document(cleanedText, buildResumeMetadata(resumeId, fileName, indexedAt));
         List<Document> chunks = withChunkMetadata(textSplitter.split(sourceDocument));
         addInBatches(chunks);
+        addHybridStoreIfEnabled(chunks);
         return chunks.size();
     }
 
@@ -65,6 +86,7 @@ public class ResumeVectorTool {
         vectorStore.delete(new FilterExpressionBuilder()
                 .eq("resumeId", resumeId)
                 .build());
+        deleteHybridStoreIfEnabled(resumeId);
     }
 
     /**
@@ -99,6 +121,40 @@ public class ResumeVectorTool {
         for (int start = 0; start < chunks.size(); start += DASHSCOPE_EMBEDDING_BATCH_LIMIT) {
             int end = Math.min(start + DASHSCOPE_EMBEDDING_BATCH_LIMIT, chunks.size());
             vectorStore.add(chunks.subList(start, end));
+        }
+    }
+
+    /**
+     * hybrid 模式开启时同步写入 Milvus 官方 BM25 collection。
+     *
+     * 这里失败不抛出给上传流程，是因为默认向量库已经写入成功；
+     * hybrid 是增强链路，不能因为增强链路失败导致用户连基础简历分析都不能用。
+     */
+    private void addHybridStoreIfEnabled(List<Document> chunks) {
+        if (hybridResumeStore == null) {
+            return;
+        }
+        try {
+            hybridResumeStore.addResumeChunks(chunks);
+        } catch (Exception ex) {
+            logger.warn("Hybrid resume store add failed, fallback keeps vector store available, reason={}", ex.getMessage());
+        }
+    }
+
+    /**
+     * hybrid 模式开启时同步删除旧片段。
+     *
+     * replaceResume 会先 delete 再 add，所以这里用于避免同一 resumeId 重复入库。
+     * 如果 hybrid 删除失败，主向量库删除仍然有效，后续检索失败也会回退到 vector 链路。
+     */
+    private void deleteHybridStoreIfEnabled(String resumeId) {
+        if (hybridResumeStore == null) {
+            return;
+        }
+        try {
+            hybridResumeStore.deleteResume(resumeId);
+        } catch (Exception ex) {
+            logger.warn("Hybrid resume store delete failed, fallback keeps vector store available, reason={}", ex.getMessage());
         }
     }
 
