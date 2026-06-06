@@ -1544,6 +1544,10 @@ p {
     grid-template-columns: 150px minmax(120px, 0.8fr) 80px minmax(190px, 1fr) minmax(260px, 1.8fr);
 }
 
+.log-row.query-rewrite-row {
+    grid-template-columns: 150px 70px minmax(180px, 0.8fr) minmax(320px, 2fr);
+}
+
 .log-row.head {
     color: var(--muted);
     font-weight: 800;

@@ -265,19 +265,35 @@
             </div>
 
             <div class="panel wide-panel">
-                <div class="panel-header"><div><h2>最近顾问消息</h2><p>{{ audit.agentMessages.length }} 条</p></div></div>
+                <div class="panel-header"><div><h2>最近 Query 改写</h2><p>{{ queryRewriteMessages.length }} 条</p></div></div>
+                <div class="log-table">
+                    <div class="log-row query-rewrite-row head">
+                        <span>时间</span><span>状态</span><span>追踪编号</span><span>改写内容</span>
+                    </div>
+                    <div class="log-row query-rewrite-row" v-for="item in queryRewriteMessages" v-bind:key="item.id">
+                        <span>{{ shortTime(item.createTime) }}</span>
+                        <span v-bind:class="item.success === 1 ? 'ok-text' : 'bad-text'">{{ item.success === 1 ? '成功' : '失败' }}</span>
+                        <span class="mono" v-bind:title="item.traceId">{{ item.traceId || '--' }}</span>
+                        <span class="mono">{{ item.messageContent || item.errorMessage || '--' }}</span>
+                    </div>
+                    <p class="muted empty-line" v-if="!queryRewriteMessages.length">暂无 Query 改写记录</p>
+                </div>
+            </div>
+
+            <div class="panel wide-panel">
+                <div class="panel-header"><div><h2>最近顾问消息</h2><p>{{ regularAgentMessages.length }} 条</p></div></div>
                 <div class="log-table">
                     <div class="log-row head">
                         <span>时间</span><span>来源</span><span>角色</span><span>状态</span><span>内容</span>
                     </div>
-                    <div class="log-row" v-for="item in audit.agentMessages" v-bind:key="item.id">
+                    <div class="log-row" v-for="item in regularAgentMessages" v-bind:key="item.id">
                         <span>{{ shortTime(item.createTime) }}</span>
                         <span>{{ agentNameText(item.agentName) }}</span>
                         <span>{{ roleText(item.role) }}</span>
                         <span v-bind:class="item.success === 1 ? 'ok-text' : 'bad-text'">{{ item.success === 1 ? '成功' : '失败' }}</span>
                         <span class="mono">{{ item.messageContent || item.errorMessage || '--' }}</span>
                     </div>
-                    <p class="muted empty-line" v-if="!audit.agentMessages.length">暂无顾问消息记录</p>
+                    <p class="muted empty-line" v-if="!regularAgentMessages.length">暂无顾问消息记录</p>
                 </div>
             </div>
         </section>

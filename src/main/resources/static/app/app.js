@@ -115,6 +115,15 @@ function createInterviewApp() {
             };
         },
         computed: {
+            queryRewriteMessages() {
+                return this.safeList(this.audit.agentMessages)
+                    .filter((item) => item.agentName === 'interview_assistant_query_rewrite_agent')
+                    .slice(0, 5);
+            },
+            regularAgentMessages() {
+                return this.safeList(this.audit.agentMessages)
+                    .filter((item) => item.agentName !== 'interview_assistant_query_rewrite_agent');
+            },
             scoreItems() {
                 const detail = this.scoreResult && this.scoreResult.scoreDetail;
                 if (!detail) {
@@ -1490,6 +1499,7 @@ function createInterviewApp() {
                     'rag-interview-question-generation': '岗位定制出题',
                     'answer-evaluation': '回答评估',
                     'interview-assistant-stream': 'AI 顾问流式对话',
+                    'interview-assistant-query-rewrite': '顾问 Query 改写',
                     'interview-assistant-summary': '顾问摘要压缩',
                     'jd-image-ocr': '岗位截图识别',
                     'answer-audio-transcription': '语音回答转写',
@@ -1514,6 +1524,7 @@ function createInterviewApp() {
                     'interview-assistant': '面试顾问',
                     'InterviewAssistantAgentService': '面试顾问',
                     'interview_assistant_stream_agent': 'AI 顾问',
+                    'interview_assistant_query_rewrite_agent': 'Query 改写',
                     'interview_assistant_summary_agent': '摘要压缩'
                 };
                 return map[agentName] || '顾问';
