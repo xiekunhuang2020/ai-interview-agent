@@ -17,6 +17,7 @@ import org.springframework.ai.chat.messages.SystemMessage;
 import org.springframework.ai.chat.messages.UserMessage;
 import org.springframework.ai.chat.model.ChatResponse;
 import org.springframework.ai.chat.prompt.Prompt;
+import org.springframework.ai.embedding.EmbeddingModel;
 import org.springframework.ai.rag.Query;
 import org.springframework.ai.rag.preretrieval.query.transformation.QueryTransformer;
 import org.springframework.ai.rag.preretrieval.query.transformation.RewriteQueryTransformer;
@@ -66,6 +67,7 @@ public class InterviewAssistantAgentService {
     private final ChatClient chatClient;
     private final ChatMemory chatMemory;
     private final QueryTransformer queryRewriteTransformer;
+    private final EmbeddingModel embeddingModel;
     private final ToolCallbackProvider resumeToolCallbackProvider;
     private final AgentConversationAuditRecorder conversationAuditRecorder;
     private final AiModelCallAuditRecorder modelCallAuditRecorder;
@@ -76,6 +78,7 @@ public class InterviewAssistantAgentService {
     private final ConcurrentMap<String, Integer> summarizedMessageCounts = new ConcurrentHashMap<>();
     private final boolean summaryEnabled;
     private final boolean queryRewriteEnabled;
+    private final double queryRewriteMinSimilarity;
     private final int summaryTriggerMessages;
     private final int summaryKeepRecentMessages;
 
@@ -86,9 +89,11 @@ public class InterviewAssistantAgentService {
                                           AiModelCallService aiModelCallService,
                                           PromptContextBudgetService contextBudgetService,
                                           PromptVersionRegistry promptVersionRegistry,
+                                          EmbeddingModel embeddingModel,
                                           @Value("${ai-interview.agent.memory.max-messages:10}") int maxMemoryMessages,
                                           @Value("${ai-interview.agent.summary.enabled:true}") boolean summaryEnabled,
                                           @Value("${ai-interview.agent.query-rewrite.enabled:true}") boolean queryRewriteEnabled,
+                                          @Value("${ai-interview.agent.query-rewrite.min-similarity:0.75}") double queryRewriteMinSimilarity,
                                           @Value("${ai-interview.agent.summary.trigger-messages:8}") int summaryTriggerMessages,
                                           @Value("${ai-interview.agent.summary.keep-recent-messages:4}") int summaryKeepRecentMessages) {
         this.chatClient = chatClientBuilder.build();
@@ -105,8 +110,10 @@ public class InterviewAssistantAgentService {
         this.aiModelCallService = aiModelCallService;
         this.contextBudgetService = contextBudgetService;
         this.promptVersionRegistry = promptVersionRegistry;
+        this.embeddingModel = embeddingModel;
         this.summaryEnabled = summaryEnabled;
         this.queryRewriteEnabled = queryRewriteEnabled;
+        this.queryRewriteMinSimilarity = normalizeSimilarityThreshold(queryRewriteMinSimilarity);
         this.summaryTriggerMessages = Math.max(2, summaryTriggerMessages);
         this.summaryKeepRecentMessages = Math.max(0, summaryKeepRecentMessages);
     }
@@ -259,19 +266,21 @@ public class InterviewAssistantAgentService {
         try {
             Query rewritten = queryRewriteTransformer.transform(new Query(message, history, Map.of()));
             String rewrittenQuery = normalizeRewrittenQuery(message, rewritten);
+            QueryRewriteValidation validation = validateRewrittenQuery(message, rewrittenQuery);
+            String effectiveQuery = validation.accepted() ? rewrittenQuery : message;
             long latencyMs = System.currentTimeMillis() - start;
             conversationAuditRecorder.recordSystemMessage(
                     conversationId,
                     turnId,
                     QUERY_REWRITE_AGENT_NAME,
-                    formatQueryRewriteMessage(message, rewrittenQuery),
+                    formatQueryRewriteMessage(message, rewrittenQuery, validation),
                     true,
                     latencyMs,
                     null
             );
             modelCallAuditRecorder.record(QUERY_REWRITE_OPERATION_NAME, promptVersion, true,
                     latencyMs, (String) null, null, contextUsage);
-            return new QueryRewriteResult(rewrittenQuery);
+            return new QueryRewriteResult(effectiveQuery);
         } catch (RuntimeException e) {
             long latencyMs = System.currentTimeMillis() - start;
             conversationAuditRecorder.recordSystemMessage(
@@ -314,6 +323,61 @@ public class InterviewAssistantAgentService {
     }
 
     /**
+     * 对 Query Rewrite 结果做语义一致性校验。
+     *
+     * 这是改写链路的安全阀：改写只能让检索表达更稳定，不能改变用户真实意图。
+     * 这里复用 Spring AI 官方 EmbeddingModel 计算原问题和改写问题的余弦相似度；
+     * 低于阈值时丢弃改写，后续仍使用原始问题。
+     */
+    private QueryRewriteValidation validateRewrittenQuery(String originalMessage, String rewrittenQuery) {
+        if (!shouldInjectRewrittenQuery(originalMessage, rewrittenQuery)) {
+            return QueryRewriteValidation.unchanged();
+        }
+        try {
+            double similarity = cosineSimilarity(
+                    embeddingModel.embed(originalMessage),
+                    embeddingModel.embed(rewrittenQuery)
+            );
+            boolean accepted = similarity >= queryRewriteMinSimilarity;
+            return new QueryRewriteValidation(accepted, similarity, null);
+        } catch (RuntimeException ex) {
+            return new QueryRewriteValidation(false, null, "语义校验失败：" + ex.getMessage());
+        }
+    }
+
+    /**
+     * 计算两个 embedding 向量的余弦相似度，用于判断改写前后是否仍在表达同一意图。
+     */
+    private double cosineSimilarity(float[] left, float[] right) {
+        if (left == null || right == null || left.length == 0 || right.length == 0) {
+            return 0.0D;
+        }
+        int length = Math.min(left.length, right.length);
+        double dot = 0.0D;
+        double leftNorm = 0.0D;
+        double rightNorm = 0.0D;
+        for (int i = 0; i < length; i++) {
+            dot += left[i] * right[i];
+            leftNorm += left[i] * left[i];
+            rightNorm += right[i] * right[i];
+        }
+        if (leftNorm == 0.0D || rightNorm == 0.0D) {
+            return 0.0D;
+        }
+        return dot / (Math.sqrt(leftNorm) * Math.sqrt(rightNorm));
+    }
+
+    /**
+     * 规范 Query Rewrite 相似度阈值，避免配置错误导致所有改写都被接受或丢弃。
+     */
+    private double normalizeSimilarityThreshold(double threshold) {
+        if (Double.isNaN(threshold)) {
+            return 0.75D;
+        }
+        return Math.max(0.0D, Math.min(1.0D, threshold));
+    }
+
+    /**
      * 判断是否需要把改写后的检索意图注入 Prompt，避免无变化时增加噪声。
      */
     private boolean shouldInjectRewrittenQuery(String originalMessage, String rewrittenQuery) {
@@ -324,11 +388,14 @@ public class InterviewAssistantAgentService {
     /**
      * 将原始问题和改写问题写成看板可读格式，方便排查 Query Rewrite 是否跑偏。
      */
-    private String formatQueryRewriteMessage(String originalMessage, String rewrittenQuery) {
+    private String formatQueryRewriteMessage(String originalMessage,
+                                             String rewrittenQuery,
+                                             QueryRewriteValidation validation) {
         return """
                 原始问题：%s
                 改写后：%s
-                """.formatted(originalMessage, rewrittenQuery).trim();
+                语义校验：%s
+                """.formatted(originalMessage, rewrittenQuery, validation.toAuditText(queryRewriteMinSimilarity)).trim();
     }
 
     /**
@@ -491,6 +558,21 @@ public class InterviewAssistantAgentService {
     }
 
     private record QueryRewriteResult(String rewrittenQuery) {
+    }
+
+    private record QueryRewriteValidation(boolean accepted, Double similarity, String reason) {
+
+        private static QueryRewriteValidation unchanged() {
+            return new QueryRewriteValidation(true, null, "改写无变化");
+        }
+
+        private String toAuditText(double threshold) {
+            if (similarity == null) {
+                return accepted ? reason : reason + "，已使用原始问题";
+            }
+            String status = accepted ? "通过，采用改写" : "未通过，已丢弃改写";
+            return "%s，相似度 %.3f，阈值 %.3f".formatted(status, similarity, threshold);
+        }
     }
 }
 

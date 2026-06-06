@@ -117,6 +117,7 @@ ai-interview:
       max-messages: ${AI_AGENT_MEMORY_MAX_MESSAGES:10}
     query-rewrite:
       enabled: ${AI_AGENT_QUERY_REWRITE_ENABLED:true}
+      min-similarity: ${AI_AGENT_QUERY_REWRITE_MIN_SIMILARITY:0.75}
     summary:
       enabled: ${AI_AGENT_SUMMARY_ENABLED:true}
       trigger-messages: ${AI_AGENT_SUMMARY_TRIGGER_MESSAGES:8}
