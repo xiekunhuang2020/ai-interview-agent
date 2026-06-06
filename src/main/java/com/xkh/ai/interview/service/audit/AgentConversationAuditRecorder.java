@@ -15,6 +15,7 @@ public class AgentConversationAuditRecorder {
 
     public static final String ROLE_USER = "USER";
     public static final String ROLE_ASSISTANT = "ASSISTANT";
+    public static final String ROLE_SYSTEM = "SYSTEM";
 
     private static final Logger logger = LoggerFactory.getLogger(AgentConversationAuditRecorder.class);
     private static final int MAX_ERROR_MESSAGE_LENGTH = 1024;
@@ -53,6 +54,17 @@ public class AgentConversationAuditRecorder {
                                        long latencyMs,
                                        String errorMessage) {
         record(conversationId, turnId, agentName, ROLE_ASSISTANT, messageContent, success, latencyMs, errorMessage);
+    }
+
+    @Transactional
+    public void recordSystemMessage(String conversationId,
+                                    String turnId,
+                                    String agentName,
+                                    String messageContent,
+                                    boolean success,
+                                    long latencyMs,
+                                    String errorMessage) {
+        record(conversationId, turnId, agentName, ROLE_SYSTEM, messageContent, success, latencyMs, errorMessage);
     }
 
     private void record(String conversationId,

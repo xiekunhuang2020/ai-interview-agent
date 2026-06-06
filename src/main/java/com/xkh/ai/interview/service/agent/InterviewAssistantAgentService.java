@@ -17,6 +17,9 @@ import org.springframework.ai.chat.messages.SystemMessage;
 import org.springframework.ai.chat.messages.UserMessage;
 import org.springframework.ai.chat.model.ChatResponse;
 import org.springframework.ai.chat.prompt.Prompt;
+import org.springframework.ai.rag.Query;
+import org.springframework.ai.rag.preretrieval.query.transformation.QueryTransformer;
+import org.springframework.ai.rag.preretrieval.query.transformation.RewriteQueryTransformer;
 import org.springframework.ai.tool.ToolCallbackProvider;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
@@ -38,8 +41,10 @@ public class InterviewAssistantAgentService {
 
     private static final String STREAM_AGENT_NAME = "interview_assistant_stream_agent";
     private static final String SUMMARY_AGENT_NAME = "interview_assistant_summary_agent";
+    private static final String QUERY_REWRITE_AGENT_NAME = "interview_assistant_query_rewrite_agent";
     private static final String OPERATION_NAME = "interview-assistant-stream";
     private static final String SUMMARY_OPERATION_NAME = "interview-assistant-summary";
+    private static final String QUERY_REWRITE_OPERATION_NAME = "interview-assistant-query-rewrite";
     private static final String INTERVIEW_ASSISTANT_INSTRUCTION = """
             你是一个 AI 求职顾问，负责围绕候选人简历进行分析、追问设计和面试辅导。
             当用户提供 resumeId 时，应优先调用工具获取真实简历画像、已生成问题或相似简历上下文。
@@ -60,6 +65,7 @@ public class InterviewAssistantAgentService {
 
     private final ChatClient chatClient;
     private final ChatMemory chatMemory;
+    private final QueryTransformer queryRewriteTransformer;
     private final ToolCallbackProvider resumeToolCallbackProvider;
     private final AgentConversationAuditRecorder conversationAuditRecorder;
     private final AiModelCallAuditRecorder modelCallAuditRecorder;
@@ -69,6 +75,7 @@ public class InterviewAssistantAgentService {
     private final ConcurrentMap<String, String> conversationSummaries = new ConcurrentHashMap<>();
     private final ConcurrentMap<String, Integer> summarizedMessageCounts = new ConcurrentHashMap<>();
     private final boolean summaryEnabled;
+    private final boolean queryRewriteEnabled;
     private final int summaryTriggerMessages;
     private final int summaryKeepRecentMessages;
 
@@ -81,11 +88,16 @@ public class InterviewAssistantAgentService {
                                           PromptVersionRegistry promptVersionRegistry,
                                           @Value("${ai-interview.agent.memory.max-messages:10}") int maxMemoryMessages,
                                           @Value("${ai-interview.agent.summary.enabled:true}") boolean summaryEnabled,
+                                          @Value("${ai-interview.agent.query-rewrite.enabled:true}") boolean queryRewriteEnabled,
                                           @Value("${ai-interview.agent.summary.trigger-messages:8}") int summaryTriggerMessages,
                                           @Value("${ai-interview.agent.summary.keep-recent-messages:4}") int summaryKeepRecentMessages) {
         this.chatClient = chatClientBuilder.build();
         this.chatMemory = MessageWindowChatMemory.builder()
                 .maxMessages(Math.max(2, maxMemoryMessages))
+                .build();
+        this.queryRewriteTransformer = RewriteQueryTransformer.builder()
+                .chatClientBuilder(chatClientBuilder)
+                .targetSearchSystem("AI 求职顾问工具和简历知识库")
                 .build();
         this.resumeToolCallbackProvider = resumeToolCallbackProvider;
         this.conversationAuditRecorder = conversationAuditRecorder;
@@ -94,6 +106,7 @@ public class InterviewAssistantAgentService {
         this.contextBudgetService = contextBudgetService;
         this.promptVersionRegistry = promptVersionRegistry;
         this.summaryEnabled = summaryEnabled;
+        this.queryRewriteEnabled = queryRewriteEnabled;
         this.summaryTriggerMessages = Math.max(2, summaryTriggerMessages);
         this.summaryKeepRecentMessages = Math.max(0, summaryKeepRecentMessages);
     }
@@ -123,7 +136,8 @@ public class InterviewAssistantAgentService {
             String promptVersion = promptVersionRegistry.versionOf(OPERATION_NAME);
             AtomicReference<AiModelCallAuditRecorder.ModelUsage> usageRef = new AtomicReference<>();
             String limitedMessage = contextBudgetService.limitAssistantUserMessage(message);
-            List<Message> messages = buildStreamingMessages(conversationId, limitedMessage);
+            QueryRewriteResult queryRewriteResult = rewriteQuery(conversationId, turnId, limitedMessage);
+            List<Message> messages = buildStreamingMessages(conversationId, limitedMessage, queryRewriteResult.rewrittenQuery());
             PromptContextBudgetService.ContextUsage contextUsage = contextBudgetService.contextUsageOf(messages);
             Prompt prompt = new Prompt(messages,
                     DashScopeChatOptions.builder()
@@ -211,7 +225,7 @@ public class InterviewAssistantAgentService {
     /**
      * 构造本轮模型输入，包含系统指令、历史上下文和当前用户问题。
      */
-    private List<Message> buildStreamingMessages(String conversationId, String message) {
+    private List<Message> buildStreamingMessages(String conversationId, String message, String rewrittenQuery) {
         List<Message> messages = new ArrayList<>();
         messages.add(new SystemMessage(INTERVIEW_ASSISTANT_INSTRUCTION));
         String summary = conversationSummaries.get(conversationId);
@@ -219,8 +233,109 @@ public class InterviewAssistantAgentService {
             messages.add(new SystemMessage("## 已压缩会话摘要\n" + summary));
         }
         messages.addAll(chatMemory.get(conversationId));
+        if (shouldInjectRewrittenQuery(message, rewrittenQuery)) {
+            messages.add(new SystemMessage("""
+                    ## 本轮检索意图
+                    以下内容由 Query Rewrite 生成，只用于辅助工具调用和检索，不替代用户原始问题。
+                    %s
+                    """.formatted(rewrittenQuery)));
+        }
         messages.add(new UserMessage(message));
         return messages;
+    }
+
+    /**
+     * 使用 Spring AI 官方 RewriteQueryTransformer 把口语化问题改写成更稳定的检索意图。
+     */
+    private QueryRewriteResult rewriteQuery(String conversationId, String turnId, String message) {
+        if (!queryRewriteEnabled || StringUtils.isBlank(message)) {
+            return new QueryRewriteResult(message);
+        }
+
+        long start = System.currentTimeMillis();
+        String promptVersion = promptVersionRegistry.versionOf(QUERY_REWRITE_OPERATION_NAME);
+        List<Message> history = chatMemory.get(conversationId);
+        PromptContextBudgetService.ContextUsage contextUsage = contextBudgetService.contextUsageOf(rewriteContextMessages(history, message));
+        try {
+            Query rewritten = queryRewriteTransformer.transform(new Query(message, history, Map.of()));
+            String rewrittenQuery = normalizeRewrittenQuery(message, rewritten);
+            long latencyMs = System.currentTimeMillis() - start;
+            conversationAuditRecorder.recordSystemMessage(
+                    conversationId,
+                    turnId,
+                    QUERY_REWRITE_AGENT_NAME,
+                    formatQueryRewriteMessage(message, rewrittenQuery),
+                    true,
+                    latencyMs,
+                    null
+            );
+            modelCallAuditRecorder.record(QUERY_REWRITE_OPERATION_NAME, promptVersion, true,
+                    latencyMs, (String) null, null, contextUsage);
+            return new QueryRewriteResult(rewrittenQuery);
+        } catch (RuntimeException e) {
+            long latencyMs = System.currentTimeMillis() - start;
+            conversationAuditRecorder.recordSystemMessage(
+                    conversationId,
+                    turnId,
+                    QUERY_REWRITE_AGENT_NAME,
+                    formatQueryRewriteFailureMessage(message),
+                    false,
+                    latencyMs,
+                    e.getMessage()
+            );
+            modelCallAuditRecorder.record(QUERY_REWRITE_OPERATION_NAME, promptVersion, false,
+                    latencyMs, e, null, contextUsage);
+            return new QueryRewriteResult(message);
+        }
+    }
+
+    /**
+     * 组装 Query Rewrite 的上下文统计样本，用于看板观察本次改写输入规模。
+     */
+    private List<Message> rewriteContextMessages(List<Message> history, String message) {
+        List<Message> messages = new ArrayList<>();
+        if (history != null) {
+            messages.addAll(history);
+        }
+        messages.add(new UserMessage(message));
+        return messages;
+    }
+
+    /**
+     * 清理官方改写结果，空结果或无效结果直接回退到原始问题。
+     */
+    private String normalizeRewrittenQuery(String originalMessage, Query rewritten) {
+        String rewrittenText = rewritten == null ? null : rewritten.text();
+        rewrittenText = StringUtils.trimToEmpty(rewrittenText)
+                .replaceAll("^```[a-zA-Z]*", "")
+                .replaceAll("```$", "")
+                .trim();
+        return StringUtils.defaultIfBlank(rewrittenText, originalMessage);
+    }
+
+    /**
+     * 判断是否需要把改写后的检索意图注入 Prompt，避免无变化时增加噪声。
+     */
+    private boolean shouldInjectRewrittenQuery(String originalMessage, String rewrittenQuery) {
+        return StringUtils.isNotBlank(rewrittenQuery)
+                && !StringUtils.equals(StringUtils.trimToEmpty(originalMessage), StringUtils.trimToEmpty(rewrittenQuery));
+    }
+
+    /**
+     * 将原始问题和改写问题写成看板可读格式，方便排查 Query Rewrite 是否跑偏。
+     */
+    private String formatQueryRewriteMessage(String originalMessage, String rewrittenQuery) {
+        return """
+                原始问题：%s
+                改写后：%s
+                """.formatted(originalMessage, rewrittenQuery).trim();
+    }
+
+    /**
+     * Query Rewrite 失败时保留原始问题，方便从面板定位降级原因。
+     */
+    private String formatQueryRewriteFailureMessage(String originalMessage) {
+        return "Query Rewrite 失败，已使用原始问题继续：%s".formatted(originalMessage);
     }
 
     /**
@@ -373,6 +488,9 @@ public class InterviewAssistantAgentService {
         long latencyMs = System.currentTimeMillis() - start;
         conversationAuditRecorder.recordAssistantMessage(
                 conversationId, turnId, agentName, null, false, latencyMs, e.getMessage());
+    }
+
+    private record QueryRewriteResult(String rewrittenQuery) {
     }
 }
 
