@@ -93,6 +93,8 @@ flowchart TD
 
 `InterviewAssistantAgentService` 提供面向对话式使用的 AI 求职顾问入口。它基于 Spring AI `ChatClient.stream()` 做流式输出，并使用 `conversationId` 保存最近几轮对话上下文。
 
+AI 顾问在正式回答前会使用 Spring AI 官方 `RewriteQueryTransformer` 对本轮用户问题做轻量 Query Rewrite。改写结果只作为检索意图和工具查询辅助，原始问题仍保留；如果改写失败，会回退原始问题，不阻断流式回答。改写后的内容会写入 `agent_conversation_message`，运营看板“最近 Query 改写”区域可查看。
+
 AI 顾问可调用的工具集中在 `ResumeAgentTools`，只暴露查询类能力：
 
 - `get_resume_profile`：查询简历画像
